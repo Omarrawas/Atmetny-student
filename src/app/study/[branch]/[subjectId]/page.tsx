@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, BookOpen, Loader2, AlertTriangle, List } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from "@/hooks/use-toast";
 
 export default function SubjectSectionsPage() {
   const params = useParams();
   const router = useRouter();
   const subjectId = params.subjectId as string;
-  // const branch = params.branch as string; // Available if needed for breadcrumbs or other logic
+  const branch = params.branch as string;
+  const { toast } = useToast();
 
   const [subject, setSubject] = useState<Subject | null>(null);
   const [sections, setSections] = useState<SubjectSection[]>([]);
@@ -27,26 +29,28 @@ export default function SubjectSectionsPage() {
         setIsLoading(true);
         setError(null);
         try {
-          console.log(`Fetching data for subjectId: ${subjectId}`);
           const [subjectData, sectionsData] = await Promise.all([
-            getSubjectById(subjectId),
-            getSubjectSections(subjectId),
+            getSubjectById(subjectId), // Will return null and log warning
+            getSubjectSections(subjectId), // Will return [] and log warning
           ]);
 
-          console.log('Fetched Subject Data:', subjectData);
-          console.log('Fetched Sections Data:', sectionsData);
-
           if (!subjectData) {
-            setError(`لم يتم العثور على المادة بالمعرف: ${subjectId}`);
+            setError(`لم يتم العثور على المادة بالمعرف: ${subjectId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
             setSubject(null);
             setSections([]);
+            toast({ title: "تنبيه", description: `تفاصيل المادة "${subjectId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
           } else {
             setSubject(subjectData);
-            setSections(sectionsData);
           }
+          
+          setSections(sectionsData);
+          if (subjectData && sectionsData.length === 0) {
+             toast({ title: "تنبيه", description: `قائمة أقسام المادة "${subjectData.name}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+          }
+
         } catch (e) {
           console.error("Failed to fetch subject sections data:", e);
-          setError("فشل تحميل بيانات أقسام المادة. يرجى المحاولة مرة أخرى.");
+          setError("فشل تحميل بيانات أقسام المادة. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
           setSubject(null);
           setSections([]);
         } finally {
@@ -55,7 +59,7 @@ export default function SubjectSectionsPage() {
       };
       fetchData();
     }
-  }, [subjectId]);
+  }, [subjectId, toast]);
 
   if (isLoading) {
     return (
@@ -79,10 +83,9 @@ export default function SubjectSectionsPage() {
   }
 
   if (!subject) {
-    // This case should ideally be caught by the error state if subjectData is null
     return (
       <div className="text-center py-10">
-        <p className="text-lg text-muted-foreground">لم يتم العثور على المادة.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على المادة. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
          <Button onClick={() => router.push('/study')} variant="outline">
           العودة إلى صفحة الدراسة
         </Button>
@@ -106,13 +109,13 @@ export default function SubjectSectionsPage() {
           {sections.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <List className="h-10 w-10 mx-auto mb-2" />
-              <p className="text-lg">لا توجد أقسام متاحة لهذه المادة حاليًا.</p>
+              <p className="text-lg">لا توجد أقسام متاحة لهذه المادة حاليًا. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
             </div>
           ) : (
             <ul className="space-y-4">
               {sections.map((section) => (
                 <li key={section.id}>
-                  <Link href={`/study/${subject.branch}/${subject.id}/${section.id}`} passHref>
+                  <Link href={`/study/${subject.branch || branch}/${subject.id}/${section.id}`} passHref>
                     <Card className="hover:shadow-md transition-shadow cursor-pointer group">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div>

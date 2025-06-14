@@ -5,26 +5,25 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// Removed: import { subjects as subjectOptions, teachers as teacherOptions } from "@/lib/constants";
-import { teachers as teacherOptions } from "@/lib/constants"; // Keep teacherOptions for now
-import { getPublicExams, getSubjects } from "@/lib/examService"; // Added getSubjects
-import type { Exam, Subject } from "@/lib/types"; // Added Subject type
+import { teachers as teacherOptions } from "@/lib/constants"; 
+import { getPublicExams, getSubjects } from "@/lib/examService";
+import type { Exam, Subject } from "@/lib/types";
 import { Filter, FileText, Clock, User, Loader2, AlertCircle, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { useToast } from "@/hooks/use-toast";
 
 export default function ExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
-  const [isLoadingExams, setIsLoadingExams] = useState(true); // Renamed for clarity
+  const [isLoadingExams, setIsLoadingExams] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [firestoreSubjects, setFirestoreSubjects] = useState<Subject[]>([]);
+  const [subjectsList, setSubjectsList] = useState<Subject[]>([]); // Renamed from firestoreSubjects for clarity
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
 
-  const [selectedSubject, setSelectedSubject] = useState<string>(""); // Stores subject ID
-  const [selectedTeacher, setSelectedTeacher] = useState<string>(""); // Stores teacher ID
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedTeacher, setSelectedTeacher] = useState<string>("");
 
   const [activeFilters, setActiveFilters] = useState<{ subjectId?: string; teacherId?: string }>({});
 
@@ -32,8 +31,11 @@ export default function ExamsPage() {
     const fetchSubjectOptions = async () => {
       setIsLoadingSubjects(true);
       try {
-        const fetchedSubjects = await getSubjects();
-        setFirestoreSubjects(fetchedSubjects);
+        const fetchedSubjects = await getSubjects(); // This will now return [] and log a warning
+        setSubjectsList(fetchedSubjects);
+        if (fetchedSubjects.length === 0) {
+            toast({ title: "تنبيه", description: "قائمة المواد تحتاج للتحديث لـ Supabase.", variant: "default" });
+        }
       } catch (e) {
         console.error("Failed to fetch subject options:", e);
         toast({ title: "خطأ", description: "فشل تحميل قائمة المواد للفلترة.", variant: "destructive" });
@@ -49,40 +51,32 @@ export default function ExamsPage() {
       setIsLoadingExams(true);
       setError(null);
       try {
-        // console.log("Fetching exams with active filters:", activeFilters); // Kept for debugging if needed
-        const fetchedExams = await getPublicExams(activeFilters);
+        const fetchedExams = await getPublicExams(activeFilters); // This will now return [] and log a warning
         setExams(fetchedExams);
+         if (fetchedExams.length === 0 && Object.keys(activeFilters).length === 0) {
+            // Toast only if no filters are applied and no exams are fetched
+            // toast({ title: "تنبيه", description: "قائمة الاختبارات العامة تحتاج للتحديث لـ Supabase.", variant: "default" });
+        }
       } catch (e) {
         console.error("Failed to fetch exams:", e);
-        setError("فشل تحميل قائمة الاختبارات. يرجى المحاولة مرة أخرى.");
+        setError("فشل تحميل قائمة الاختبارات. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
       } finally {
         setIsLoadingExams(false);
       }
     };
     fetchExams();
-  }, [activeFilters]);
+  }, [activeFilters, toast]);
 
   const handleApplyFilter = () => {
     const newActiveFilters: { subjectId?: string; teacherId?: string } = {};
-
-    // selectedSubject is the ID of the subject from firestoreSubjects (which should be the Firestore Document ID)
     if (selectedSubject && selectedSubject !== 'all' && selectedSubject !== '') {
       newActiveFilters.subjectId = selectedSubject;
-    } else {
-      newActiveFilters.subjectId = undefined;
     }
-
     if (selectedTeacher && selectedTeacher !== 'all' && selectedTeacher !== '') {
       newActiveFilters.teacherId = selectedTeacher;
-    } else {
-      newActiveFilters.teacherId = undefined;
     }
-
-    // console.log("Applying filters from UI (selectedSubject, selectedTeacher):", { selectedSubject, selectedTeacher });
-    // console.log("Setting activeFilters to:", newActiveFilters);
     setActiveFilters(newActiveFilters);
   };
-
 
   return (
     <div className="space-y-8">
@@ -101,16 +95,16 @@ export default function ExamsPage() {
               dir="rtl" 
               onValueChange={setSelectedSubject} 
               value={selectedSubject}
-              disabled={isLoadingSubjects}
+              disabled={isLoadingSubjects || subjectsList.length === 0}
             >
               <SelectTrigger id="subject-filter" className="w-full">
-                <SelectValue placeholder={isLoadingSubjects ? "جاري تحميل المواد..." : "اختر المادة"} />
+                <SelectValue placeholder={isLoadingSubjects ? "جاري تحميل المواد..." : (subjectsList.length === 0 ? "لا مواد (تحتاج تحديث)" : "اختر المادة")} />
               </SelectTrigger>
               <SelectContent>
-                {!isLoadingSubjects && (
+                {!isLoadingSubjects && subjectsList.length > 0 && (
                   <>
                     <SelectItem value="all">الكل</SelectItem>
-                    {firestoreSubjects.map(subject => (
+                    {subjectsList.map(subject => (
                       <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
                     ))}
                   </>
@@ -157,9 +151,9 @@ export default function ExamsPage() {
         )}
         {!isLoadingExams && !error && exams.length === 0 && (
           <p className="text-center text-muted-foreground mt-8 text-lg">
-            {Object.values(activeFilters).some(val => val !== undefined) // Check if any filter is active
+            {Object.values(activeFilters).some(val => val !== undefined)
               ? "لا توجد اختبارات تطابق معايير الفلترة الحالية."
-              : "لا توجد اختبارات عامة متاحة حالياً."}
+              : "لا توجد اختبارات عامة متاحة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)"}
           </p>
         )}
         {!isLoadingExams && !error && exams.length > 0 && (
@@ -210,6 +204,3 @@ export default function ExamsPage() {
     </div>
   );
 }
-    
-
-    

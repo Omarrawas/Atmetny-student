@@ -9,11 +9,11 @@ import { ChevronLeft, ChevronRight, Send, Loader2, AlertTriangle, TimerIcon, Ale
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
-import { getExamById, saveExamAttempt } from "@/lib/examService"; // saveExamAttempt is now Supabase
+import { getExamById, saveExamAttempt } from "@/lib/examService";
 import type { Exam as ExamType, Question as QuestionType } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient"; // Supabase client
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { supabase } from "@/lib/supabaseClient";
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 const DEFAULT_SECONDS_PER_QUESTION = 90;
 
@@ -31,7 +31,6 @@ const formatTime = (totalSeconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-
 export default function ExamTakingPage() {
   const params = useParams();
   const router = useRouter();
@@ -39,7 +38,7 @@ export default function ExamTakingPage() {
   const examId = params.examId as string;
   const { toast } = useToast();
 
-  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
   const [exam, setExam] = useState<ExamType | null>(null);
   const [isLoadingExam, setIsLoadingExam] = useState(true);
   const [isProcessingSettings, setIsProcessingSettings] = useState(true);
@@ -54,8 +53,7 @@ export default function ExamTakingPage() {
   const [isTimerEnabled, setIsTimerEnabled] = useState(false);
   const [timeLeftInSeconds, setTimeLeftInSeconds] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
-  const [initialDurationInSeconds, setInitialDurationInSeconds] = useState<number>(0);
-
+  // const [initialDurationInSeconds, setInitialDurationInSeconds] = useState<number>(0); // Removed, not directly used after setting timeLeftInSeconds
 
   useEffect(() => {
     const getSessionUser = async () => {
@@ -75,10 +73,13 @@ export default function ExamTakingPage() {
         setAuthUser(session.user);
       } else {
         setAuthUser(null);
-        toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
-        router.push('/auth');
+        if (pathname?.startsWith('/exams/')) { // Only redirect if on an exam page
+             toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
+             router.push('/auth');
+        }
       }
     });
+    const pathname = window.location.pathname; // Get current pathname
     return () => {
       authListener?.subscription.unsubscribe();
     };
@@ -90,16 +91,16 @@ export default function ExamTakingPage() {
         setIsLoadingExam(true);
         setError(null);
         try {
-          const fetchedExam = await getExamById(examId); // TODO: This service needs migration to Supabase
+          const fetchedExam = await getExamById(examId); // This will now return null and log a warning
           if (fetchedExam) {
             setExam(fetchedExam);
           } else {
-            setError("لم يتم العثور على الاختبار المطلوب.");
+            setError("لم يتم العثور على الاختبار المطلوب. (أو الخدمة تحتاج للتحديث لـ Supabase)");
             setExam(null); 
           }
         } catch (e) {
           console.error("Failed to fetch exam data:", e);
-          setError("فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى. (getExamById needs migration)");
+          setError("فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
           setExam(null);
         } finally {
           setIsLoadingExam(false);
@@ -110,7 +111,7 @@ export default function ExamTakingPage() {
   }, [examId]);
 
   const handleSubmit = useCallback(async () => {
-    if (!authUser) { // Check Supabase authUser
+    if (!authUser) {
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لتسليم الإجابات.", variant: "destructive" });
       return;
     }
@@ -118,7 +119,7 @@ export default function ExamTakingPage() {
       toast({ title: "خطأ", description: "لم يتم تسجيل وقت بدء الاختبار.", variant: "destructive" });
       return;
     }
-    if (isSubmitting) return;
+    if (isSubmitting || !exam) return; // Added !exam check
 
     setIsSubmitting(true);
     setIsTimerRunning(false); 
@@ -131,11 +132,11 @@ export default function ExamTakingPage() {
         return { questionId: q.id, selectedOptionId: selectedOptionId || "N/A", isCorrect };
       });
 
-      const score = (correctAnswersCount / processedQuestions.length) * 100;
+      const score = processedQuestions.length > 0 ? (correctAnswersCount / processedQuestions.length) * 100 : 0;
 
-      await saveExamAttempt({ // Supabase version
-        userId: authUser.id, // Use Supabase user ID
-        examId: exam!.id, 
+      await saveExamAttempt({
+        userId: authUser.id,
+        examId: exam.id, 
         examType: 'general_exam',
         score: parseFloat(score.toFixed(2)),
         correctAnswersCount,
@@ -173,10 +174,13 @@ export default function ExamTakingPage() {
     }
   }, [authUser, startTime, exam, processedQuestions, answers, toast, router, examId, isSubmitting, searchParams]);
 
-
   useEffect(() => {
-    if (!exam || !exam.questions) {
+    if (!exam || !exam.questions) { // exam.questions might be undefined if not fetched
       setIsProcessingSettings(false);
+      if(exam && (!exam.questions || exam.questions.length === 0)) {
+         // setError("لا توجد أسئلة محملة لهذا الاختبار. (الخدمة تحتاج للتحديث لـ Supabase)");
+         setProcessedQuestions([]); // Ensure it's empty
+      }
       return;
     }
     setIsProcessingSettings(true);
@@ -187,7 +191,7 @@ export default function ExamTakingPage() {
     const timerEnabledParam = searchParams.get('timer') === 'true';
     const customDurationMinsParam = searchParams.get('durationMins');
 
-    let questions = [...exam.questions];
+    let questions = [...(exam.questions || [])]; // Use exam.questions or empty array
 
     if (difficultyParam && difficultyParam !== 'all') {
       questions = questions.filter(q => q.difficulty === difficultyParam);
@@ -200,7 +204,7 @@ export default function ExamTakingPage() {
     const numQuestionsToTake = numQParam ? parseInt(numQParam, 10) : questions.length;
     questions = questions.slice(0, Math.min(numQuestionsToTake, questions.length));
     
-    if (questions.length === 0 && exam.questions.length > 0) {
+    if (questions.length === 0 && exam.questions && exam.questions.length > 0) {
         setError("لم يتم العثور على أسئلة تطابق الإعدادات المختارة. يرجى تعديل الإعدادات أو اختيار الكل.");
         setProcessedQuestions([]);
     } else {
@@ -229,7 +233,7 @@ export default function ExamTakingPage() {
       } else {
         durationInSeconds = calculateDurationInSeconds(questions.length, exam.durationInMinutes);
       }
-      setInitialDurationInSeconds(durationInSeconds);
+      // setInitialDurationInSeconds(durationInSeconds); // Removed
       setTimeLeftInSeconds(durationInSeconds);
       setIsTimerRunning(true);
     } else {
@@ -263,7 +267,6 @@ export default function ExamTakingPage() {
     };
   }, [isTimerRunning, timeLeftInSeconds, handleSubmit, toast, isSubmitting]);
 
-
   if (isLoadingExam) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -289,7 +292,7 @@ export default function ExamTakingPage() {
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
         <h2 className="text-2xl font-semibold mb-2">لم يتم العثور على الاختبار</h2>
-        <p className="text-lg text-muted-foreground mb-6">قد يكون قد تم حذفه أو أن الرابط غير صحيح.</p>
+        <p className="text-lg text-muted-foreground mb-6">قد يكون قد تم حذفه أو أن الرابط غير صحيح. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
         <Button onClick={() => router.push('/exams')}>العودة إلى قائمة الاختبارات</Button>
       </div>
     );
@@ -315,17 +318,18 @@ export default function ExamTakingPage() {
     );
   }
 
-
   if (processedQuestions.length === 0) {
      return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
         <h2 className="text-2xl font-semibold mb-2">لا توجد أسئلة</h2>
         <p className="text-lg text-muted-foreground mb-6">
-          {exam.questions && exam.questions.length > 0 ? "لا توجد أسئلة تطابق الإعدادات الحالية. حاول تعديل إعدادات الاختبار." : "عذراً، هذا الاختبار لا يحتوي على أسئلة حالياً."}
+          {(exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) 
+            ? "لا توجد أسئلة تطابق الإعدادات الحالية. حاول تعديل إعدادات الاختبار. (أو الخدمة تحتاج للتحديث لـ Supabase)" 
+            : "عذراً، هذا الاختبار لا يحتوي على أسئلة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)"}
         </p>
-        <Button onClick={() => router.push(exam.questions && exam.questions.length > 0 ? `/exams/${examId}/setup` : '/exams')}>
-            {exam.questions && exam.questions.length > 0 ? "العودة إلى الإعدادات" : "العودة إلى قائمة الاختبارات"}
+        <Button onClick={() => router.push((exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) ? `/exams/${examId}/setup` : '/exams')}>
+            {(exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) ? "العودة إلى الإعدادات" : "العودة إلى قائمة الاختبارات"}
         </Button>
       </div>
     );
@@ -424,4 +428,3 @@ export default function ExamTakingPage() {
     </div>
   );
 }
-

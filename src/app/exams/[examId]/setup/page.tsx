@@ -14,14 +14,12 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, AlertTriangle, Settings, Play, Eye, Hash, TimerIcon, ListChecks, Zap, Clock, BookOpen } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from '@/components/ui/separator';
-import ExamBrowseView from '@/components/exam/exam-browse-view'; // New Import
+import ExamBrowseView from '@/components/exam/exam-browse-view';
 
 const MAX_QUESTIONS_LIMIT_CONFIG = 50; 
 const DEFAULT_CUSTOM_DURATION_MINUTES = 30;
 const MIN_CUSTOM_DURATION_MINUTES = 5;
 const MAX_CUSTOM_DURATION_MINUTES = 180;
-
 
 export default function ExamSetupPage() {
   const params = useParams();
@@ -49,7 +47,7 @@ export default function ExamSetupPage() {
         setIsLoadingExam(true);
         setPageError(null);
         try {
-          const examData = await getExamById(examId);
+          const examData = await getExamById(examId); // This will now return null and log a warning
           if (examData) {
             setExam(examData);
             const totalExamQuestions = examData.questions?.length || examData.totalQuestions || MAX_QUESTIONS_LIMIT_CONFIG;
@@ -60,13 +58,12 @@ export default function ExamSetupPage() {
             } else {
                 setCustomDurationMinutes(DEFAULT_CUSTOM_DURATION_MINUTES);
             }
-
           } else {
-            setPageError(`لم نتمكن من العثور على تفاصيل الاختبار (المعرف: ${examId}).`);
+            setPageError(`لم نتمكن من العثور على تفاصيل الاختبار (المعرف: ${examId}). (أو الخدمة تحتاج للتحديث لـ Supabase)`);
           }
         } catch (error) {
           console.error("Error fetching exam details for setup:", error);
-          setPageError("حدث خطأ أثناء تحميل تفاصيل الاختبار. حاول مرة أخرى.");
+          setPageError("حدث خطأ أثناء تحميل تفاصيل الاختبار. حاول مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
         } finally {
           setIsLoadingExam(false);
         }
@@ -107,7 +104,6 @@ export default function ExamSetupPage() {
     router.push(`/exams/${examId}?${queryParams.toString()}`);
   };
 
-
   if (isLoadingExam) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
@@ -133,7 +129,7 @@ export default function ExamSetupPage() {
      return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على الاختبار.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على الاختبار. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
         <Button onClick={() => router.push('/exams')} variant="outline">
           العودة إلى قائمة الاختبارات
         </Button>
@@ -252,10 +248,10 @@ export default function ExamSetupPage() {
               {exam && (
                 <ExamBrowseView 
                   examId={exam.id} 
-                  initialOrder="sequential" // Default to all questions sequentially
-                  initialDifficulty="all"    // Default to all difficulties
-                  initialViewMode="single"   // Default to single question view
-                  hideChangeSettingsButton={true} // Hide the "Change Settings" button within the browse view
+                  initialOrder="sequential"
+                  initialDifficulty="all"
+                  initialViewMode="single"
+                  hideChangeSettingsButton={true}
                 />
               )}
             </CardContent>

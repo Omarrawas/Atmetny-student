@@ -3,18 +3,17 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSectionById, getSectionLessons, getSubjectById } from '@/lib/examService'; // TODO: Migrate these to Supabase
-import type { SubjectSection, Lesson, UserProfile, Badge, Reward, Subject } from '@/lib/types'; 
+import { getSectionById, getSectionLessons } from '@/lib/examService';
+import type { SubjectSection, Lesson, UserProfile } from '@/lib/types'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, BookText, Loader2, AlertTriangle, ListChecks, PlayCircle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient'; 
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
-import { getUserProfile } from '@/lib/userProfileService'; // Supabase version
+import { getUserProfile } from '@/lib/userProfileService';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
-// Removed Firebase specific imports for Timestamp, doc, onSnapshot
 
 export default function SectionLessonsPage() {
   const params = useParams();
@@ -39,27 +38,27 @@ export default function SectionLessonsPage() {
     if (subjectId && sectionId) {
       const fetchData = async () => {
         try {
-          console.log(`Fetching data for sectionId: ${sectionId} in subjectId: ${subjectId}`);
-          // TODO: These services (getSectionById, getSectionLessons) still use Firebase and need migration
           const [sectionData, lessonsData] = await Promise.all([
-            getSectionById(subjectId, sectionId),
-            getSectionLessons(subjectId, sectionId),
+            getSectionById(subjectId, sectionId), // Will return null and log warning
+            getSectionLessons(subjectId, sectionId), // Will return [] and log warning
           ]);
 
-          console.log('Fetched Section Data (Firebase):', sectionData);
-          console.log('Fetched Lessons Data (Firebase):', lessonsData);
-
           if (!sectionData) {
-            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}`);
+            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
             setSection(null);
             setLessons([]);
+            toast({ title: "تنبيه", description: `تفاصيل القسم "${sectionId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
           } else {
             setSection(sectionData);
-            setLessons(lessonsData);
           }
+          setLessons(lessonsData);
+          if (sectionData && lessonsData.length === 0) {
+            toast({ title: "تنبيه", description: `قائمة دروس القسم "${sectionData.title}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+          }
+
         } catch (e) {
-          console.error("Failed to fetch section lessons data (Firebase):", e);
-          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى. (Services need migration)");
+          console.error("Failed to fetch section lessons data:", e);
+          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
           setSection(null);
           setLessons([]);
         } finally {
@@ -71,7 +70,7 @@ export default function SectionLessonsPage() {
       setIsLoadingData(false);
       setError("معرفات المادة أو القسم غير متوفرة.");
     }
-  }, [subjectId, sectionId]);
+  }, [subjectId, sectionId, toast]);
 
   useEffect(() => {
     const getSessionAndProfile = async () => {
@@ -83,7 +82,6 @@ export default function SectionLessonsPage() {
         try {
           const profile = await getUserProfile(user.id);
           setUserProfile(profile);
-          console.log("User profile fetched in SectionLessonsPage:", profile);
         } catch (profileError) {
           console.error("Error fetching user profile in SectionLessonsPage:", profileError);
           setUserProfile(null);
@@ -98,7 +96,6 @@ export default function SectionLessonsPage() {
     getSessionAndProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change in SectionLessonsPage:", event, session);
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user) {
@@ -120,7 +117,6 @@ export default function SectionLessonsPage() {
     return () => authListener.subscription.unsubscribe();
   }, [toast]);
 
-
   const isSubjectActiveForCurrentUser = useMemo(() => {
     if (!authUser || !userProfile || !userProfile.activeSubscription) {
       return false;
@@ -134,11 +130,10 @@ export default function SectionLessonsPage() {
     }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
-    const isSpecificSubjectMatch = sub.subjectId === subjectId; // subjectId from page params
+    const isSpecificSubjectMatch = sub.subjectId === subjectId;
 
     return isGeneralSubscription || isSpecificSubjectMatch;
   }, [userProfile, subjectId, authUser]);
-
 
   if (isLoadingData || isLoadingAuthProfile) {
     return (
@@ -166,7 +161,7 @@ export default function SectionLessonsPage() {
   if (!section) {
     return (
       <div className="text-center py-10">
-        <p className="text-lg text-muted-foreground">لم يتم العثور على القسم.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على القسم. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
          <Button onClick={() => router.back()} variant="outline">
           العودة
         </Button>
@@ -192,13 +187,12 @@ export default function SectionLessonsPage() {
           {lessons.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <BookText className="h-10 w-10 mx-auto mb-2" />
-              <p className="text-lg">لا توجد دروس متاحة لهذا القسم حاليًا.</p>
+              <p className="text-lg">لا توجد دروس متاحة لهذا القسم حاليًا. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
             </div>
           ) : (
             <ul className="space-y-4">
               {lessons.map((lesson, index) => {
                 const isFirstLesson = index === 0;
-                
                 const lessonIsLockedByAdminSetting = lesson.isLocked === true || String(lesson.isLocked).toLowerCase() === "true";
                 const lessonIsOpenByAdminSetting = lesson.isLocked === false || String(lesson.isLocked).toLowerCase() === "false";
 
@@ -229,22 +223,14 @@ export default function SectionLessonsPage() {
                             title: "تسجيل الدخول مطلوب",
                             description: "يرجى تسجيل الدخول أولاً ثم تفعيل المادة للوصول لهذا الدرس.",
                             variant: "destructive",
-                            action: (
-                                <Button onClick={() => router.push('/auth')} size="sm">
-                                تسجيل الدخول
-                                </Button>
-                            ),
+                            action: ( <Button onClick={() => router.push('/auth')} size="sm"> تسجيل الدخول </Button> ),
                         });
                     } else { 
                         toast({
                         title: "الدرس مقفل",
                         description: "يرجى تفعيل اشتراكك في هذه المادة أو اشتراك عام للوصول لهذا الدرس.",
                         variant: "default", 
-                        action: (
-                            <Button onClick={() => router.push('/activate-qr')} size="sm">
-                            تفعيل الاشتراك الآن
-                            </Button>
-                        ),
+                        action: ( <Button onClick={() => router.push('/activate-qr')} size="sm"> تفعيل الاشتراك الآن </Button> ),
                         });
                     }
                   }
@@ -257,28 +243,13 @@ export default function SectionLessonsPage() {
                       onClick={handleLessonClick}
                       passHref
                       aria-disabled={displayAsLocked}
-                      className={cn(
-                        "block",
-                        displayAsLocked && "cursor-default" 
-                      )}
+                      className={cn("block", displayAsLocked && "cursor-default" )}
                     >
-                      <Card className={cn(
-                        "transition-shadow group",
-                        displayAsLocked ? "bg-muted/60 hover:shadow-none opacity-70" : "hover:shadow-md cursor-pointer"
-                      )}>
+                      <Card className={cn("transition-shadow group", displayAsLocked ? "bg-muted/60 hover:shadow-none opacity-70" : "hover:shadow-md cursor-pointer")}>
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {displayAsLocked ? (
-                              <Lock className="h-5 w-5 text-primary" />
-                            ) : (
-                              <PlayCircle className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                            )}
-                            <h3 className={cn(
-                              "text-xl font-semibold transition-colors",
-                              !displayAsLocked && "group-hover:text-primary"
-                            )}>
-                              {lesson.title}
-                            </h3>
+                            {displayAsLocked ? ( <Lock className="h-5 w-5 text-primary" /> ) : ( <PlayCircle className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" /> )}
+                            <h3 className={cn("text-xl font-semibold transition-colors", !displayAsLocked && "group-hover:text-primary")}> {lesson.title} </h3>
                           </div>
                           {!displayAsLocked && <ChevronRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />}
                           {displayAsLocked && <span className="text-xs text-muted-foreground pe-2">(مقفل)</span>}
@@ -301,6 +272,3 @@ export default function SectionLessonsPage() {
     </div>
   );
 }
-    
-
-    

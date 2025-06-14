@@ -10,17 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QrCode, ScanLine, KeyRound, Loader2, Video, VideoOff, BookOpen, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient"; // Supabase client
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { supabase } from "@/lib/supabaseClient";
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { 
   checkCodeWithBackend, 
   confirmActivationWithBackend, 
-  getPlanNameFromType, 
-} from "@/lib/activationService"; // Supabase versions
+} from "@/lib/activationService";
 import type { BackendCodeDetails, BackendConfirmationPayload } from '@/lib/types';
-import { getSubjects, type Subject } from "@/lib/examService"; // This still uses Firebase, mark for future update
+import { getSubjects, type Subject } from "@/lib/examService"; // Will return empty array and log warning
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-// No Timestamp needed from firebase/firestore
 
 type ActivationStep = 'enterCode' | 'chooseSubject' | 'activated';
 
@@ -122,18 +120,21 @@ export default function ActivateQrPage() {
     setIsFetchingSubjects(true);
     setSubjectChoiceError(null);
     try {
-      const fetchedSubjects = await getSubjects(); // TODO: This service needs migration to Supabase
+      const fetchedSubjects = await getSubjects(); // This will now return [] and log a warning
       const relevantSubjects = fetchedSubjects.filter(s => s.branch === 'scientific' || s.branch === 'literary' || s.branch === 'common');
       setSubjectsList(relevantSubjects); 
       if (relevantSubjects.length > 0) {
          setSelectedSubject(relevantSubjects[0].id); 
       } else {
         setSelectedSubject(""); 
+        if (fetchedSubjects.length === 0) { // Only toast if the original fetch was empty
+            toast({ title: "تنبيه", description: "قائمة المواد للاختيار تحتاج للتحديث لـ Supabase.", variant: "default" });
+        }
       }
     } catch (error) {
       console.error("Error fetching subjects:", error);
       setSubjectChoiceError("فشل تحميل قائمة المواد. يرجى المحاولة مرة أخرى.");
-      toast({ title: "خطأ", description: "فشل تحميل قائمة المواد. (getSubjects needs migration)", variant: "destructive" });
+      toast({ title: "خطأ", description: "فشل تحميل قائمة المواد. (الخدمة تحتاج للتحديث لـ Supabase)", variant: "destructive" });
     } finally {
       setIsFetchingSubjects(false);
     }
@@ -151,17 +152,17 @@ export default function ActivateQrPage() {
     setIsLoading(true);
 
     const payload: BackendConfirmationPayload = {
-      userId: currentUser.id, // Use Supabase user ID
+      userId: currentUser.id,
       email: currentUser.email,
       codeId: codeDetailsToConfirm.id, 
       codeType: codeDetailsToConfirm.type,
-      codeValidUntil: codeDetailsToConfirm.validUntil!, // validUntil is ISO string from BackendCodeDetails
+      codeValidUntil: codeDetailsToConfirm.validUntil!,
       chosenSubjectId: chosenSubjectId,
       chosenSubjectName: chosenSubjectName,
     };
 
     try {
-      const confirmationResult = await confirmActivationWithBackend(payload); // Supabase version
+      const confirmationResult = await confirmActivationWithBackend(payload);
 
       if (confirmationResult.success) {
         toast({ 
@@ -174,7 +175,6 @@ export default function ActivateQrPage() {
         setActivationStep('activated'); 
         setPendingCodeDetails(null);
         setSelectedSubject("");
-        // Profile update is handled by saveUserProfile within confirmActivationWithBackend (Supabase version)
       } else {
         toast({ title: "فشل التفعيل", description: confirmationResult.message || "فشل تأكيد تفعيل الرمز.", variant: "destructive" });
       }
@@ -185,7 +185,6 @@ export default function ActivateQrPage() {
       setIsLoading(false);
     }
   };
-
 
   const handleManualActivate = async () => {
     if (!currentUser || !currentUser.email) {
@@ -202,7 +201,7 @@ export default function ActivateQrPage() {
     setActivationStep('enterCode'); 
 
     try {
-      const checkResult = await checkCodeWithBackend(manualCode.trim()); // Supabase version
+      const checkResult = await checkCodeWithBackend(manualCode.trim());
 
       if (!checkResult.isValid || !checkResult.codeDetails) {
         toast({ title: "رمز غير صالح", description: checkResult.message || "لم يتم العثور على رمز التفعيل المدخل أو أنه غير صالح.", variant: "destructive" });
@@ -243,7 +242,6 @@ export default function ActivateQrPage() {
     await confirmAndFinalizeActivation(pendingCodeDetails, subjectDetails.id, subjectDetails.name);
   };
 
-
   if (activationStep === 'chooseSubject') {
     return (
       <Card className="max-w-lg mx-auto shadow-lg">
@@ -259,47 +257,24 @@ export default function ActivateQrPage() {
               <p className="text-muted-foreground">جاري تحميل قائمة المواد...</p>
             </div>
           ) : subjectChoiceError ? (
-             <Alert variant="destructive">
-              <AlertTitle>خطأ</AlertTitle>
-              <AlertDescription>{subjectChoiceError}</AlertDescription>
-            </Alert>
+             <Alert variant="destructive"> <AlertTitle>خطأ</AlertTitle> <AlertDescription>{subjectChoiceError}</AlertDescription> </Alert>
           ) : subjectsList.length === 0 ? (
-             <Alert variant="default">
-              <AlertTitle>لا توجد مواد</AlertTitle>
-              <AlertDescription>لم يتم العثور على مواد علمية أو أدبية للاختيار. يرجى الاتصال بالدعم إذا كنت تتوقع غير ذلك.</AlertDescription>
-            </Alert>
+             <Alert variant="default"> <AlertTitle>لا توجد مواد</AlertTitle> <AlertDescription>لم يتم العثور على مواد علمية أو أدبية للاختيار. يرجى الاتصال بالدعم. (أو الخدمة تحتاج للتحديث لـ Supabase)</AlertDescription> </Alert>
           ) : (
             <div className="space-y-2">
               <Label htmlFor="subject-select" className="text-base">اختر المادة:</Label>
               <Select dir="rtl" value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger id="subject-select">
-                  <SelectValue placeholder="اختر مادة..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjectsList.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.branch === 'scientific' ? 'علمي' : subject.branch === 'literary' ? 'أدبي' : 'مشترك'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger id="subject-select"> <SelectValue placeholder="اختر مادة..." /> </SelectTrigger>
+                <SelectContent> {subjectsList.map((subject) => ( <SelectItem key={subject.id} value={subject.id}> {subject.name} ({subject.branch === 'scientific' ? 'علمي' : subject.branch === 'literary' ? 'أدبي' : 'مشترك'}) </SelectItem> ))} </SelectContent>
               </Select>
             </div>
           )}
-          <Button 
-            onClick={handleConfirmSubjectChoice} 
-            disabled={isLoading || isFetchingSubjects || !selectedSubject || subjectsList.length === 0} 
-            className="w-full"
-            size="lg"
-          >
+          <Button onClick={handleConfirmSubjectChoice} disabled={isLoading || isFetchingSubjects || !selectedSubject || subjectsList.length === 0} className="w-full" size="lg">
             {isLoading ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : <CheckCircle className="ms-2 h-5 w-5" />}
             تأكيد اختيار المادة وتفعيل الاشتراك
           </Button>
         </CardContent>
-        <CardFooter>
-            <Button variant="outline" onClick={() => { setActivationStep('enterCode'); setPendingCodeDetails(null); }} className="w-full">
-                إلغاء والعودة
-            </Button>
-        </CardFooter>
+        <CardFooter> <Button variant="outline" onClick={() => { setActivationStep('enterCode'); setPendingCodeDetails(null); }} className="w-full"> إلغاء والعودة </Button> </CardFooter>
       </Card>
     );
   }
@@ -310,69 +285,26 @@ export default function ActivateQrPage() {
         <CardHeader className="text-center">
           <QrCode className="h-12 w-12 text-primary mx-auto mb-3" />
           <CardTitle className="text-3xl font-bold">تفعيل الاشتراك</CardTitle>
-          <CardDescription className="text-lg">
-            امسح كود QR الموجود على بطاقة الاشتراك الخاصة بك أو أدخل الرمز يدوياً.
-          </CardDescription>
+          <CardDescription className="text-lg"> امسح كود QR الموجود على بطاقة الاشتراك الخاصة بك أو أدخل الرمز يدوياً. </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center p-1 relative overflow-hidden">
-            {isCameraActive ? (
-              <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay playsInline muted />
-            ) : (
-              <div className="text-center text-muted-foreground space-y-2">
-                <ScanLine className="h-16 w-16 mx-auto" />
-                <p>اضغط لتشغيل الكاميرا ومسح الكود.</p>
-                 <p className="text-xs">(ميزة مسح QR قيد التطوير)</p>
-              </div>
-            )}
+            {isCameraActive ? ( <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay playsInline muted /> ) : ( <div className="text-center text-muted-foreground space-y-2"> <ScanLine className="h-16 w-16 mx-auto" /> <p>اضغط لتشغيل الكاميرا ومسح الكود.</p> <p className="text-xs">(ميزة مسح QR قيد التطوير)</p> </div> )}
           </div>
-          <Button size="lg" onClick={handleToggleCamera} className="w-full">
-            {isCameraActive ? <VideoOff className="ms-2 h-5 w-5" /> : <Video className="ms-2 h-5 w-5" />}
-            {isCameraActive ? "إيقاف الكاميرا" : "تشغيل الكاميرا لمسح QR"}
-          </Button>
-          {hasCameraPermission === false && (
-            <Alert variant="destructive">
-              <AlertTitle>الوصول إلى الكاميرا مطلوب</AlertTitle>
-              <AlertDescription>
-                يرجى السماح بالوصول إلى الكاميرا في إعدادات المتصفح لاستخدام ميزة مسح QR.
-              </AlertDescription>
-            </Alert>
-          )}
-          {hasCameraPermission === true && isCameraActive && (
-             <p className="text-xs text-muted-foreground text-center">وجه الكاميرا نحو رمز QR... (المعالجة قيد التطوير)</p>
-          )}
+          <Button size="lg" onClick={handleToggleCamera} className="w-full"> {isCameraActive ? <VideoOff className="ms-2 h-5 w-5" /> : <Video className="ms-2 h-5 w-5" />} {isCameraActive ? "إيقاف الكاميرا" : "تشغيل الكاميرا لمسح QR"} </Button>
+          {hasCameraPermission === false && ( <Alert variant="destructive"> <AlertTitle>الوصول إلى الكاميرا مطلوب</AlertTitle> <AlertDescription> يرجى السماح بالوصول إلى الكاميرا في إعدادات المتصفح لاستخدام ميزة مسح QR. </AlertDescription> </Alert> )}
+          {hasCameraPermission === true && isCameraActive && ( <p className="text-xs text-muted-foreground text-center">وجه الكاميرا نحو رمز QR... (المعالجة قيد التطوير)</p> )}
           
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-border"></div>
-            <span className="flex-shrink mx-4 text-muted-foreground">أو</span>
-            <div className="flex-grow border-t border-border"></div>
-          </div>
+          <div className="relative flex items-center"> <div className="flex-grow border-t border-border"></div> <span className="flex-shrink mx-4 text-muted-foreground">أو</span> <div className="flex-grow border-t border-border"></div> </div>
 
           <div>
             <label htmlFor="activation-code" className="block text-sm font-medium text-foreground mb-1">أدخل رمز التفعيل يدوياً</label>
             <div className="flex gap-2">
-              <Input
-                id="activation-code"
-                type="text"
-                placeholder="XXXX-XXXX-XXXX-XXXX"
-                className="text-left tracking-widest"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                disabled={isLoading || activationStep !== 'enterCode'}
-              />
-              <Button 
-                onClick={handleManualActivate} 
-                variant="secondary" 
-                disabled={isLoading || !currentUser || activationStep !== 'enterCode'}
-              >
-                {isLoading && activationStep === 'enterCode' ? <Loader2 className="ms-2 h-4 w-4 animate-spin" /> : <KeyRound className="ms-2 h-4 w-4" />}
-                تفعيل
-              </Button>
+              <Input id="activation-code" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" className="text-left tracking-widest" value={manualCode} onChange={(e) => setManualCode(e.target.value)} disabled={isLoading || activationStep !== 'enterCode'} />
+              <Button onClick={handleManualActivate} variant="secondary" disabled={isLoading || !currentUser || activationStep !== 'enterCode'}> {isLoading && activationStep === 'enterCode' ? <Loader2 className="ms-2 h-4 w-4 animate-spin" /> : <KeyRound className="ms-2 h-4 w-4" />} تفعيل </Button>
             </div>
              {!currentUser && <p className="text-xs text-destructive mt-1">يجب تسجيل الدخول أولاً.</p>}
-             {activationStep === 'activated' && 
-                <p className="text-sm text-green-600 mt-2 text-center">تم تفعيل اشتراكك بنجاح. يمكنك تفعيل رمز آخر إذا أردت.</p>
-             }
+             {activationStep === 'activated' && <p className="text-sm text-green-600 mt-2 text-center">تم تفعيل اشتراكك بنجاح. يمكنك تفعيل رمز آخر إذا أردت.</p> }
           </div>
         </CardContent>
       </Card>

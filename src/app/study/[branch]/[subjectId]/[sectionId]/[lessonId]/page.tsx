@@ -2,12 +2,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation'; // Ensure useParams is imported
+import { useParams, useRouter } from 'next/navigation';
 import { getLessonById } from '@/lib/examService';
-import type { Lesson, LessonTeacher } from '@/lib/types';
+import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, SettingsIcon, PlayCircle, ListChecks } from 'lucide-react';
+import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, ListChecks } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { Label } from "@/components/ui/label";
@@ -16,8 +16,8 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css'; 
 import Link from 'next/link';
+import { useToast } from "@/hooks/use-toast";
 
-// Helper function to extract YouTube video ID
 const getYouTubeVideoId = (url: string | undefined): string | null => {
   if (!url) return null;
   let videoId = null;
@@ -37,15 +37,15 @@ const getYouTubeVideoId = (url: string | undefined): string | null => {
   return videoId;
 };
 
-
 export default function LessonPage() {
-  const pageParams = useParams(); // Renamed to avoid conflict if 'params' is used elsewhere in scope
+  const pageParams = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   
   const branch = pageParams.branch as string;
   const subjectId = pageParams.subjectId as string;
   const sectionId = pageParams.sectionId as string;
-  const lessonId = pageParams.lessonId as string; // This is the current lesson's ID
+  const lessonId = pageParams.lessonId as string;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,10 +58,9 @@ export default function LessonPage() {
         setIsLoading(true);
         setError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId);
+          const lessonData = await getLessonById(subjectId, sectionId, lessonId); // Will return null and log warning
           if (lessonData) {
             setLesson(lessonData);
-            // Set initial video
             if (lessonData.teachers && lessonData.teachers.length > 0 && lessonData.teachers[0].youtubeUrl) {
               setSelectedVideoUrl(lessonData.teachers[0].youtubeUrl);
             } else if (lessonData.videoUrl) {
@@ -70,18 +69,19 @@ export default function LessonPage() {
               setSelectedVideoUrl(null);
             }
           } else {
-            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}`);
+            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
+            toast({ title: "تنبيه", description: `تفاصيل الدرس "${lessonId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
           }
         } catch (e) {
           console.error("Failed to fetch lesson data:", e);
-          setError("فشل تحميل بيانات الدرس. يرجى المحاولة مرة أخرى.");
+          setError("فشل تحميل بيانات الدرس. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
         } finally {
           setIsLoading(false);
         }
       };
       fetchLessonData();
     }
-  }, [subjectId, sectionId, lessonId]);
+  }, [subjectId, sectionId, lessonId, toast]);
 
   const currentVideoId = getYouTubeVideoId(selectedVideoUrl);
 
@@ -114,7 +114,7 @@ export default function LessonPage() {
     return (
       <div className="text-center py-10">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
@@ -149,11 +149,7 @@ export default function LessonPage() {
                      <SelectItem value={lesson.videoUrl}>فيديو الدرس العام</SelectItem>
                   )}
                   {lesson.teachers.map((teacher, index) => (
-                    teacher.youtubeUrl ? (
-                        <SelectItem key={teacher.name + index} value={teacher.youtubeUrl}>
-                        {teacher.name}
-                        </SelectItem>
-                    ) : null
+                    teacher.youtubeUrl ? ( <SelectItem key={teacher.name + index} value={teacher.youtubeUrl}> {teacher.name} </SelectItem> ) : null
                   ))}
                 </SelectContent>
               </Select>
@@ -181,76 +177,26 @@ export default function LessonPage() {
           </CardContent>
         )}
         
-        {lesson.content && (
-            <>
-            <Separator className="my-0" />
-            <CardContent className="pt-6 space-y-4">
-                <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3>
-                <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {lesson.content}
-                  </ReactMarkdown>
-                </div>
-            </CardContent>
-            </>
-        )}
+        {lesson.content && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3> <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert"> <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} > {lesson.content} </ReactMarkdown> </div> </CardContent> </> )}
         
-        {lesson.files && lesson.files.length > 0 && (
-            <>
-            <Separator className="my-0" />
-            <CardContent className="pt-6 space-y-4">
-                <h3 className="text-xl font-semibold text-primary">المرفقات:</h3>
-                <ul className="space-y-2">
-                {lesson.files.map((file, index) => (
-                    file.url ? (
-                        <li key={index}>
-                        <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                        >
-                            <Download className="h-4 w-4" />
-                            {file.name || `ملف ${index + 1}`} {file.type && `(.${file.type})`}
-                        </a>
-                        </li>
-                    ) : null
-                ))}
-                </ul>
-            </CardContent>
-            </>
-        )}
-
+        {lesson.files && lesson.files.length > 0 && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">المرفقات:</h3> <ul className="space-y-2"> {lesson.files.map((file, index) => ( file.url ? ( <li key={index}> <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline" > <Download className="h-4 w-4" /> {file.name || `ملف ${index + 1}`} {file.type && `(.${file.type})`} </a> </li> ) : null ))} </ul> </CardContent> </> )}
 
         <Separator className="my-0" />
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild variant="default" className="w-full sm:w-auto">
-              <Link href={lessonExamsListPath}>
-                <ListChecks className="ms-2 h-4 w-4" />
-                اختبارات الدرس
-              </Link>
+              <Link href={lessonExamsListPath}> <ListChecks className="ms-2 h-4 w-4" /> اختبارات الدرس </Link>
             </Button>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href={lessonNotesPath}>
-                <Notebook className="ms-2 h-4 w-4" />
-                ملاحظات
-              </Link>
+              <Link href={lessonNotesPath}> <Notebook className="ms-2 h-4 w-4" /> ملاحظات </Link>
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="text-center mt-8">
-        <Button onClick={() => router.back()} variant="outline">
-          <ChevronRight className="ms-2 h-4 w-4" /> 
-          العودة إلى قائمة الدروس
-        </Button>
+        <Button onClick={() => router.back()} variant="outline"> <ChevronRight className="ms-2 h-4 w-4" /> العودة إلى قائمة الدروس </Button>
       </div>
     </div>
   );
 }
-    

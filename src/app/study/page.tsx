@@ -3,36 +3,41 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed CardFooter
-import { BookOpen, Atom, Feather, ArrowRight, FileText, Loader2, AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Atom, Feather, ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Subject } from "@/lib/types";
 import { getSubjects } from "@/lib/examService";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StudyPage() {
   const router = useRouter();
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchSubjects = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const fetchedSubjects = await getSubjects();
+        const fetchedSubjects = await getSubjects(); // This will now return [] and log a warning
         setAllSubjects(fetchedSubjects);
+        if (fetchedSubjects.length === 0) {
+          toast({ title: "تنبيه", description: "قائمة المواد الدراسية تحتاج للتحديث لـ Supabase.", variant: "default" });
+        }
       } catch (e) {
         console.error("Failed to fetch subjects:", e);
-        setError("فشل تحميل قائمة المواد الدراسية. يرجى المحاولة مرة أخرى.");
+        setError("فشل تحميل قائمة المواد الدراسية. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
       } finally {
         setIsLoading(false);
       }
     };
     fetchSubjects();
-  }, []);
+  }, [toast]);
 
   const scientificSubjects = allSubjects.filter(subject => subject.branch === 'scientific' || subject.branch === 'common');
   const literarySubjects = allSubjects.filter(subject => subject.branch === 'literary' || subject.branch === 'common');
@@ -64,7 +69,7 @@ export default function StudyPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على مواد دراسية. قد تتم إضافتها قريباً.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على مواد دراسية. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
          <Button onClick={() => router.push('/')} variant="outline" className="mt-4">
             <ArrowRight className="ms-2 h-4 w-4" />
             الرجوع الى الصفحة الرئيسية
@@ -72,7 +77,6 @@ export default function StudyPage() {
       </div>
     );
   }
-
 
   return (
     <div className="max-w-4xl mx-auto text-center space-y-12">
@@ -124,7 +128,6 @@ export default function StudyPage() {
                         <CardHeader className="pb-2 pt-4 flex-grow">
                           <CardTitle className="text-xl text-center">{subject.name}</CardTitle>
                         </CardHeader>
-                        {/* CardFooter removed */}
                       </Card>
                     </a>
                   </Link>
@@ -175,7 +178,6 @@ export default function StudyPage() {
                         <CardHeader className="pb-2 pt-4 flex-grow">
                           <CardTitle className="text-xl text-center">{subject.name}</CardTitle>
                         </CardHeader>
-                        {/* CardFooter removed */}
                       </Card>
                     </a>
                   </Link>

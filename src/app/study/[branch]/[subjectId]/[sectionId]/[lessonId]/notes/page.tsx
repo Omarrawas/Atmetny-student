@@ -12,10 +12,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { useToast } from "@/hooks/use-toast";
 
 export default function LessonNotesPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
 
   const subjectId = params.subjectId as string;
   const sectionId = params.sectionId as string;
@@ -32,22 +34,23 @@ export default function LessonNotesPage() {
         setIsLoading(true);
         setError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId);
+          const lessonData = await getLessonById(subjectId, sectionId, lessonId); // Will return null and log warning
           if (lessonData) {
             setLesson(lessonData);
           } else {
-            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}`);
+            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
+            toast({ title: "تنبيه", description: `ملاحظات الدرس "${lessonId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
           }
         } catch (e) {
           console.error("Failed to fetch lesson data for notes:", e);
-          setError("فشل تحميل بيانات الدرس لعرض الملاحظات. يرجى المحاولة مرة أخرى.");
+          setError("فشل تحميل بيانات الدرس لعرض الملاحظات. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
         } finally {
           setIsLoading(false);
         }
       };
       fetchLessonData();
     }
-  }, [subjectId, sectionId, lessonId]);
+  }, [subjectId, sectionId, lessonId, toast]);
 
   if (isLoading) {
     return (
@@ -74,7 +77,7 @@ export default function LessonNotesPage() {
     return (
       <div className="text-center py-10">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس.</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>

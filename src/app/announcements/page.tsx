@@ -2,7 +2,7 @@
 import { Metadata } from "next";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getActiveAnnouncements } from "@/lib/serverExamService"; // TODO: Needs migration
+import { getActiveAnnouncements } from "@/lib/serverExamService";
 import type { Announcement } from "@/lib/types";
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
@@ -13,30 +13,19 @@ export const metadata: Metadata = {
   description: "تابع آخر الإعلانات والإشعارات الهامة من منصة Atmetny.",
 };
 
-// Helper to safely format ISO date string or potentially Firestore Timestamp if migration is partial
-const formatDateSafe = (timestampOrIsoString: string | undefined /* | Timestamp */): string => {
-  if (!timestampOrIsoString) return 'تاريخ غير محدد';
+const formatDateSafe = (isoString: string | undefined): string => {
+  if (!isoString) return 'تاريخ غير محدد';
   try {
-    let dateToFormat: Date;
-    if (typeof timestampOrIsoString === 'string') {
-      dateToFormat = new Date(timestampOrIsoString);
-    } else if (timestampOrIsoString && typeof (timestampOrIsoString as any).toDate === 'function') {
-      // Fallback for Firestore Timestamp if still present during migration
-      dateToFormat = (timestampOrIsoString as any).toDate();
-    } else {
-      return 'تاريخ غير صالح (نوع غير معروف)';
-    }
-    
+    const dateToFormat = new Date(isoString);
     if (isNaN(dateToFormat.getTime())) {
         return 'تاريخ غير صالح (بعد التحويل)';
     }
     return format(dateToFormat, 'd MMMM yyyy, HH:mm', { locale: arSA });
   } catch (e) {
-    console.error("Error formatting date:", e, "Input:", timestampOrIsoString);
+    console.error("Error formatting date:", e, "Input:", isoString);
     return 'تاريخ غير صالح (خطأ)';
   }
 };
-
 
 const getIconForType = (type: Announcement['type']): React.ElementType => {
   switch (type) {
@@ -71,10 +60,12 @@ export default async function AnnouncementsPage() {
   let fetchError: string | null = null;
 
   try {
-    announcements = await getActiveAnnouncements(20); // TODO: This service needs migration to Supabase
+    // getActiveAnnouncements will now return an empty array and log a warning.
+    // UI will show "No announcements" until it's implemented for Supabase.
+    announcements = await getActiveAnnouncements(20); 
   } catch (error) {
-    console.error("Failed to fetch announcements for page (Firebase):", error);
-    fetchError = "حدث خطأ أثناء تحميل الإعلانات. يرجى المحاولة مرة أخرى لاحقًا. (Service needs migration)";
+    console.error("Failed to fetch announcements for page:", error);
+    fetchError = "حدث خطأ أثناء تحميل الإعلانات. يرجى المحاولة مرة أخرى لاحقًا. (Service needs full Supabase implementation)";
   }
 
   return (
@@ -100,7 +91,7 @@ export default async function AnnouncementsPage() {
           <CardContent>
             <Info className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <p className="text-xl text-muted-foreground">
-              لا توجد إعلانات أو إشعارات متاحة حالياً.
+              لا توجد إعلانات أو إشعارات متاحة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)
             </p>
           </CardContent>
         </Card>
