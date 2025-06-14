@@ -104,11 +104,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <SidebarMenu className="p-4">
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} passHref legacyBehavior>
+                  <Link href={item.href} onClick={handleLinkClick}>
                     <SidebarMenuButton
                       isActive={pathname === item.href}
                       tooltip={{ children: item.label, className: "text-xs" }}
-                      onClick={handleLinkClick}
                     >
                       <item.icon />
                       <span>{item.label}</span>
@@ -131,7 +130,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               )}
             </div>
           ) : authUser ? (
-            <Link href="/profile" passHref onClick={handleLinkClick}>
+            <Link href="/profile" onClick={handleLinkClick}>
               <div className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-sidebar-accent/20 p-2 rounded-md transition-colors">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint={avatarHint} />
@@ -146,7 +145,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
             </Link>
           ) : (
-             <Link href="/auth" passHref onClick={handleLinkClick}>
+             <Link href="/auth" onClick={handleLinkClick}>
                 <div className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-sidebar-accent/20 p-2 rounded-md transition-colors">
                     <UserCircle className="h-10 w-10 text-sidebar-foreground/70"/>
                     {state === 'expanded' && (
