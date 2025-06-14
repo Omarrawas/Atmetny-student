@@ -9,7 +9,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -23,10 +22,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LogOut, Moon, Sun, ArrowRight, UserCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from 'next-themes';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signOut as firebaseSignOut, type User as FirebaseAuthUser } from 'firebase/auth';
-import { getUserProfile } from '@/lib/userProfileService';
-import type { UserProfile } from '@/lib/types';
+import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
+import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; // Supabase types
+// TODO: When migrating profile, import Supabase-specific profile fetching
+// import { getUserProfileFromSupabase } from '@/lib/supabaseUserProfileService'; // Example
+// import type { UserProfile } from '@/lib/types'; // This type might need adjustment for Supabase
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -35,29 +35,44 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
 
-  const [authUser, setAuthUser] = useState<FirebaseAuthUser | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
+  const [session, setSession] = useState<SupabaseSession | null>(null);
+  // const [userProfile, setUserProfile] = useState<UserProfile | null>(null); // TODO: Re-enable and adapt for Supabase profile
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setIsLoadingUser(true);
-      if (user) {
-        setAuthUser(user);
-        try {
-          const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
-        } catch (error) {
-          console.error("Error fetching user profile in layout:", error);
-          setUserProfile(null); // Explicitly set to null on error
-        }
-      } else {
-        setAuthUser(null);
-        setUserProfile(null);
-      }
+    setIsLoadingUser(true);
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthUser(session?.user ?? null);
+      setIsLoadingUser(false);
+      // if (session?.user) {
+      //   // TODO: Fetch profile if user exists
+      // }
+    }).catch(error => {
+      console.error("Error getting initial Supabase session:", error);
       setIsLoadingUser(false);
     });
-    return () => unsubscribe();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("Supabase auth state changed. Event:", _event, "Session:", session);
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setAuthUser(currentUser);
+      // setUserProfile(null); // Reset profile on auth change
+
+      if (currentUser) {
+        // TODO: Fetch Supabase user profile here if needed
+        // e.g., const profile = await getSupabaseUserProfile(currentUser.id); setUserProfile(profile);
+      }
+      setIsLoadingUser(false); // Ensure loading is set to false after initial check and any subsequent changes
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLinkClick = () => {
@@ -68,22 +83,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     try {
-      await firebaseSignOut(auth);
-      // User state will be cleared by onAuthStateChanged listener
-      router.push('/auth'); // Redirect to login page after logout
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      // Auth state will be cleared by onAuthStateChange listener
+      // No need to manually setAuthUser(null) or setUserProfile(null) here
+      router.push('/auth');
       if (isMobile) {
         setOpenMobile(false);
       }
     } catch (error) {
-      console.error("Error signing out: ", error);
+      console.error("Error signing out with Supabase: ", error);
       // Optionally show a toast message for logout error
     }
   };
 
-  const displayName = userProfile?.name || authUser?.displayName || authUser?.email?.split('@')[0] || "مستخدم";
-  const displayEmail = userProfile?.email || authUser?.email || "";
-  const avatarUrl = userProfile?.avatarUrl || authUser?.photoURL;
-  const avatarHint = userProfile?.avatarHint || (authUser?.photoURL ? 'user provided avatar' : 'person letter');
+  // TODO: Adapt these once Supabase profile is integrated.
+  // For now, use basic info from Supabase authUser.
+  const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || "مستخدم";
+  const displayEmail = authUser?.email || "";
+  const avatarUrl = authUser?.user_metadata?.avatar_url; // Standard Supabase metadata field
+  const avatarHint = 'person avatar'; // Placeholder
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
 
@@ -104,14 +123,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <SidebarMenu className="p-4">
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} passHref legacyBehavior>
+                  <Link href={item.href} passHref>
                     <SidebarMenuButton
+                      asChild
                       isActive={pathname === item.href}
                       tooltip={{ children: item.label, className: "text-xs" }}
                       onClick={handleLinkClick}
                     >
-                      <item.icon />
-                      <span>{item.label}</span>
+                      <span>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -159,8 +181,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           )}
           {authUser && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={handleLogout}
             >
@@ -203,4 +225,3 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </>
   );
 }
-    
