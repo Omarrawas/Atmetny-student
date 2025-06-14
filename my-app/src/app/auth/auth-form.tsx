@@ -21,11 +21,11 @@ import { useToast } from "@/hooks/use-toast";
 //   type User as FirebaseAuthUser,
 // } from 'firebase/auth'; // Firebase auth types commented out
 import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
-import type { AuthError, User as SupabaseAuthUser } from '@supabase/supabase-js';
+import type { AuthError, User as SupabaseAuthUser, Session } from '@supabase/supabase-js'; // Added Session
 
 import { Loader2, Mail, Lock, UserPlus, LogInIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-// import { saveUserProfile } from '@/lib/userProfileService'; // Firebase specific, commented out for now
+// import { saveUserProfile } from '@/lib/userProfileService'; // Firebase specific, to be replaced with Supabase logic
 
 const loginSchema = z.object({
   email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح." }),
@@ -56,7 +56,7 @@ const GoogleIcon = () => (
 
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Keep for UI, though functionality is commented
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -70,25 +70,26 @@ export function AuthForm() {
     defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 
-  const handleAuthSuccess = async (supabaseUser: SupabaseAuthUser | null, action: 'login' | 'signup') => {
+  const handleAuthSuccess = async (supabaseUser: SupabaseAuthUser | null, action: 'login' | 'signup', session: Session | null) => {
     if (supabaseUser) {
       toast({ title: action === 'login' ? "تم تسجيل الدخول بنجاح!" : "تم إنشاء الحساب بنجاح!" });
       // TODO: Implement user profile creation/update in your Supabase 'profiles' table.
       // This might involve calling a Supabase Edge Function or directly inserting/updating.
-      // Example (conceptual):
-      // if (action === 'signup') {
+      // Example (conceptual) using Supabase user ID and email:
+      // if (action === 'signup' && supabaseUser.id && supabaseUser.email) {
       //   const { error: profileError } = await supabase.from('profiles').upsert({
-      //     id: supabaseUser.id,
+      //     id: supabaseUser.id, // Supabase user ID is the primary key
       //     email: supabaseUser.email,
       //     name: supabaseUser.email?.split('@')[0] || 'مستخدم جديد',
       //     // Initialize other profile fields as needed
-      //   });
-      //   if (profileError) console.error("Error creating Supabase profile:", profileError);
+      //   }, { onConflict: 'id' }); // Ensure this matches your table's PK
+      //   if (profileError) console.error("Error creating/updating Supabase profile:", profileError);
       // }
       console.log("Supabase user:", supabaseUser);
+      console.log("Supabase session:", session);
     }
     router.push('/');
-    router.refresh(); // To re-fetch layout user state if it depends on cookies/session
+    router.refresh(); 
   };
 
   const handleAuthError = (error: AuthError | null, defaultMessage: string) => {
@@ -111,7 +112,7 @@ export function AuthForm() {
     if (error) {
       handleAuthError(error, "فشل تسجيل الدخول. يرجى التحقق من بياناتك.");
     } else {
-      handleAuthSuccess(loginData.user, 'login');
+      handleAuthSuccess(loginData.user, 'login', loginData.session);
     }
   };
 
@@ -121,14 +122,20 @@ export function AuthForm() {
       email: data.email,
       password: data.password,
       // Supabase handles email confirmation flow if enabled in project settings
+      // You might want to pass additional user metadata here if needed
+      // options: {
+      //   data: {
+      //     name: data.email.split('@')[0], // Example: derive name from email
+      //   }
+      // }
     });
     setIsLoading(false);
 
     if (error) {
-      handleAuthError(error, "فشل إنشاء الحساب. قد يكون البريد مستخدماً.");
+      handleAuthError(error, "فشل إنشاء الحساب. قد يكون البريد مستخدماً أو كلمة المرور ضعيفة.");
     } else if (signupData.user) {
-        if (signupData.session) { // User is automatically signed in
-             handleAuthSuccess(signupData.user, 'signup');
+        if (signupData.session) { // User is automatically signed in if email confirmation is not required or auto-confirmed
+             handleAuthSuccess(signupData.user, 'signup', signupData.session);
         } else { // Email confirmation might be required
             toast({
                 title: "تم إرسال رسالة تأكيد",
@@ -139,23 +146,37 @@ export function AuthForm() {
             router.push('/'); // Or a page indicating to check email
         }
     } else {
-        handleAuthError(null, "حدث خطأ غير متوقع أثناء إنشاء الحساب.");
+        // This case might occur if user is null but no error (e.g. email confirmation pending and no session returned)
+        // Check Supabase documentation for exact behavior of signUp based on your project settings.
+        // For now, assuming if no session and no error, email confirmation is likely needed.
+        toast({
+            title: "التحقق من البريد الإلكتروني",
+            description: "إذا كان تأكيد البريد الإلكتروني مطلوبًا، يرجى التحقق من بريدك.",
+            variant: "default",
+            duration: 9000,
+        });
+        // Optionally, navigate to a page explaining to check email
     }
   };
 
-  // const handleGoogleSignIn = async () => {
-  //   setIsGoogleLoading(true);
-  //   // TODO: Implement Google Sign-In with Supabase
-  //   // This typically involves:
-  //   // const { data, error } = await supabase.auth.signInWithOAuth({
-  //   //   provider: 'google',
-  //   //   options: { redirectTo: window.location.origin } // Or your specific callback URL
-  //   // });
-  //   // if (error) handleAuthError(error, "فشل تسجيل الدخول باستخدام جوجل.");
-  //   // else if (data.user) handleAuthSuccess(data.user, 'login'); // Or based on new user status
-  //   toast({ title: "قيد التطوير", description: "تسجيل الدخول بجوجل مع Supabase قيد التطوير."});
-  //   setIsGoogleLoading(false);
-  // };
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    // TODO: Implement Google Sign-In with Supabase OAuth
+    // const { data, error } = await supabase.auth.signInWithOAuth({
+    //   provider: 'google',
+    //   options: { 
+    //      redirectTo: `${window.location.origin}/auth/callback` // Ensure this callback route is handled
+    //   } 
+    // });
+    // if (error) {
+    //    handleAuthError(error, "فشل تسجيل الدخول باستخدام جوجل.");
+    // } 
+    // else if (data?.user) { // On successful redirect back, user and session will be in URL/handled by onAuthStateChange
+    //    // Supabase handles session creation after redirect. AppLayout's onAuthStateChange will pick it up.
+    // }
+    toast({ title: "قيد التطوير", description: "تسجيل الدخول بجوجل مع Supabase قيد التطوير."});
+    setIsGoogleLoading(false);
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -293,7 +314,7 @@ export function AuthForm() {
         </div>
       </div>
 
-      <Button variant="outline" /* onClick={handleGoogleSignIn} */ disabled={isGoogleLoading || true} className="w-full">
+      <Button variant="outline" onClick={handleGoogleSignIn} disabled={isGoogleLoading || true} className="w-full">
         {isGoogleLoading ? <Loader2 className="ms-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
         تسجيل الدخول باستخدام جوجل (Supabase - قيد التطوير)
       </Button>
