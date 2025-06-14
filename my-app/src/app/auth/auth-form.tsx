@@ -9,19 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-// import { auth, googleProvider } from '@/lib/firebase'; // Firebase auth commented out
-// import {
-//   createUserWithEmailAndPassword,
-//   signInWithEmailAndPassword,
-//   signInWithPopup,
-//   type AuthError,
-//   type UserCredential,
-//   type User as FirebaseAuthUser,
-// } from 'firebase/auth'; // Firebase auth types commented out
 import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
-import type { AuthError, User as SupabaseAuthUser, Session } from '@supabase/supabase-js'; // Added Session
+import type { AuthError, User as SupabaseAuthUser, Session } from '@supabase/supabase-js';
 
 import { Loader2, Mail, Lock, UserPlus, LogInIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -94,9 +85,21 @@ export function AuthForm() {
 
   const handleAuthError = (error: AuthError | null, defaultMessage: string) => {
     console.error("Supabase Auth Error:", error);
+    let message = defaultMessage;
+    if (error) {
+        // You can customize messages based on Supabase error codes/messages
+        // For example:
+        if (error.message.includes("User already registered") || error.message.includes("already registered")) {
+            message = "هذا البريد الإلكتروني مسجل بالفعل.";
+        } else if (error.message.includes("Invalid login credentials")) {
+            message = "بيانات تسجيل الدخول غير صحيحة.";
+        } else {
+            message = error.message; // Use Supabase's error message
+        }
+    }
     toast({
       title: "خطأ في المصادقة",
-      description: error?.message || defaultMessage,
+      description: message,
       variant: "destructive",
     });
   };
@@ -140,22 +143,19 @@ export function AuthForm() {
             toast({
                 title: "تم إرسال رسالة تأكيد",
                 description: "الرجاء التحقق من بريدك الإلكتروني لتأكيد حسابك قبل تسجيل الدخول.",
-                variant: "default",
+                variant: "default", // Use default variant for non-error notifications
                 duration: 9000,
             });
-            router.push('/'); // Or a page indicating to check email
+            // router.push('/'); // Or a page indicating to check email
         }
     } else {
         // This case might occur if user is null but no error (e.g. email confirmation pending and no session returned)
-        // Check Supabase documentation for exact behavior of signUp based on your project settings.
-        // For now, assuming if no session and no error, email confirmation is likely needed.
         toast({
             title: "التحقق من البريد الإلكتروني",
             description: "إذا كان تأكيد البريد الإلكتروني مطلوبًا، يرجى التحقق من بريدك.",
             variant: "default",
             duration: 9000,
         });
-        // Optionally, navigate to a page explaining to check email
     }
   };
 
@@ -174,7 +174,7 @@ export function AuthForm() {
     // else if (data?.user) { // On successful redirect back, user and session will be in URL/handled by onAuthStateChange
     //    // Supabase handles session creation after redirect. AppLayout's onAuthStateChange will pick it up.
     // }
-    toast({ title: "قيد التطوير", description: "تسجيل الدخول بجوجل مع Supabase قيد التطوير."});
+    toast({ title: "قيد التطوير", description: "تسجيل الدخول بجوجل مع Supabase قيد التطوير حاليًا.", variant: "default"});
     setIsGoogleLoading(false);
   };
 
@@ -321,3 +321,5 @@ export function AuthForm() {
     </div>
   );
 }
+
+    
