@@ -12,67 +12,105 @@ import * as Icons from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { UserProfile, Badge, Reward, LucideIconName } from '@/lib/types';
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User as FirebaseAuthUser } from "firebase/auth";
-import { getUserProfile } from "@/lib/userProfileService";
-import { Skeleton } from "@/components/ui/skeleton"; // For loading state
-import type { Timestamp } from "firebase/firestore";
+import { supabase } from "@/lib/supabaseClient"; // Changed from Firebase
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { getUserProfile } from "@/lib/userProfileService"; // Supabase version
+import { Skeleton } from "@/components/ui/skeleton"; 
+import { useRouter } from "next/navigation"; // For redirect
 
 // Helper function to get Lucide icon component by name
 const getIcon = (iconName?: LucideIconName): React.ElementType => {
-  if (!iconName) return Icons.HelpCircle; // Default fallback if no iconName
+  if (!iconName) return Icons.HelpCircle; 
   const IconComponent = Icons[iconName as keyof typeof Icons];
-  return IconComponent || Icons.HelpCircle; // Fallback icon
+  return IconComponent || Icons.HelpCircle; 
 };
 
-// Helper to format Firestore Timestamp to a readable date string
-const formatDate = (timestamp: Timestamp | undefined): string => {
-  if (!timestamp) return 'غير محدد';
-  return timestamp.toDate().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+// Helper to format ISO date string to a readable date string
+const formatDate = (isoDateString: string | undefined): string => {
+  if (!isoDateString) return 'غير محدد';
+  try {
+    return new Date(isoDateString).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) {
+    console.error("Error formatting date:", e, "Input was:", isoDateString);
+    return "تاريخ غير صالح";
+  }
 };
 
 
 export default function ProfilePage() {
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
+    const getSessionAndProfile = async () => {
+      setIsLoading(true);
+      setError(null);
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Error getting Supabase session:", sessionError);
+        setError("حدث خطأ في الاتصال بالمصادقة.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        setAuthUser(session.user);
         try {
-          setIsLoading(true);
-          const profile = await getUserProfile(user.uid);
+          const profile = await getUserProfile(session.user.id);
           if (profile) {
             setUserProfile(profile);
           } else {
-            // Potentially, profile is being created, or this is an error state
-            // For now, we'll assume a profile should exist or will be created by upsertUserProfile
+            // Profile might not exist yet if it's a new signup and profile creation is pending
+            // Or if there's an issue with profile table/permissions
             console.log("Profile not found for user, might be new or an issue fetching.");
-            // setError("لم يتم العثور على ملفك الشخصي. قد يتم إنشاؤه قريبًا.");
-            // To avoid showing error for new users whose profile might be in creation process:
-            // We can try to fetch again after a short delay, or rely on upsert to create it.
-            // For now, if null, we show limited info or a message.
-            // If upsertUserProfile is robust, this path should be rare for logged-in users.
+            // We could try to create a default one here, or show a message.
+            // For now, AppLayout might show basic info.
+            // If using RLS, ensure policies allow the user to read their own profile.
           }
         } catch (e) {
-          console.error("Error fetching profile:", e);
+          console.error("Error fetching Supabase profile:", e);
           setError("حدث خطأ أثناء تحميل ملفك الشخصي.");
+        }
+      } else {
+        setAuthUser(null);
+        setUserProfile(null);
+        // router.push('/auth'); // Redirect if no session
+      }
+      setIsLoading(false);
+    };
+
+    getSessionAndProfile();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Supabase auth state changed in ProfilePage. Event:", event, "Session:", session);
+      const currentUser = session?.user ?? null;
+      setAuthUser(currentUser);
+      if (currentUser) {
+        setIsLoading(true); // Start loading when auth user changes
+        try {
+          const profile = await getUserProfile(currentUser.id);
+          setUserProfile(profile);
+        } catch (e) {
+          console.error("Error fetching profile on auth state change:", e);
+          setError("خطأ في تحديث بيانات الملف الشخصي.");
+          setUserProfile(null);
         } finally {
           setIsLoading(false);
         }
       } else {
-        setCurrentUser(null);
         setUserProfile(null);
-        setIsLoading(false);
-        // Optionally redirect to login or show a message
-        // router.push('/auth'); // Example redirect
+        setIsLoading(false); // No user, so loading is complete
       }
     });
-    return () => unsubscribe();
-  }, []);
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [router]);
 
   if (isLoading) {
     return (
@@ -92,7 +130,6 @@ export default function ProfilePage() {
             <Skeleton className="h-4 w-full" />
           </CardContent>
         </Card>
-        {/* Add more skeletons for other sections if desired */}
       </div>
     );
   }
@@ -101,7 +138,7 @@ export default function ProfilePage() {
     return <div className="text-center text-destructive-foreground bg-destructive p-4 rounded-md">{error}</div>;
   }
   
-  if (!currentUser) {
+  if (!authUser) { // Check authUser (from Supabase session) instead of currentUser
      return (
       <div className="text-center py-10">
         <p className="text-lg text-muted-foreground mb-4">الرجاء تسجيل الدخول لعرض ملفك الشخصي.</p>
@@ -112,15 +149,9 @@ export default function ProfilePage() {
     );
   }
 
-  // If userProfile is still null after loading and user is authenticated,
-  // it might mean the profile is new and hasn't been created yet by upsertUserProfile.
-  // upsertUserProfile should handle this on signup.
-  // For a more robust UI, we could show a message or specific state here.
-  // For now, we assume userProfile will be populated if getUserProfile returns data.
-  // Or, we use currentUser for basic info if profile is thin.
-  const displayName = userProfile?.name || currentUser.displayName || currentUser.email?.split('@')[0] || "مستخدم";
-  const displayEmail = userProfile?.email || currentUser.email || "لا يوجد بريد إلكتروني";
-  const displayAvatarUrl = userProfile?.avatarUrl || currentUser.photoURL || `https://placehold.co/150x150.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const displayName = userProfile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "مستخدم";
+  const displayEmail = userProfile?.email || authUser.email || "لا يوجد بريد إلكتروني";
+  const displayAvatarUrl = userProfile?.avatarUrl || authUser.user_metadata?.avatar_url || `https://placehold.co/150x150.png?text=${displayName.charAt(0).toUpperCase()}`;
   const displayAvatarHint = userProfile?.avatarHint || 'person avatar';
   
   const displayLevel = userProfile?.level ?? 1;
@@ -191,12 +222,12 @@ export default function ProfilePage() {
             {displayBadges.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {displayBadges.map(badge => {
-                  const BadgeIcon = getIcon(badge.iconName); // Badge icon from its name
+                  const BadgeIcon = getIcon(badge.iconName); 
                   return (
                     <div key={badge.id} className="flex flex-col items-center text-center p-3 border rounded-lg hover:shadow-md transition-shadow">
                       <Image src={badge.image} alt={badge.name} width={64} height={64} className="mb-2 rounded-full" data-ai-hint={badge.imageHint} />
                       <p className="text-sm font-medium">{badge.name}</p>
-                      <p className="text-xs text-muted-foreground">مكتسبة في: {new Date(badge.date).toLocaleDateString('ar-SA')}</p>
+                      <p className="text-xs text-muted-foreground">مكتسبة في: {formatDate(badge.date)}</p>
                     </div>
                   );
                 })}
@@ -227,7 +258,7 @@ export default function ProfilePage() {
                       <RewardIcon className="h-6 w-6 text-green-600" />
                       <div>
                         <p className="font-medium">{reward.name}</p>
-                        <p className="text-xs text-muted-foreground">صالح حتى: {new Date(reward.expiry).toLocaleDateString('ar-SA')}</p>
+                        <p className="text-xs text-muted-foreground">صالح حتى: {formatDate(reward.expiry)}</p>
                       </div>
                     </div>
                     <Button size="sm" variant="outline">استخدام</Button>

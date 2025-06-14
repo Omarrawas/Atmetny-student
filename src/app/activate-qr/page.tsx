@@ -10,24 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QrCode, ScanLine, KeyRound, Loader2, Video, VideoOff, BookOpen, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User as FirebaseAuthUser } from "firebase/auth";
+import { supabase } from "@/lib/supabaseClient"; // Supabase client
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
 import { 
-  checkCodeWithBackend, // Using actual backend function call
-  confirmActivationWithBackend, // Using actual backend function call
-  getPlanNameFromType, // Helper to get plan name
-} from "@/lib/activationService";
+  checkCodeWithBackend, 
+  confirmActivationWithBackend, 
+  getPlanNameFromType, 
+} from "@/lib/activationService"; // Supabase versions
 import type { BackendCodeDetails, BackendConfirmationPayload } from '@/lib/types';
-import { getSubjects, type Subject } from "@/lib/examService";
+import { getSubjects, type Subject } from "@/lib/examService"; // This still uses Firebase, mark for future update
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Timestamp } from "firebase/firestore"; // Import Timestamp for date conversion
+// No Timestamp needed from firebase/firestore
 
 type ActivationStep = 'enterCode' | 'chooseSubject' | 'activated';
 
 export default function ActivateQrPage() {
   const [manualCode, setManualCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<SupabaseAuthUser | null>(null);
   const { toast } = useToast();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -37,19 +37,32 @@ export default function ActivateQrPage() {
   const [activationStep, setActivationStep] = useState<ActivationStep>('enterCode');
   const [pendingCodeDetails, setPendingCodeDetails] = useState<BackendCodeDetails | null>(null);
   const [subjectsList, setSubjectsList] = useState<Subject[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string>(""); // Stores subject ID
+  const [selectedSubject, setSelectedSubject] = useState<string>(""); 
   const [isFetchingSubjects, setIsFetchingSubjects] = useState(false);
   const [subjectChoiceError, setSubjectChoiceError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (!user) {
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user ?? null);
+      if (!session?.user) {
+        setActivationStep('enterCode');
+        setPendingCodeDetails(null); 
+      }
+    };
+    getSessionUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setCurrentUser(session?.user ?? null);
+      if (!session?.user) {
         setActivationStep('enterCode');
         setPendingCodeDetails(null); 
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const requestCamera = async () => {
@@ -109,7 +122,7 @@ export default function ActivateQrPage() {
     setIsFetchingSubjects(true);
     setSubjectChoiceError(null);
     try {
-      const fetchedSubjects = await getSubjects();
+      const fetchedSubjects = await getSubjects(); // TODO: This service needs migration to Supabase
       const relevantSubjects = fetchedSubjects.filter(s => s.branch === 'scientific' || s.branch === 'literary' || s.branch === 'common');
       setSubjectsList(relevantSubjects); 
       if (relevantSubjects.length > 0) {
@@ -120,7 +133,7 @@ export default function ActivateQrPage() {
     } catch (error) {
       console.error("Error fetching subjects:", error);
       setSubjectChoiceError("فشل تحميل قائمة المواد. يرجى المحاولة مرة أخرى.");
-      toast({ title: "خطأ", description: "فشل تحميل قائمة المواد.", variant: "destructive" });
+      toast({ title: "خطأ", description: "فشل تحميل قائمة المواد. (getSubjects needs migration)", variant: "destructive" });
     } finally {
       setIsFetchingSubjects(false);
     }
@@ -138,17 +151,17 @@ export default function ActivateQrPage() {
     setIsLoading(true);
 
     const payload: BackendConfirmationPayload = {
-      userId: currentUser.uid,
+      userId: currentUser.id, // Use Supabase user ID
       email: currentUser.email,
-      codeId: codeDetailsToConfirm.id, // codeId is the Firestore document ID of the code
+      codeId: codeDetailsToConfirm.id, 
       codeType: codeDetailsToConfirm.type,
-      codeValidUntil: codeDetailsToConfirm.validUntil, // This is an ISO string
+      codeValidUntil: codeDetailsToConfirm.validUntil!, // validUntil is ISO string from BackendCodeDetails
       chosenSubjectId: chosenSubjectId,
       chosenSubjectName: chosenSubjectName,
     };
 
     try {
-      const confirmationResult = await confirmActivationWithBackend(payload);
+      const confirmationResult = await confirmActivationWithBackend(payload); // Supabase version
 
       if (confirmationResult.success) {
         toast({ 
@@ -157,16 +170,11 @@ export default function ActivateQrPage() {
           variant: "default",
           duration: 9000
         });
-        // IMPORTANT: The current Cloud Function `confirmActivation` updates `users/{userId}/unlockedSubjects/{subjectId}`.
-        // The frontend UI (e.g., ProfilePage) mostly relies on `activeSubscription` in the user's main profile document.
-        // To see changes reflected immediately in the UI, either:
-        // 1. The Cloud Function `confirmActivation` should also update/create an `activeSubscription` object.
-        // 2. Or, the frontend needs to be refactored to check `unlockedSubjects`.
-        // For now, we just reset the UI state here.
         setManualCode("");
         setActivationStep('activated'); 
         setPendingCodeDetails(null);
         setSelectedSubject("");
+        // Profile update is handled by saveUserProfile within confirmActivationWithBackend (Supabase version)
       } else {
         toast({ title: "فشل التفعيل", description: confirmationResult.message || "فشل تأكيد تفعيل الرمز.", variant: "destructive" });
       }
@@ -194,7 +202,7 @@ export default function ActivateQrPage() {
     setActivationStep('enterCode'); 
 
     try {
-      const checkResult = await checkCodeWithBackend(manualCode.trim());
+      const checkResult = await checkCodeWithBackend(manualCode.trim()); // Supabase version
 
       if (!checkResult.isValid || !checkResult.codeDetails) {
         toast({ title: "رمز غير صالح", description: checkResult.message || "لم يتم العثور على رمز التفعيل المدخل أو أنه غير صالح.", variant: "destructive" });
@@ -202,18 +210,14 @@ export default function ActivateQrPage() {
         return;
       }
       
-      // Successfully validated code with backend
       const codeDetails = checkResult.codeDetails;
 
       if (checkResult.needsSubjectChoice) {
-        setPendingCodeDetails(codeDetails); // Store the details returned by the backend
+        setPendingCodeDetails(codeDetails); 
         setActivationStep('chooseSubject');
         await fetchSubjects(); 
         toast({ title: "الخطوة التالية", description: checkResult.message || "يرجى اختيار المادة.", variant: "default" });
       } else {
-        // Code is valid and doesn't need subject choice (general or pre-defined subject by the code itself)
-        // The backend function `confirmActivation` will handle associating the user with the code.
-        // If the code itself defined a subject (codeDetails.subjectId), we pass it.
         await confirmAndFinalizeActivation(codeDetails, codeDetails.subjectId, codeDetails.subjectName);
       }
 
@@ -236,7 +240,6 @@ export default function ActivateQrPage() {
        return;
     }
     
-    // Pass the original codeDetails (from checkCodeWithBackend) and the chosen subject details
     await confirmAndFinalizeActivation(pendingCodeDetails, subjectDetails.id, subjectDetails.name);
   };
 

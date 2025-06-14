@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2, AlertTriangle, Settings, ListChecks, Hash, AlertOctagon, TimerIcon, Zap } from "lucide-react"; 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react"; // Added useCallback
+import { useState, useEffect, useCallback } from "react"; 
 import { Progress } from "@/components/ui/progress";
-import { subjects, allQuestions as mockQuestionsBank } from "@/lib/constants";
-import { saveExamAttempt } from "@/lib/examService";
+import { subjects, allQuestions as mockQuestionsBank } from "@/lib/constants"; // Mock data
+import { saveExamAttempt } from "@/lib/examService"; // Supabase version
 import type { Question as QuestionType } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User as FirebaseAuthUser } from "firebase/auth";
+import { supabase } from "@/lib/supabaseClient"; // Supabase client
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
 
 const MAX_QUESTIONS_LIMIT = 50; 
 
@@ -28,18 +28,16 @@ export default function SubjectExamPage() {
   const subjectId = params.subjectId as string;
   const { toast } = useToast();
 
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
   const [currentSubjectName, setCurrentSubjectName] = useState<string>("المادة المحددة");
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   
-  // Exam Configuration State
   const [configMode, setConfigMode] = useState(true);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [numQuestions, setNumQuestions] = useState(10);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
   const [timerEnabled, setTimerEnabled] = useState(true);
 
-  // Exam Taking State
   const [configuredQuestions, setConfiguredQuestions] = useState<QuestionType[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -49,23 +47,37 @@ export default function SubjectExamPage() {
   const [startTime, setStartTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setAuthUser(session.user);
       } else {
-        setCurrentUser(null);
+        setAuthUser(null);
+        toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
+        router.push('/auth');
+      }
+    };
+    getSessionUser();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setAuthUser(session.user);
+      } else {
+        setAuthUser(null);
         toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
         router.push('/auth');
       }
     });
-    return () => unsubscribe();
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, [router, toast]);
   
   useEffect(() => {
-    const subjectDetails = subjects.find(s => s.id === subjectId);
+    const subjectDetails = subjects.find(s => s.id === subjectId); // Using mock subjects
     if (subjectDetails) {
       setCurrentSubjectName(subjectDetails.name);
-      const topicsForSubject = mockQuestionsBank
+      const topicsForSubject = mockQuestionsBank // Using mock questions
         .filter(q => q.subjectId === subjectId && q.topic)
         .map(q => q.topic as string);
       setAvailableTopics(Array.from(new Set(topicsForSubject)));
@@ -93,7 +105,7 @@ export default function SubjectExamPage() {
   };
 
   const handleStartExam = () => {
-    if (selectedTopics.length === 0 && availableTopics.length > 0) { // Allow if no topics for subject
+    if (selectedTopics.length === 0 && availableTopics.length > 0) { 
       toast({ title: "خطأ في الإعدادات", description: "الرجاء اختيار درس واحد على الأقل.", variant: "destructive" });
       return;
     }
@@ -132,7 +144,7 @@ export default function SubjectExamPage() {
   };
 
 
-  if (!currentUser) {
+  if (!authUser) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -293,8 +305,8 @@ export default function SubjectExamPage() {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
   };
 
-  const handleSubmit = useCallback(async () => { // Wrapped with useCallback
-     if (!currentUser) {
+  const handleSubmit = useCallback(async () => { 
+     if (!authUser) { // Check Supabase authUser
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لتسليم الإجابات.", variant: "destructive" });
       return;
     }
@@ -302,7 +314,7 @@ export default function SubjectExamPage() {
       toast({ title: "خطأ", description: "لم يتم تسجيل وقت بدء الاختبار.", variant: "destructive" });
       return;
     }
-    if(isSubmitting) return; // Prevent multiple submissions
+    if(isSubmitting) return; 
 
     setIsSubmitting(true);
     try {
@@ -316,8 +328,8 @@ export default function SubjectExamPage() {
 
       const score = (correctAnswersCount / configuredQuestions.length) * 100;
 
-      await saveExamAttempt({
-        userId: currentUser.uid,
+      await saveExamAttempt({ // Supabase version
+        userId: authUser.id, // Use Supabase user ID
         subjectId: subjectId,
         examType: 'subject_practice',
         score: parseFloat(score.toFixed(2)),
@@ -331,11 +343,11 @@ export default function SubjectExamPage() {
       toast({ title: "تم التسليم", description: "تم تسليم إجاباتك بنجاح." });
       router.push(`/study/exam/${subjectId}/results?score=${score.toFixed(0)}&correct=${correctAnswersCount}&total=${configuredQuestions.length}`);
     } catch (e) {
-      console.error("Failed to submit subject exam:", e);
+      console.error("Failed to submit subject exam (Supabase context):", e);
       toast({ title: "خطأ في التسليم", description: "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
-      setIsSubmitting(false); // Allow retry if submission fails
+      setIsSubmitting(false); 
     }
-  }, [currentUser, startTime, configuredQuestions, answers, toast, router, subjectId, isSubmitting]); // Added dependencies
+  }, [authUser, startTime, configuredQuestions, answers, toast, router, subjectId, isSubmitting]); 
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
@@ -370,7 +382,7 @@ export default function SubjectExamPage() {
             السابق
           </Button>
           {currentQuestionIndex === configuredQuestions.length - 1 ? (
-            <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
+            <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700" disabled={isSubmitting || !answers[currentQuestion.id]}>
               {isSubmitting ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Send className="me-2 h-4 w-4" />}
               {isSubmitting ? 'جاري التسليم...' : 'تسليم الإجابات'}
             </Button>

@@ -13,9 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { analyzeStudentPerformance, type AnalyzeStudentPerformanceInput, type AnalyzeStudentPerformanceOutput } from '@/ai/flows/analyze-student-performance';
 import { Loader2, MessageSquare, Lightbulb } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseAuthUser } from 'firebase/auth';
-import { saveAiAnalysis } from '@/lib/examService'; // Import the new service function
+import { supabase } from '@/lib/supabaseClient'; // Supabase client
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { saveAiAnalysis } from '@/lib/examService'; // Supabase version
 
 const formSchema = z.object({
   examResults: z.string().min(10, { message: "الرجاء إدخال نتائج اختبارات مفصلة." }),
@@ -27,14 +27,23 @@ type FormData = z.infer<typeof formSchema>;
 export default function AiAnalysisClientForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeStudentPerformanceOutput | null>(null);
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthUser(session?.user ?? null);
+    };
+    getSessionUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthUser(session?.user ?? null);
     });
-    return () => unsubscribe();
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const form = useForm<FormData>({
@@ -46,7 +55,7 @@ export default function AiAnalysisClientForm() {
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    if (!currentUser) {
+    if (!authUser) { // Check Supabase authUser
       toast({
         title: "مستخدم غير مسجل",
         description: "يجب تسجيل الدخول لحفظ نتائج التحليل.",
@@ -66,10 +75,9 @@ export default function AiAnalysisClientForm() {
       const result = await analyzeStudentPerformance(input);
       setAnalysisResult(result);
 
-      // Save the analysis result to Firestore
-      if (result.recommendations) { // Ensure there are recommendations to save
-        await saveAiAnalysis({
-          userId: currentUser.uid,
+      if (result.recommendations) { 
+        await saveAiAnalysis({ // Supabase version
+          userId: authUser.id, // Use Supabase user ID
           inputExamResultsText: data.examResults,
           inputStudentGoalsText: data.studentGoals,
           recommendations: result.recommendations,
@@ -88,7 +96,7 @@ export default function AiAnalysisClientForm() {
       }
       
     } catch (error) {
-      console.error("AI Analysis or Saving Error:", error);
+      console.error("AI Analysis or Saving Error (Supabase context):", error);
       toast({
         title: "خطأ في التحليل أو الحفظ",
         description: "حدث خطأ أثناء محاولة تحليل أدائك أو حفظ النتائج. الرجاء المحاولة مرة أخرى.",
@@ -139,7 +147,7 @@ export default function AiAnalysisClientForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isLoading || !currentUser} className="w-full text-lg py-6">
+          <Button type="submit" disabled={isLoading || !authUser} className="w-full text-lg py-6">
             {isLoading ? (
               <>
                 <Loader2 className="ms-2 h-5 w-5 animate-spin" />
@@ -149,7 +157,7 @@ export default function AiAnalysisClientForm() {
               'احصل على تحليل لأدائك'
             )}
           </Button>
-          {!currentUser && <p className="text-sm text-destructive text-center">يجب تسجيل الدخول لاستخدام هذه الميزة.</p>}
+          {!authUser && <p className="text-sm text-destructive text-center">يجب تسجيل الدخول لاستخدام هذه الميزة.</p>}
         </form>
       </Form>
 

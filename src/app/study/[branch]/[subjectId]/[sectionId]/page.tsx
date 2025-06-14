@@ -3,18 +3,18 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getSectionById, getSectionLessons } from '@/lib/examService';
-import type { SubjectSection, Lesson, UserProfile, Badge, Reward } from '@/lib/types'; // Added Badge, Reward
+import { getSectionById, getSectionLessons, getSubjectById } from '@/lib/examService'; // TODO: Migrate these to Supabase
+import type { SubjectSection, Lesson, UserProfile, Badge, Reward, Subject } from '@/lib/types'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, BookText, Loader2, AlertTriangle, ListChecks, PlayCircle, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { auth, db } from '@/lib/firebase'; // Added db
-import { onAuthStateChanged, type User as FirebaseAuthUser } from 'firebase/auth';
-// Removed: import { getUserProfile } from '@/lib/userProfileService'; // Will use onSnapshot instead
+import { supabase } from '@/lib/supabaseClient'; 
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
+import { getUserProfile } from '@/lib/userProfileService'; // Supabase version
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
-import { Timestamp, doc, onSnapshot } from 'firebase/firestore'; // Added doc, onSnapshot
+// Removed Firebase specific imports for Timestamp, doc, onSnapshot
 
 export default function SectionLessonsPage() {
   const params = useParams();
@@ -28,9 +28,9 @@ export default function SectionLessonsPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoadingAuthProfile, setIsLoadingAuthProfile] = useState(true); // Combined loading state
+  const [isLoadingAuthProfile, setIsLoadingAuthProfile] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,13 +40,14 @@ export default function SectionLessonsPage() {
       const fetchData = async () => {
         try {
           console.log(`Fetching data for sectionId: ${sectionId} in subjectId: ${subjectId}`);
+          // TODO: These services (getSectionById, getSectionLessons) still use Firebase and need migration
           const [sectionData, lessonsData] = await Promise.all([
             getSectionById(subjectId, sectionId),
             getSectionLessons(subjectId, sectionId),
           ]);
 
-          console.log('Fetched Section Data:', sectionData);
-          console.log('Fetched Lessons Data:', lessonsData);
+          console.log('Fetched Section Data (Firebase):', sectionData);
+          console.log('Fetched Lessons Data (Firebase):', lessonsData);
 
           if (!sectionData) {
             setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}`);
@@ -57,8 +58,8 @@ export default function SectionLessonsPage() {
             setLessons(lessonsData);
           }
         } catch (e) {
-          console.error("Failed to fetch section lessons data:", e);
-          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.");
+          console.error("Failed to fetch section lessons data (Firebase):", e);
+          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى. (Services need migration)");
           setSection(null);
           setLessons([]);
         } finally {
@@ -73,119 +74,70 @@ export default function SectionLessonsPage() {
   }, [subjectId, sectionId]);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const getSessionAndProfile = async () => {
+      setIsLoadingAuthProfile(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      setAuthUser(user);
       if (user) {
-        setCurrentUser(user);
-        // Profile will be fetched by the snapshot listener Effect
+        try {
+          const profile = await getUserProfile(user.id);
+          setUserProfile(profile);
+          console.log("User profile fetched in SectionLessonsPage:", profile);
+        } catch (profileError) {
+          console.error("Error fetching user profile in SectionLessonsPage:", profileError);
+          setUserProfile(null);
+          toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات المستخدم.", variant: "destructive"});
+        }
       } else {
-        setCurrentUser(null);
         setUserProfile(null);
-        setIsLoadingAuthProfile(false); // No user, loading complete
+      }
+      setIsLoadingAuthProfile(false);
+    };
+
+    getSessionAndProfile();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change in SectionLessonsPage:", event, session);
+      const user = session?.user ?? null;
+      setAuthUser(user);
+      if (user) {
+        setIsLoadingAuthProfile(true);
+        try {
+          const profile = await getUserProfile(user.id);
+          setUserProfile(profile);
+        } catch (profileError) {
+          console.error("Error fetching user profile on auth change in SectionLessonsPage:", profileError);
+          setUserProfile(null);
+        } finally {
+          setIsLoadingAuthProfile(false);
+        }
+      } else {
+        setUserProfile(null);
+        setIsLoadingAuthProfile(false);
       }
     });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (currentUser?.uid) {
-      setIsLoadingAuthProfile(true);
-      const userDocRef = doc(db, "users", currentUser.uid);
-      const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const profileData: UserProfile = {
-            uid: data.uid,
-            name: data.name || "مستخدم جديد",
-            email: data.email || "لا يوجد بريد إلكتروني",
-            avatarUrl: data.avatarUrl || `https://placehold.co/150x150.png?text=${(data.name || data.email || 'U').charAt(0).toUpperCase()}`,
-            avatarHint: data.avatarHint || 'person avatar',
-            points: data.points ?? 0,
-            level: data.level ?? 1,
-            progressToNextLevel: data.progressToNextLevel ?? 0,
-            badges: (data.badges ?? []).map((badge: any): Badge => ({
-                id: badge.id || crypto.randomUUID(), // Fallback ID
-                name: badge.name || 'شارة غير معروفة',
-                iconName: badge.iconName || 'Award',
-                date: badge.date instanceof Timestamp ? badge.date : Timestamp.now(), // Ensure it's a Timestamp
-                image: badge.image || 'https://placehold.co/64x64.png',
-                imageHint: badge.imageHint || 'badge icon'
-            })),
-            rewards: (data.rewards ?? []).map((reward: any): Reward => ({
-                id: reward.id || crypto.randomUUID(), // Fallback ID
-                name: reward.name || 'مكافأة غير معروفة',
-                iconName: reward.iconName || 'Gift',
-                expiry: reward.expiry instanceof Timestamp ? reward.expiry : Timestamp.now(), // Ensure it's a Timestamp
-            })),
-            studentGoals: data.studentGoals ?? '',
-            branch: data.branch ?? 'undetermined',
-            university: data.university ?? '',
-            major: data.major ?? '',
-            createdAt: data.createdAt as Timestamp,
-            updatedAt: data.updatedAt as Timestamp,
-            activeSubscription: data.activeSubscription ? {
-              planId: data.activeSubscription.planId,
-              planName: data.activeSubscription.planName,
-              startDate: data.activeSubscription.startDate as Timestamp,
-              endDate: data.activeSubscription.endDate as Timestamp,
-              status: data.activeSubscription.status as 'active' | 'expired' | 'cancelled' | 'trial',
-              activationCodeId: data.activeSubscription.activationCodeId || null,
-              subjectId: data.activeSubscription.subjectId || null,
-              subjectName: data.activeSubscription.subjectName || null,
-            } : null,
-          };
-          setUserProfile(profileData);
-          console.log("User profile updated via onSnapshot in SectionLessonsPage:", profileData);
-        } else {
-          setUserProfile(null);
-          console.log("User profile document does not exist (onSnapshot in SectionLessonsPage).");
-        }
-        setIsLoadingAuthProfile(false);
-      }, (error) => {
-        console.error("Error listening to user profile in SectionLessonsPage:", error);
-        setUserProfile(null);
-        setIsLoadingAuthProfile(false);
-        toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات المستخدم بشكل حي.", variant: "destructive"});
-      });
-      return () => unsubscribeProfile();
-    } else {
-      setUserProfile(null);
-      setIsLoadingAuthProfile(false); // No current user, so loading is complete
-    }
-  }, [currentUser?.uid, toast]);
+    return () => authListener.subscription.unsubscribe();
+  }, [toast]);
 
 
   const isSubjectActiveForCurrentUser = useMemo(() => {
-    if (!currentUser || !userProfile || !userProfile.activeSubscription) {
-      console.log("isSubjectActiveForCurrentUser: No user, profile, or activeSubscription object.");
+    if (!authUser || !userProfile || !userProfile.activeSubscription) {
       return false;
     }
     const sub = userProfile.activeSubscription;
-    const now = Timestamp.now(); 
+    const now = new Date(); 
+    const endDate = new Date(sub.endDate);
 
-    if (sub.status !== 'active' || (sub.endDate && sub.endDate.seconds < now.seconds) ) {
-      console.log("isSubjectActiveForCurrentUser: Subscription not active or expired.", {
-        status: sub.status,
-        endDate: sub.endDate?.toDate().toISOString(),
-        now: now.toDate().toISOString(),
-        isExpired: sub.endDate && sub.endDate.seconds < now.seconds
-      });
+    if (sub.status !== 'active' || endDate < now) {
       return false;
     }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
-    const isSpecificSubjectMatch = sub.subjectId === subjectId;
+    const isSpecificSubjectMatch = sub.subjectId === subjectId; // subjectId from page params
 
-    const isActive = isGeneralSubscription || isSpecificSubjectMatch;
-
-    console.log(`isSubjectActiveForCurrentUser (pageSID: ${subjectId}): Evaluation result: ${isActive}`, {
-      subSubjectId: sub.subjectId,
-      subStatus: sub.status,
-      subEndDate: sub.endDate?.toDate().toISOString(),
-      isGeneralSubscription,
-      isSpecificSubjectMatch,
-    });
-    return isActive;
-  }, [userProfile, subjectId, currentUser]);
+    return isGeneralSubscription || isSpecificSubjectMatch;
+  }, [userProfile, subjectId, authUser]);
 
 
   if (isLoadingData || isLoadingAuthProfile) {
@@ -256,8 +208,7 @@ export default function SectionLessonsPage() {
                 } else if (lessonIsLockedByAdminSetting) {
                   effectiveIsLockedByAdmin = true; 
                 } else {
-                  // lesson.isLocked is undefined or some other value
-                  effectiveIsLockedByAdmin = !isFirstLesson; // First lesson free, others locked by default
+                  effectiveIsLockedByAdmin = !isFirstLesson; 
                 }
                 
                 let displayAsLocked;
@@ -273,7 +224,7 @@ export default function SectionLessonsPage() {
                 const handleLessonClick = (e: React.MouseEvent) => {
                   if (displayAsLocked) {
                     e.preventDefault();
-                    if (!currentUser) {
+                    if (!authUser) {
                         toast({
                             title: "تسجيل الدخول مطلوب",
                             description: "يرجى تسجيل الدخول أولاً ثم تفعيل المادة للوصول لهذا الدرس.",
@@ -284,7 +235,7 @@ export default function SectionLessonsPage() {
                                 </Button>
                             ),
                         });
-                    } else { // User is logged in but subject is not active for them
+                    } else { 
                         toast({
                         title: "الدرس مقفل",
                         description: "يرجى تفعيل اشتراكك في هذه المادة أو اشتراك عام للوصول لهذا الدرس.",

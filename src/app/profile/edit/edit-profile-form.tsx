@@ -12,10 +12,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { Loader2, Save, XCircle } from 'lucide-react';
-import type { UserProfile } from '@/lib/types';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User as FirebaseAuthUser } from 'firebase/auth';
-import { saveUserProfile, getUserProfile } from '@/lib/userProfileService';
+import type { UserProfileWriteData, UserProfile } from '@/lib/types'; // UserProfile for read
+import { supabase } from '@/lib/supabaseClient'; // Supabase client
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { saveUserProfile, getUserProfile } from '@/lib/userProfileService'; // Supabase versions
 import { Skeleton } from '@/components/ui/skeleton';
 
 const profileFormSchema = z.object({
@@ -25,7 +25,7 @@ const profileFormSchema = z.object({
   university: z.string().max(100, { message: "اسم الجامعة طويل جدًا"}).optional().or(z.literal('')),
   major: z.string().max(100, { message: "اسم التخصص طويل جدًا"}).optional().or(z.literal('')),
   studentGoals: z.string().max(500, { message: "الأهداف طويلة جدًا"}).optional().or(z.literal('')),
-  branch: z.enum(['scientific', 'literary', 'undetermined']).optional(),
+  branch: z.enum(['scientific', 'literary', 'common', 'undetermined']).optional(), // Added common
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -33,7 +33,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export function EditProfileForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
   const { toast } = useToast();
   const router = useRouter();
 
@@ -51,11 +51,14 @@ export function EditProfileForm() {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
+    const getSessionAndProfile = async () => {
+      setIsFetchingProfile(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setAuthUser(session.user);
         try {
-          const profile = await getUserProfile(user.uid);
+          const profile = await getUserProfile(session.user.id);
           if (profile) {
             form.reset({
               name: profile.name || '',
@@ -66,54 +69,82 @@ export function EditProfileForm() {
               studentGoals: profile.studentGoals || '',
               branch: profile.branch || 'undetermined',
             });
+          } else {
+             // If profile is null, set default name from auth if available
+             form.reset({
+                name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
+                avatarUrl: session.user.user_metadata?.avatar_url || '',
+                avatarHint: 'person avatar',
+                university: '',
+                major: '',
+                studentGoals: '',
+                branch: 'undetermined',
+             });
           }
         } catch (e) {
-          console.error("Failed to fetch profile for editing:", e);
+          console.error("Failed to fetch profile for editing (Supabase):", e);
           toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات ملفك الشخصي للتعديل.", variant: "destructive" });
         } finally {
           setIsFetchingProfile(false);
         }
       } else {
-        router.push('/auth');
+        router.push('/auth'); // Redirect if no session
         setIsFetchingProfile(false);
       }
+    };
+    
+    getSessionAndProfile();
+
+    // Listen for auth changes to ensure user is still logged in
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/auth');
+      } else if (session?.user) {
+        setAuthUser(session.user);
+        // Optionally re-fetch profile if needed, or rely on initial fetch
+      } else {
+        setAuthUser(null);
+        router.push('/auth');
+      }
     });
-    return () => unsubscribe();
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+
   }, [form, router, toast]);
 
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
-    if (!currentUser || !currentUser.email) {
+    if (!authUser || !authUser.email) { // Check Supabase authUser
       toast({ title: "خطأ", description: "يجب أن تكون مسجلاً الدخول لتحديث ملفك الشخصي والبريد الإلكتروني مطلوب.", variant: "destructive" });
       return;
     }
     setIsLoading(true);
     try {
-      // Prepare data for saveUserProfile.
-      // Note: saveUserProfile will reset points, level, badges, rewards as per its current spec.
-      const profileToSave = {
-        uid: currentUser.uid,
-        email: currentUser.email, // Email is from auth, not form
+      const profileToSave: UserProfileWriteData = {
+        id: authUser.id, // Use Supabase authUser.id
+        email: authUser.email, // Email from Supabase auth user
         name: data.name,
-        avatarUrl: data.avatarUrl || undefined, // Pass undefined if empty to let saveUserProfile handle default
+        avatarUrl: data.avatarUrl || undefined, 
         avatarHint: data.avatarHint || 'person avatar',
         university: data.university,
         major: data.major,
         studentGoals: data.studentGoals,
         branch: data.branch,
-        // activeSubscription is not part of this form, so it's not passed.
-        // saveUserProfile will set it to null if not provided or handle merge if it exists.
+        // activeSubscription, points, level etc. are not directly edited here.
+        // saveUserProfile (Supabase version) will merge these fields correctly.
       };
 
-      await saveUserProfile(profileToSave);
+      await saveUserProfile(profileToSave); // Call Supabase version
       toast({
         title: "تم حفظ التغييرات",
         description: "تم تحديث معلومات ملفك الشخصي بنجاح.",
       });
       router.push('/profile');
-      router.refresh();
+      router.refresh(); // To reflect changes if ProfilePage also re-fetches
     } catch (error) {
-      console.error("Profile update error:", error);
+      console.error("Supabase profile update error:", error);
       toast({ title: "خطأ في الحفظ", description: "حدث خطأ أثناء محاولة حفظ التغييرات.", variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -156,7 +187,7 @@ export function EditProfileForm() {
         <FormItem>
             <FormLabel>البريد الإلكتروني</FormLabel>
             <FormControl>
-            <Input type="email" placeholder="البريد الإلكتروني" value={currentUser?.email || ''} disabled />
+            <Input type="email" placeholder="البريد الإلكتروني" value={authUser?.email || ''} disabled />
             </FormControl>
             <p className="text-xs text-muted-foreground pt-1">
             لا يمكن تغيير البريد الإلكتروني من هنا.
@@ -237,6 +268,7 @@ export function EditProfileForm() {
                 <option value="undetermined">غير محدد</option>
                 <option value="scientific">علمي</option>
                 <option value="literary">أدبي</option>
+                <option value="common">مشترك</option>
               </select>
               <FormMessage />
             </FormItem>

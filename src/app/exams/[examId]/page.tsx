@@ -9,16 +9,14 @@ import { ChevronLeft, ChevronRight, Send, Loader2, AlertTriangle, TimerIcon, Ale
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
-import { getExamById, saveExamAttempt } from "@/lib/examService";
+import { getExamById, saveExamAttempt } from "@/lib/examService"; // saveExamAttempt is now Supabase
 import type { Exam as ExamType, Question as QuestionType } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User as FirebaseAuthUser } from "firebase/auth";
+import { supabase } from "@/lib/supabaseClient"; // Supabase client
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
 
 const DEFAULT_SECONDS_PER_QUESTION = 90;
 
-// This function is now less critical if durationInMinutes is always present
-// but can serve as a fallback if duration needs to be calculated from question count.
 function calculateDurationInSeconds(numQuestions?: number, examDurationMinutes?: number): number {
   if (examDurationMinutes && examDurationMinutes > 0) {
     return examDurationMinutes * 60;
@@ -41,7 +39,7 @@ export default function ExamTakingPage() {
   const examId = params.examId as string;
   const { toast } = useToast();
 
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
   const [exam, setExam] = useState<ExamType | null>(null);
   const [isLoadingExam, setIsLoadingExam] = useState(true);
   const [isProcessingSettings, setIsProcessingSettings] = useState(true);
@@ -60,16 +58,30 @@ export default function ExamTakingPage() {
 
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
+    const getSessionUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setAuthUser(session.user);
       } else {
-        setCurrentUser(null);
+        setAuthUser(null);
+        toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
+        router.push('/auth');
+      }
+    };
+    getSessionUser();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setAuthUser(session.user);
+      } else {
+        setAuthUser(null);
         toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
         router.push('/auth');
       }
     });
-    return () => unsubscribe();
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, [router, toast]);
 
   useEffect(() => {
@@ -78,7 +90,7 @@ export default function ExamTakingPage() {
         setIsLoadingExam(true);
         setError(null);
         try {
-          const fetchedExam = await getExamById(examId);
+          const fetchedExam = await getExamById(examId); // TODO: This service needs migration to Supabase
           if (fetchedExam) {
             setExam(fetchedExam);
           } else {
@@ -87,7 +99,7 @@ export default function ExamTakingPage() {
           }
         } catch (e) {
           console.error("Failed to fetch exam data:", e);
-          setError("فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى.");
+          setError("فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى. (getExamById needs migration)");
           setExam(null);
         } finally {
           setIsLoadingExam(false);
@@ -98,7 +110,7 @@ export default function ExamTakingPage() {
   }, [examId]);
 
   const handleSubmit = useCallback(async () => {
-    if (!currentUser) {
+    if (!authUser) { // Check Supabase authUser
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لتسليم الإجابات.", variant: "destructive" });
       return;
     }
@@ -121,8 +133,8 @@ export default function ExamTakingPage() {
 
       const score = (correctAnswersCount / processedQuestions.length) * 100;
 
-      await saveExamAttempt({
-        userId: currentUser.uid,
+      await saveExamAttempt({ // Supabase version
+        userId: authUser.id, // Use Supabase user ID
         examId: exam!.id, 
         examType: 'general_exam',
         score: parseFloat(score.toFixed(2)),
@@ -140,7 +152,6 @@ export default function ExamTakingPage() {
       resultsNavigationParams.set('correct', correctAnswersCount.toString());
       resultsNavigationParams.set('total', processedQuestions.length.toString());
 
-      // Capture original configuration parameters
       const numQParam = searchParams.get('numQ');
       const orderParam = searchParams.get('order');
       const difficultyParam = searchParams.get('difficulty');
@@ -156,11 +167,11 @@ export default function ExamTakingPage() {
       router.push(`/exams/${examId}/results?${resultsNavigationParams.toString()}`);
 
     } catch (e) {
-      console.error("Failed to submit exam:", e);
+      console.error("Failed to submit exam (Supabase context):", e);
       toast({ title: "خطأ في التسليم", description: "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
       setIsSubmitting(false); 
     }
-  }, [currentUser, startTime, exam, processedQuestions, answers, toast, router, examId, isSubmitting, searchParams]);
+  }, [authUser, startTime, exam, processedQuestions, answers, toast, router, examId, isSubmitting, searchParams]);
 
 
   useEffect(() => {
@@ -175,7 +186,6 @@ export default function ExamTakingPage() {
     const difficultyParam = searchParams.get('difficulty') as QuestionType['difficulty'] | 'all' | null;
     const timerEnabledParam = searchParams.get('timer') === 'true';
     const customDurationMinsParam = searchParams.get('durationMins');
-
 
     let questions = [...exam.questions];
 
@@ -414,3 +424,4 @@ export default function ExamTakingPage() {
     </div>
   );
 }
+

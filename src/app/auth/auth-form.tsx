@@ -11,11 +11,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
-import type { AuthError, User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; // Supabase types
+import { supabase } from '@/lib/supabaseClient'; 
+import type { AuthError, User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; 
 import { Loader2, Mail, Lock, UserPlus, LogInIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-// import { saveUserProfile } from '@/lib/userProfileService'; // TODO: Implement Supabase profile saving (was Firebase specific)
+import { saveUserProfile } from '@/lib/userProfileService'; // Supabase version
 
 const loginSchema = z.object({
   email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح." }),
@@ -61,36 +61,37 @@ export function AuthForm() {
   });
 
   const handleAuthSuccess = async (supabaseUser: SupabaseAuthUser | null, isNewUser: boolean = false) => {
-    if (supabaseUser) {
-      // TODO: Implement Supabase profile creation/update logic here.
-      // This might involve checking if a profile exists in your 'profiles' table
-      // in Supabase and creating/updating it. For example:
-      // if (isNewUser) {
-      //   const { error: insertError } = await supabase.from('profiles').insert({
-      //     id: supabaseUser.id,
-      //     email: supabaseUser.email,
-      //     name: supabaseUser.email?.split('@')[0] || 'طالب جديد',
-      //     // ... other default profile fields for Supabase
-      //   });
-      //   if (insertError) {
-      //      console.error("Error creating Supabase profile:", insertError);
-      //      toast({ title: "خطأ في إنشاء الملف الشخصي", description: insertError.message, variant: "destructive" });
-      //   } else {
-      //      toast({ title: "تم إنشاء الحساب والملف الشخصي بنجاح!" });
-      //   }
-      // } else {
-      //    toast({ title: "تم تسجيل الدخول بنجاح مع Supabase!" });
-      // }
-      toast({ title: isNewUser ? "تم إنشاء الحساب بنجاح!" : "تم تسجيل الدخول بنجاح!" });
+    if (supabaseUser && supabaseUser.email && supabaseUser.id) { // Ensure id and email are present
+      if (isNewUser) {
+        try {
+          await saveUserProfile({ // Use Supabase saveUserProfile
+            id: supabaseUser.id, // Pass Supabase user ID
+            email: supabaseUser.email,
+            name: supabaseUser.email.split('@')[0] || 'طالب جديد',
+            // Initialize other fields as per your UserProfileWriteData defaults in saveUserProfile
+            points: 0,
+            level: 1,
+            progressToNextLevel: 0,
+            badges: [],
+            rewards: [],
+          });
+          toast({ title: "تم إنشاء الحساب والملف الشخصي بنجاح!" });
+        } catch (profileError) {
+           console.error("Error creating Supabase profile:", profileError);
+           toast({ title: "خطأ في إنشاء الملف الشخصي", description: (profileError as Error).message, variant: "destructive" });
+        }
+      } else {
+         toast({ title: "تم تسجيل الدخول بنجاح!" });
+      }
     }
     router.push('/');
-    router.refresh(); // To re-trigger AppLayout user state update
+    router.refresh(); 
   };
 
   const handleAuthError = (error: AuthError | Error, defaultMessage: string) => {
     console.error("Supabase Auth Error:", error);
     let message = error.message || defaultMessage;
-    if (error.message.toLowerCase().includes("user already registered") || (error as AuthError).status === 400) {
+    if (error.message.toLowerCase().includes("user already registered") || (error as AuthError).status === 400 || (error as AuthError).status === 422 ) { // 422 for "User already registered" from Supabase
         message = "هذا البريد الإلكتروني مسجل بالفعل. حاول تسجيل الدخول.";
     } else if (error.message.toLowerCase().includes("invalid login credentials")) {
         message = "بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني أو كلمة المرور.";
@@ -110,7 +111,7 @@ export function AuthForm() {
         password: data.password,
       });
       if (error) throw error;
-      await handleAuthSuccess(user);
+      await handleAuthSuccess(user); // Session implies user is logged in
     } catch (error) {
       handleAuthError(error as AuthError, "فشل تسجيل الدخول. يرجى التحقق من بياناتك.");
     } finally {
@@ -124,21 +125,20 @@ export function AuthForm() {
       const { data: { user, session }, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
+        // Supabase handles email confirmation flow based on your project settings.
+        // options: { data: { full_name: values.email.split('@')[0] } } // Example of passing additional metadata
       });
+
       if (error) throw error;
 
-      if (user && !session) {
-         // This case means email confirmation might be required by Supabase.
-         toast({ title: "تم إنشاء الحساب", description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب." });
-         // Don't redirect immediately or call handleAuthSuccess in a way that implies full login.
-         // The onAuthStateChange in AppLayout will handle the user state.
-         // User will be redirected once they confirm their email and sign in.
-      } else if (user && session) {
-        // User signed up and is immediately logged in (email confirmation might be off or auto-confirmed)
+      if (user && session) { // User created and session active (e.g., auto-confirm on or email confirmed quickly)
         await handleAuthSuccess(user, true);
+      } else if (user && !session) { // User created, but confirmation (e.g., email) is pending
+         toast({ title: "تم إنشاء الحساب", description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب." });
+         // User will be redirected by AppLayout or on next login attempt after confirmation.
       } else {
-        // Fallback for unexpected state
-        toast({ title: "تم إرسال طلب إنشاء الحساب."});
+        // Fallback for unexpected state, though typically one of the above.
+        toast({ title: "تم إرسال طلب إنشاء الحساب. يرجى مراجعة بريدك."});
       }
 
     } catch (error) {
@@ -151,17 +151,17 @@ export function AuthForm() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      // TODO: Implement Supabase Google Sign-In
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        // options: {
-        //   redirectTo: typeof window !== 'undefined' ? window.location.origin + '/auth/callback' : undefined
-        // }
+        options: {
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined // Ensure callback URL is configured in Supabase
+        }
       });
       if (error) throw error;
       // Supabase handles redirection. onAuthStateChange in AppLayout should pick up the session.
-      // No direct call to handleAuthSuccess needed here usually.
-      toast({ title: "تسجيل الدخول بجوجل (Supabase)", description: "جاري توجيهك...", variant: "default" });
+      // The user will be redirected to Google and then back to your app's callback URL.
+      // If successful, onAuthStateChange will trigger handleAuthSuccess.
+      toast({ title: "جاري توجيهك إلى جوجل...", variant: "default" });
     } catch (error) {
       handleAuthError(error as AuthError, "فشل تسجيل الدخول باستخدام جوجل.");
     } finally {

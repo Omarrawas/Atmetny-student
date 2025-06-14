@@ -1,30 +1,41 @@
 
 import { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getNewsItems } from "@/lib/serverExamService"; 
+import { getNewsItems } from "@/lib/serverExamService"; // TODO: Needs migration
 import type { NewsItem } from "@/lib/types";
 import Image from "next/image";
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { AlertTriangle, CalendarDays, Tag, Building, Newspaper } from "lucide-react";
-import type { Timestamp } from "firebase/firestore";
+// import type { Timestamp } from "firebase/firestore"; // Not needed if type is string
 
 export const metadata: Metadata = {
   title: "آخر الأخبار | Atmetny",
   description: "تابع آخر الأخبار والتحديثات المتعلقة بالمنصة والتعليم.",
 };
 
-// Helper to safely format timestamp
-const formatDateSafe = (timestamp: Timestamp | undefined): string => {
-  if (timestamp && typeof timestamp.toDate === 'function') {
-    try {
-      return format(timestamp.toDate(), 'd MMMM yyyy, HH:mm', { locale: arSA });
-    } catch (e) {
-      console.error("Error formatting date:", e, "Timestamp:", timestamp);
-      return 'تاريخ غير صالح';
+// Helper to safely format ISO date string or potentially Firestore Timestamp if migration is partial
+const formatDateSafe = (timestampOrIsoString: string | undefined /* | Timestamp */): string => {
+  if (!timestampOrIsoString) return 'تاريخ غير محدد';
+  try {
+    let dateToFormat: Date;
+    if (typeof timestampOrIsoString === 'string') {
+      dateToFormat = new Date(timestampOrIsoString);
+    } else if (timestampOrIsoString && typeof (timestampOrIsoString as any).toDate === 'function') {
+      // Fallback for Firestore Timestamp if still present during migration
+      dateToFormat = (timestampOrIsoString as any).toDate();
+    } else {
+      return 'تاريخ غير صالح (نوع غير معروف)';
     }
+
+    if (isNaN(dateToFormat.getTime())) {
+        return 'تاريخ غير صالح (بعد التحويل)';
+    }
+    return format(dateToFormat, 'd MMMM yyyy, HH:mm', { locale: arSA });
+  } catch (e) {
+    console.error("Error formatting date:", e, "Input:", timestampOrIsoString);
+    return 'تاريخ غير صالح (خطأ)';
   }
-  return 'تاريخ غير محدد';
 };
 
 
@@ -33,10 +44,10 @@ export default async function NewsPage() {
   let fetchError: string | null = null;
 
   try {
-    newsItems = await getNewsItems(20); // Fetch latest 20 news items
+    newsItems = await getNewsItems(20); // TODO: This service needs migration to Supabase
   } catch (error) {
-    console.error("Failed to fetch news items for page:", error);
-    fetchError = "حدث خطأ أثناء تحميل الأخبار. يرجى المحاولة مرة أخرى لاحقًا.";
+    console.error("Failed to fetch news items for page (Firebase):", error);
+    fetchError = "حدث خطأ أثناء تحميل الأخبار. يرجى المحاولة مرة أخرى لاحقًا. (Service needs migration)";
   }
 
   return (

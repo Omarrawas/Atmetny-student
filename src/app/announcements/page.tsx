@@ -2,30 +2,41 @@
 import { Metadata } from "next";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getActiveAnnouncements } from "@/lib/serverExamService";
+import { getActiveAnnouncements } from "@/lib/serverExamService"; // TODO: Needs migration
 import type { Announcement } from "@/lib/types";
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-import { Megaphone, Info, CheckCircle, AlertTriangle as AlertTriangleIcon, XCircle, CalendarDays, AlertCircle } from "lucide-react"; // Renamed AlertTriangle to avoid conflict
-import type { Timestamp } from "firebase/firestore";
+import { Megaphone, Info, CheckCircle, AlertTriangle as AlertTriangleIcon, XCircle, CalendarDays, AlertCircle } from "lucide-react"; 
 
 export const metadata: Metadata = {
   title: "الإعلانات والإشعارات | Atmetny",
   description: "تابع آخر الإعلانات والإشعارات الهامة من منصة Atmetny.",
 };
 
-// Helper to safely format timestamp
-const formatDateSafe = (timestamp: Timestamp | undefined): string => {
-  if (timestamp && typeof timestamp.toDate === 'function') {
-    try {
-      return format(timestamp.toDate(), 'd MMMM yyyy, HH:mm', { locale: arSA });
-    } catch (e) {
-      console.error("Error formatting date:", e, "Timestamp:", timestamp);
-      return 'تاريخ غير صالح';
+// Helper to safely format ISO date string or potentially Firestore Timestamp if migration is partial
+const formatDateSafe = (timestampOrIsoString: string | undefined /* | Timestamp */): string => {
+  if (!timestampOrIsoString) return 'تاريخ غير محدد';
+  try {
+    let dateToFormat: Date;
+    if (typeof timestampOrIsoString === 'string') {
+      dateToFormat = new Date(timestampOrIsoString);
+    } else if (timestampOrIsoString && typeof (timestampOrIsoString as any).toDate === 'function') {
+      // Fallback for Firestore Timestamp if still present during migration
+      dateToFormat = (timestampOrIsoString as any).toDate();
+    } else {
+      return 'تاريخ غير صالح (نوع غير معروف)';
     }
+    
+    if (isNaN(dateToFormat.getTime())) {
+        return 'تاريخ غير صالح (بعد التحويل)';
+    }
+    return format(dateToFormat, 'd MMMM yyyy, HH:mm', { locale: arSA });
+  } catch (e) {
+    console.error("Error formatting date:", e, "Input:", timestampOrIsoString);
+    return 'تاريخ غير صالح (خطأ)';
   }
-  return 'تاريخ غير محدد';
 };
+
 
 const getIconForType = (type: Announcement['type']): React.ElementType => {
   switch (type) {
@@ -34,7 +45,7 @@ const getIconForType = (type: Announcement['type']): React.ElementType => {
     case 'info':
       return Info;
     case 'warning':
-      return AlertTriangleIcon; // Use the renamed import
+      return AlertTriangleIcon; 
     case 'error':
       return XCircle;
     case 'general':
@@ -47,8 +58,8 @@ const getAlertVariantForType = (type: Announcement['type']): "default" | "destru
   switch (type) {
     case 'error':
       return "destructive";
-    case 'warning': // You might want a specific yellow variant for warnings if available/customized
-      return "default"; // Or destructive if it's a critical warning
+    case 'warning': 
+      return "default"; 
     default:
       return "default";
   }
@@ -60,10 +71,10 @@ export default async function AnnouncementsPage() {
   let fetchError: string | null = null;
 
   try {
-    announcements = await getActiveAnnouncements(20); // Fetch latest 20 active announcements
+    announcements = await getActiveAnnouncements(20); // TODO: This service needs migration to Supabase
   } catch (error) {
-    console.error("Failed to fetch announcements for page:", error);
-    fetchError = "حدث خطأ أثناء تحميل الإعلانات. يرجى المحاولة مرة أخرى لاحقًا.";
+    console.error("Failed to fetch announcements for page (Firebase):", error);
+    fetchError = "حدث خطأ أثناء تحميل الإعلانات. يرجى المحاولة مرة أخرى لاحقًا. (Service needs migration)";
   }
 
   return (
