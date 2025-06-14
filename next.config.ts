@@ -19,18 +19,27 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'th.bing.com', // Added th.bing.com
+        hostname: 'th.bing.com',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'www.google.com', // Added www.google.com
+        hostname: 'www.google.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'wlinjhdynghwfzoegvdi.supabase.co', // For Supabase storage if used
         port: '',
         pathname: '/**',
       },
     ],
   },
+  experimental: {
+    allowedDevOrigins: ['https://9000-firebase-studio-1749913518058.cluster-bg6uurscprhn6qxr6xwtrhvkf6.cloudworkstations.dev'],
+  }
 };
 
 export default nextConfig;
