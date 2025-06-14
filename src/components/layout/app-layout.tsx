@@ -15,6 +15,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
   useSidebar,
+  SidebarInset, // Added SidebarInset here
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { mainNavItems } from '@/lib/constants';
@@ -22,8 +23,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LogOut, Moon, Sun, ArrowRight, UserCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from 'next-themes';
-import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
-import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; // Supabase types
+import { supabase } from '@/lib/supabaseClient'; 
+import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; 
 // TODO: When migrating profile, import Supabase-specific profile fetching
 // import { getUserProfileFromSupabase } from '@/lib/supabaseUserProfileService'; // Example
 // import type { UserProfile } from '@/lib/types'; // This type might need adjustment for Supabase
