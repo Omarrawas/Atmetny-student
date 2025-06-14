@@ -1,52 +1,35 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Node modules
-node_modules/
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# Next.js build output
-.next/
-out/
+# Testing
+/coverage
 
-# Environment variables
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+*.log
 .env
 .env*.local
-.env.development
-.env.production
-.env.test
+*.env
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# IDEs and editors
-.idea
-.vscode
-*.project
-*.classpath
-*.c9/*
-*.launch
-.sublime/
-*.tmLanguage.cache
-*.tmPreferences.cache
-*.tags*
-*.bak
-*.swp
-*~
-*.orig
-
-# Operating System files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Other
-coverage
-.nyc_output
-next-env.d.ts
+# Firebase
+firebase-debug.log
+# IDX specific
+.idx/
+.firebase/
+firebase.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+database.rules.json
