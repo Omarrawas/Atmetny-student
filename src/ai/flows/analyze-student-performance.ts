@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Analyzes student test performance and provides personalized feedback.
+ * @fileOverview An AI agent that analyzes student performance and provides personalized recommendations.
  *
- * - analyzeStudentPerformance - A function that analyzes the student's performance and provides feedback.
+ * - analyzeStudentPerformance - A function that handles the analysis of student performance and provides recommendations.
  * - AnalyzeStudentPerformanceInput - The input type for the analyzeStudentPerformance function.
  * - AnalyzeStudentPerformanceOutput - The return type for the analyzeStudentPerformance function.
  */
@@ -12,28 +12,30 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnalyzeStudentPerformanceInputSchema = z.object({
-  testResults: z
+  examResults: z
     .string()
-    .describe('The test results data, including questions, student answers, and correct answers, preferably in JSON format.'),
-  studentGoals: z.string().describe('The student goals for the test.'),
+    .describe(
+      'A string containing the student exam results, including the subject, topic, and score for each exam taken.'
+    ),
+  studentGoals: z
+    .string()
+    .optional()
+    .describe('Optional: The student goals for this exam, if any.'),
 });
-export type AnalyzeStudentPerformanceInput = z.infer<
-  typeof AnalyzeStudentPerformanceInputSchema
->;
+export type AnalyzeStudentPerformanceInput = z.infer<typeof AnalyzeStudentPerformanceInputSchema>;
 
 const AnalyzeStudentPerformanceOutputSchema = z.object({
-  overallFeedback: z.string().describe('Overall feedback on the student performance.'),
-  areasToImprove: z
+  recommendations: z
     .string()
-    .describe('Specific areas where the student needs to improve, with actionable suggestions.'),
-  strengths: z.string().describe('Areas where the student performed well.'),
-  studyPlanSuggestions: z
+    .describe(
+      'توصيات مخصصة باللغة العربية حول المواد أو المواضيع التي يحتاج الطالب للتركيز عليها لتحسين درجاته.'
+    ),
+  followUpQuestions: z
     .string()
-    .describe('Suggested study plan based on the analysis, including specific topics to review.'),
+    .optional()
+    .describe('أسئلة توضيحية باللغة العربية لتحديد التوصيات بشكل أفضل.'),
 });
-export type AnalyzeStudentPerformanceOutput = z.infer<
-  typeof AnalyzeStudentPerformanceOutputSchema
->;
+export type AnalyzeStudentPerformanceOutput = z.infer<typeof AnalyzeStudentPerformanceOutputSchema>;
 
 export async function analyzeStudentPerformance(
   input: AnalyzeStudentPerformanceInput
@@ -45,21 +47,17 @@ const prompt = ai.definePrompt({
   name: 'analyzeStudentPerformancePrompt',
   input: {schema: AnalyzeStudentPerformanceInputSchema},
   output: {schema: AnalyzeStudentPerformanceOutputSchema},
-  prompt: `You are an AI performance analysis tool designed to help students improve their test scores.
+  prompt: `أنت مساعد تعليمي يعمل بالذكاء الاصطناعي متخصص في تحليل أداء الطلاب في الاختبارات التدريبية.
 
-Analyze the student's test results, identify areas for improvement, highlight strengths, and suggest a study plan.
-The student's goals for this test are: {{{studentGoals}}}
+ستتلقى نتائج اختبارات الطالب، بما في ذلك المادة والموضوع والدرجة لكل اختبار تم إجراؤه. ستتلقى أيضًا أهداف الطالب من هذا الاختبار، إن وجدت.
 
-Test Results:
-{{{testResults}}}
+بناءً على هذه المعلومات، قدم توصيات مخصصة باللغة العربية حول المواد أو المواضيع التي يحتاج الطالب للتركيز عليها لتحسين درجاته. إذا لزم الأمر، اطرح أسئلة توضيحية باللغة العربية لتحديد التوصيات بشكل أفضل.
 
-Provide personalized feedback to the student based on their test performance, highlighting areas where they need to improve, so they can focus their studies effectively and achieve better results.
+نتائج الاختبار: {{{examResults}}}
+أهداف الطالب: {{{studentGoals}}}
 
-Output should be formatted as follows:
-Overall Feedback: [overall feedback]
-Areas to Improve: [specific areas where the student needs to improve, with actionable suggestions]
-Strengths: [areas where the student performed well]
-Study Plan Suggestions: [suggested study plan based on the analysis, including specific topics to review]`,
+التوصيات:
+`,
 });
 
 const analyzeStudentPerformanceFlow = ai.defineFlow(
