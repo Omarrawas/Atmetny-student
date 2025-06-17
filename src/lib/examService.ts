@@ -160,7 +160,8 @@ export const getSubjects = async (): Promise<Subject[]> => {
       console.error("Error fetching subjects from Supabase: ", error);
       throw error;
     }
-    return (data || []).map(s => ({...s, iconName: s.icon_name})) as Subject[];
+    // No need to map iconName explicitly as the type Subject already expects icon_name: string
+    return (data || []) as Subject[];
   } catch (error) {
     console.error("Error in getSubjects (Supabase): ", error);
     throw error;
@@ -182,7 +183,7 @@ export const getSubjectById = async (subjectId: string): Promise<Subject | null>
       console.error(`Error fetching subject with ID ${subjectId} from Supabase: `, error);
       throw error;
     }
-    return data ? {...data, iconName: data.icon_name } as Subject : null;
+    return data ? data as Subject : null;
   } catch (error) {
     console.error("Error in getSubjectById (Supabase): ", error);
     throw error;
@@ -190,22 +191,59 @@ export const getSubjectById = async (subjectId: string): Promise<Subject | null>
 };
 
 /**
- * Fetches all sections for a given subject.
- * TODO: Implement this function to fetch subject sections from Supabase (using subject_id UUID).
+ * Fetches all sections for a given subject from Supabase.
  */
 export const getSubjectSections = async (subjectId: string): Promise<SubjectSection[]> => {
-  console.warn(`getSubjectSections (${subjectId} - UUID) needs to be implemented for Supabase. Returning empty array.`);
-  return [];
+  try {
+    if (!subjectId) {
+      console.warn("getSubjectSections called with no subjectId. Returning empty array.");
+      return [];
+    }
+    const { data, error } = await supabase
+      .from('subject_sections')
+      .select('id, subject_id, title, description, type, order, is_locked, created_at, updated_at')
+      .eq('subject_id', subjectId)
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('title', { ascending: true });
+
+    if (error) {
+      console.error(`Error fetching sections for subject ${subjectId} from Supabase: `, error);
+      throw error;
+    }
+    return (data || []) as SubjectSection[];
+  } catch (error) {
+    console.error("Error in getSubjectSections (Supabase): ", error);
+    throw error;
+  }
 };
 
 /**
- * Fetches a single section by its ID within a subject.
- * TODO: Implement this function to fetch a section by ID from Supabase (using subject_id and section_id UUIDs).
+ * Fetches a single section by its ID within a subject from Supabase.
  */
 export const getSectionById = async (subjectId: string, sectionId: string): Promise<SubjectSection | null> => {
-  console.warn(`getSectionById (${subjectId}/${sectionId} - UUIDs) needs to be implemented for Supabase. Returning null.`);
-  return null;
+   try {
+    if (!subjectId || !sectionId) {
+      console.warn("getSectionById called with missing subjectId or sectionId. Returning null.");
+      return null;
+    }
+    const { data, error } = await supabase
+      .from('subject_sections')
+      .select('id, subject_id, title, description, type, order, is_locked, created_at, updated_at')
+      .eq('id', sectionId)
+      .eq('subject_id', subjectId) // Ensure it belongs to the correct subject
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching section ${sectionId} for subject ${subjectId} from Supabase: `, error);
+      throw error;
+    }
+    return data ? data as SubjectSection : null;
+  } catch (error) {
+    console.error("Error in getSectionById (Supabase): ", error);
+    throw error;
+  }
 };
+
 
 /**
  * Fetches all lessons for a given section within a subject.

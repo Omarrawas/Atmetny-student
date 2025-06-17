@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function SubjectSectionsPage() {
   const params = useParams();
   const router = useRouter();
-  const subjectId = params.subjectId as string;
+  const subjectId = params.subjectId as string; // This is now a UUID
   const branch = params.branch as string;
   const { toast } = useToast();
 
@@ -30,29 +30,30 @@ export default function SubjectSectionsPage() {
         setError(null);
         try {
           const [subjectData, sectionsData] = await Promise.all([
-            getSubjectById(subjectId), // Will return null and log warning
-            getSubjectSections(subjectId), // Will return [] and log warning
+            getSubjectById(subjectId), 
+            getSubjectSections(subjectId),
           ]);
 
           if (!subjectData) {
-            setError(`لم يتم العثور على المادة بالمعرف: ${subjectId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
+            setError(`لم يتم العثور على المادة بالمعرف: ${subjectId}.`);
             setSubject(null);
             setSections([]);
-            toast({ title: "تنبيه", description: `تفاصيل المادة "${subjectId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            toast({ title: "خطأ", description: `لم يتم العثور على تفاصيل المادة.`, variant: "destructive" });
           } else {
             setSubject(subjectData);
           }
           
           setSections(sectionsData);
           if (subjectData && sectionsData.length === 0) {
-             toast({ title: "تنبيه", description: `قائمة أقسام المادة "${subjectData.name}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+             toast({ title: "تنبيه", description: `لا توجد أقسام متاحة للمادة "${subjectData.name}" حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)`, variant: "default" });
           }
 
         } catch (e) {
-          console.error("Failed to fetch subject sections data:", e);
-          setError("فشل تحميل بيانات أقسام المادة. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          console.error("Failed to fetch subject sections data (Supabase):", e);
+          setError("فشل تحميل بيانات أقسام المادة. يرجى المحاولة مرة أخرى.");
           setSubject(null);
           setSections([]);
+           toast({ title: "خطأ فادح", description: "فشل تحميل بيانات أقسام المادة.", variant: "destructive" });
         } finally {
           setIsLoading(false);
         }
@@ -85,8 +86,9 @@ export default function SubjectSectionsPage() {
   if (!subject) {
     return (
       <div className="text-center py-10">
-        <p className="text-lg text-muted-foreground">لم يتم العثور على المادة. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
-         <Button onClick={() => router.push('/study')} variant="outline">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+        <p className="text-lg text-muted-foreground">لم يتم العثور على المادة.</p>
+         <Button onClick={() => router.push('/study')} variant="outline" className="mt-4">
           العودة إلى صفحة الدراسة
         </Button>
       </div>
@@ -121,7 +123,7 @@ export default function SubjectSectionsPage() {
                         <div>
                           <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">{section.title}</h3>
                           {section.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{section.description}</p>
                           )}
                         </div>
                         <ChevronRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />

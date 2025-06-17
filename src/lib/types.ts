@@ -28,7 +28,7 @@ export interface SubscriptionDetails {
   endDate: string; // Changed from Timestamp
   status: 'active' | 'expired' | 'cancelled' | 'trial';
   activationCodeId?: string;
-  subjectId?: string | null;
+  subjectId?: string | null; // UUID
   subjectName?: string | null;
 }
 
@@ -78,50 +78,50 @@ export type UserProfileWriteData = {
 
 
 export interface QuestionOption {
-  id: string;
+  id: string; // UUID
   text: string;
 }
 
 export interface Question {
-  id: string;
+  id: string; // UUID
   questionText: string;
   options: QuestionOption[];
-  correctOptionId?: string | null;
-  subjectId: string; // This will be UUID if linked to public.subjects
-  subjectName: string;
+  correctOptionId?: string | null; // UUID
+  subjectId: string; // UUID, Foreign key to public.subjects
+  subjectName: string; // Denormalized or joined
   explanation?: string;
   points?: number;
-  topic?: string;
+  topic?: string; // Could be a foreign key to a 'topics' table later
   difficulty?: 'easy' | 'medium' | 'hard' | 'all';
   tags?: string[];
-  createdBy?: string;
+  createdBy?: string; // UUID, Foreign key to public.users or public.profiles
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Subject {
-  id: string; // Will be UUID from Supabase
+  id: string; // UUID from Supabase
   name: string;
-  branch: SubjectBranch; // Matches the enum type in Supabase
-  icon_name?: LucideIconName | string; // Stored as TEXT in DB, can be mapped to LucideIconName
+  branch: SubjectBranch;
+  icon_name?: string; // Stored as TEXT in DB, can be mapped to LucideIconName
   description?: string;
   image?: string;
   image_hint?: string;
-  order?: number; // Matches 'order' column in Supabase
+  order?: number;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface SubjectSection {
-  id: string; // Will be UUID
+  id: string; // UUID
+  subject_id: string; // UUID, Foreign key to public.subjects.id
   title: string;
-  description?: string;
-  order?: number;
-  type?: string;
-  subject_id?: string; // Foreign key to public.subjects.id (UUID)
-  isUsed?: boolean;
+  description?: string | null; // Matches SQL (nullable)
+  type: string; // E.g., 'unit', 'chapter', 'theme' (NOT NULL in SQL)
+  order?: number | null;
+  is_locked?: boolean | null; // Default true in SQL
   created_at?: string;
   updated_at?: string;
-  usedAt?: string | null;
-  usedByUserId?: string | null;
 }
 
 export interface LessonFile {
@@ -173,7 +173,7 @@ export interface Exam {
   published: boolean;
   created_at?: string;
   updated_at?: string;
-  questionIds?: string[];
+  questionIds?: string[]; // Array of UUIDs
   questions?: Question[]; // Can be populated by joining/fetching separately
 }
 

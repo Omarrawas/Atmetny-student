@@ -18,8 +18,8 @@ import { cn } from '@/lib/utils';
 export default function SectionLessonsPage() {
   const params = useParams();
   const router = useRouter();
-  const subjectId = params.subjectId as string;
-  const sectionId = params.sectionId as string;
+  const subjectId = params.subjectId as string; // UUID
+  const sectionId = params.sectionId as string; // UUID
   const branch = params.branch as string;
 
   const [section, setSection] = useState<SubjectSection | null>(null);
@@ -39,15 +39,15 @@ export default function SectionLessonsPage() {
       const fetchData = async () => {
         try {
           const [sectionData, lessonsData] = await Promise.all([
-            getSectionById(subjectId, sectionId), // Will return null and log warning
-            getSectionLessons(subjectId, sectionId), // Will return [] and log warning
+            getSectionById(subjectId, sectionId), 
+            getSectionLessons(subjectId, sectionId), // This will return [] and log warning
           ]);
 
           if (!sectionData) {
-            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
+            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}.`);
             setSection(null);
             setLessons([]);
-            toast({ title: "تنبيه", description: `تفاصيل القسم "${sectionId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            toast({ title: "خطأ", description: `لم يتم العثور على تفاصيل القسم.`, variant: "destructive" });
           } else {
             setSection(sectionData);
           }
@@ -57,10 +57,11 @@ export default function SectionLessonsPage() {
           }
 
         } catch (e) {
-          console.error("Failed to fetch section lessons data:", e);
-          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          console.error("Failed to fetch section lessons data (Supabase):", e);
+          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.");
           setSection(null);
           setLessons([]);
+          toast({ title: "خطأ فادح", description: "فشل تحميل بيانات دروس القسم.", variant: "destructive" });
         } finally {
           setIsLoadingData(false);
         }
@@ -130,7 +131,7 @@ export default function SectionLessonsPage() {
     }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
-    const isSpecificSubjectMatch = sub.subjectId === subjectId;
+    const isSpecificSubjectMatch = sub.subjectId === subjectId; // subjectId is from route params
 
     return isGeneralSubscription || isSpecificSubjectMatch;
   }, [userProfile, subjectId, authUser]);
@@ -161,8 +162,9 @@ export default function SectionLessonsPage() {
   if (!section) {
     return (
       <div className="text-center py-10">
-        <p className="text-lg text-muted-foreground">لم يتم العثور على القسم. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
-         <Button onClick={() => router.back()} variant="outline">
+         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+        <p className="text-lg text-muted-foreground">لم يتم العثور على القسم.</p>
+         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
       </div>
@@ -193,22 +195,28 @@ export default function SectionLessonsPage() {
             <ul className="space-y-4">
               {lessons.map((lesson, index) => {
                 const isFirstLesson = index === 0;
+                // Use section.is_locked for section-level lock, and lesson.isLocked for lesson-level lock
+                const sectionIsLockedByAdmin = section.is_locked === true;
                 const lessonIsLockedByAdminSetting = lesson.isLocked === true || String(lesson.isLocked).toLowerCase() === "true";
                 const lessonIsOpenByAdminSetting = lesson.isLocked === false || String(lesson.isLocked).toLowerCase() === "false";
 
+                // Determine if lesson is locked by its own admin setting, or inherits section lock
                 let effectiveIsLockedByAdmin: boolean;
-                if (lessonIsOpenByAdminSetting) {
+                if (lessonIsOpenByAdminSetting) { // Lesson explicitly open
                   effectiveIsLockedByAdmin = false; 
-                } else if (lessonIsLockedByAdminSetting) {
+                } else if (lessonIsLockedByAdminSetting) { // Lesson explicitly locked
                   effectiveIsLockedByAdmin = true; 
-                } else {
-                  effectiveIsLockedByAdmin = !isFirstLesson; 
+                } else { // Lesson inherits lock status
+                    // If section itself is locked by admin, all its lessons (without explicit open) are locked
+                    // If section is not locked by admin, then only non-first lessons (without explicit open) are locked by default
+                    effectiveIsLockedByAdmin = sectionIsLockedByAdmin ? true : !isFirstLesson;
                 }
                 
+                // Determine if the lesson should be displayed as locked to the current user
                 let displayAsLocked;
-                if (effectiveIsLockedByAdmin === false) { 
+                if (effectiveIsLockedByAdmin === false) { // If admin set it as open, it's always open
                   displayAsLocked = false;
-                } else { 
+                } else { // Otherwise, check user's subscription
                   displayAsLocked = !isSubjectActiveForCurrentUser;
                 }
                 
