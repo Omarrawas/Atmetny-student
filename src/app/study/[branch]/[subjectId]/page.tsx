@@ -48,7 +48,7 @@ export default function SubjectSectionsPage() {
              toast({ title: "تنبيه", description: `لا توجد أقسام متاحة للمادة "${subjectData.name}" حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)`, variant: "default" });
           }
 
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch subject sections data (Supabase):", e);
           setError("فشل تحميل بيانات أقسام المادة. يرجى المحاولة مرة أخرى.");
           setSubject(null);
@@ -122,9 +122,7 @@ export default function SubjectSectionsPage() {
                       <CardContent className="p-4 flex items-center justify-between">
                         <div>
                           <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">{section.title}</h3>
-                          {section.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{section.description}</p>
-                          )}
+                          {/* section.description was removed as it's not in the DB schema */}
                         </div>
                         <ChevronRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                       </CardContent>
@@ -145,3 +143,4 @@ export default function SubjectSectionsPage() {
     </div>
   );
 }
+

@@ -56,7 +56,7 @@ export default function SectionLessonsPage() {
             toast({ title: "تنبيه", description: `قائمة دروس القسم "${sectionData.title}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
           }
 
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch section lessons data (Supabase):", e);
           setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.");
           setSection(null);
@@ -179,9 +179,11 @@ export default function SectionLessonsPage() {
             <ListChecks className="h-8 w-8 text-primary" />
             <CardTitle className="text-3xl font-bold">{section.title}</CardTitle>
           </div>
-          {section.description && (
-            <CardDescription className="text-lg">
-              {section.description}
+          {/* section.description was removed as it's not in the DB schema */}
+          {/* For example, if you wanted to show the section type: */}
+          {section.type && (
+            <CardDescription className="text-md">
+              نوع القسم: {section.type}
             </CardDescription>
           )}
         </CardHeader>
@@ -280,3 +282,4 @@ export default function SectionLessonsPage() {
     </div>
   );
 }
+

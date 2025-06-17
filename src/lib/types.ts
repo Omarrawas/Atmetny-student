@@ -116,7 +116,7 @@ export interface SubjectSection {
   id: string; // UUID
   subject_id: string; // UUID, Foreign key to public.subjects.id
   title: string;
-  description?: string | null; // Matches SQL (nullable)
+  // description?: string | null; // Removed as per database schema
   type: string; // E.g., 'unit', 'chapter', 'theme' (NOT NULL in SQL)
   order?: number | null;
   is_locked?: boolean | null; // Default true in SQL
@@ -273,3 +273,4 @@ export interface Announcement {
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
+

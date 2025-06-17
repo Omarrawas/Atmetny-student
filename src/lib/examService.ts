@@ -201,7 +201,7 @@ export const getSubjectSections = async (subjectId: string): Promise<SubjectSect
     }
     const { data, error, status } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, description, type, order, is_locked, created_at, updated_at')
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
       .eq('subject_id', subjectId)
       .order('order', { ascending: true, nullsFirst: false })
       .order('title', { ascending: true });
@@ -237,7 +237,7 @@ export const getSectionById = async (subjectId: string, sectionId: string): Prom
     }
     const { data, error } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, description, type, order, is_locked, created_at, updated_at')
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
       .eq('id', sectionId)
       .eq('subject_id', subjectId) 
       .maybeSingle();
