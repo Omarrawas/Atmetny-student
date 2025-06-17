@@ -11,23 +11,6 @@ import { getUserProfile, saveUserProfile } from './userProfileService';
  */
 export const getPublicExams = async (filters?: { subjectId?: string; teacherId?: string }): Promise<Exam[]> => {
   console.warn("getPublicExams needs to be implemented for Supabase. Returning empty array. Filters received:", filters);
-  // Example structure if you were to implement it:
-  // try {
-  //   let query = supabase.from('exams').select('*').eq('published', true);
-  //   if (filters?.subjectId && filters.subjectId !== 'all' && filters.subjectId !== '') {
-  //     query = query.eq('subject_id', filters.subjectId);
-  //   }
-  //   if (filters?.teacherId && filters.teacherId !== 'all' && filters.teacherId !== '') {
-  //     query = query.eq('teacher_id', filters.teacherId);
-  //   }
-  //   query = query.order('created_at', { ascending: false });
-  //   const { data, error } = await query;
-  //   if (error) throw error;
-  //   return data || []; // Ensure to map to your Exam type
-  // } catch (error) {
-  //   console.error("Error fetching public exams from Supabase: ", error);
-  //   throw error;
-  // }
   return [];
 };
 
@@ -40,17 +23,6 @@ export const getQuestionsByIds = async (questionIds: string[]): Promise<Question
   if (!questionIds || questionIds.length === 0) {
     return [];
   }
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase.from('questions').select('*').in('id', questionIds);
-  //   if (error) throw error;
-  //   // Ensure order matches original questionIds if necessary
-  //   const orderedQuestions = questionIds.map(id => (data || []).find(q => q.id === id)).filter(q => q !== undefined) as Question[];
-  //   return orderedQuestions;
-  // } catch (error) {
-  //   console.error(`Error fetching questions by IDs from Supabase: `, error);
-  //   throw error;
-  // }
   return [];
 };
 
@@ -60,23 +32,6 @@ export const getQuestionsByIds = async (questionIds: string[]): Promise<Question
  */
 export const getExamById = async (examId: string): Promise<Exam | null> => {
   console.warn(`getExamById (${examId}) needs to be implemented for Supabase. Returning null.`);
-  // Example structure:
-  // try {
-  //   const { data: examData, error: examError } = await supabase
-  //     .from('exams')
-  //     .select('*, questions(id, question_text, options, correct_option_id, subject_id, subject_name, explanation, points, topic, difficulty, tags, created_by)') // Example of joining if questions are related
-  //     .eq('id', examId)
-  //     .maybeSingle(); // Use maybeSingle if an exam might not have questions or questions are in a separate field/call
-  //   if (examError) throw examError;
-  //   if (!examData) return null;
-  //   // If questions are just IDs in examData.question_ids:
-  //   // const questions = await getQuestionsByIds(examData.question_ids || []);
-  //   // return { ...examData, questions: questions } as Exam; // Map to your Exam type
-  //   return examData as Exam; // Adjust mapping based on your Supabase schema
-  // } catch (error) {
-  //   console.error(`Error fetching exam with ID ${examId} from Supabase: `, error);
-  //   throw error;
-  // }
   return null;
 };
 
@@ -89,16 +44,6 @@ export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
   if (!examIds || examIds.length === 0) {
     return [];
   }
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase.from('exams').select('*').in('id', examIds);
-  //   if (error) throw error;
-  //   const orderedExams = examIds.map(id => (data || []).find(e => e.id === id)).filter(e => e !== undefined) as Exam[];
-  //   return orderedExams;
-  // } catch (error) {
-  //   console.error("Error fetching exams by IDs from Supabase: ", error);
-  //   throw error;
-  // }
   return [];
 };
 
@@ -108,19 +53,6 @@ export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
  */
 export const getQuestionsBySubject = async (subjectId: string, questionLimit: number = 20): Promise<Question[]> => {
   console.warn(`getQuestionsBySubject (${subjectId}) needs to be implemented for Supabase. Returning empty array.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('questions')
-  //     .select('*')
-  //     .eq('subject_id', subjectId)
-  //     .limit(questionLimit);
-  //   if (error) throw error;
-  //   return (data || []) as Question[];
-  // } catch (error) {
-  //   console.error(`Error fetching questions for subject ${subjectId} from Supabase: `, error);
-  //   throw error;
-  // }
   return [];
 };
 
@@ -129,13 +61,13 @@ export const getQuestionsBySubject = async (subjectId: string, questionLimit: nu
  */
 export const saveExamAttempt = async (attemptData: {
   userId: string;
-  examId?: string;
-  subjectId?: string;
+  examId?: string; // UUID
+  subjectId?: string; // UUID
   examType: 'general_exam' | 'subject_practice';
   score: number;
   correctAnswersCount: number;
   totalQuestionsAttempted: number;
-  answers: Array<{ questionId: string; selectedOptionId: string; isCorrect: boolean }>;
+  answers: Array<{ questionId: string; selectedOptionId: string; isCorrect: boolean }>; // questionId is UUID
   startedAt: Date;
   completedAt: Date;
 }): Promise<string> => {
@@ -214,129 +146,81 @@ export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' |
 };
 
 /**
- * Fetches all subjects.
- * TODO: Implement this function to fetch subjects from Supabase.
+ * Fetches all subjects from Supabase.
  */
 export const getSubjects = async (): Promise<Subject[]> => {
-  console.warn("getSubjects needs to be implemented for Supabase. Returning empty array.");
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase.from('subjects').select('*').order('name');
-  //   if (error) throw error;
-  //   return (data || []) as Subject[];
-  // } catch (error) {
-  //   console.error("Error fetching subjects from Supabase: ", error);
-  //   throw error;
-  // }
-  return [];
+  try {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('id, name, branch, icon_name, description, image, image_hint, order, created_at, updated_at')
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error("Error fetching subjects from Supabase: ", error);
+      throw error;
+    }
+    return (data || []).map(s => ({...s, iconName: s.icon_name})) as Subject[];
+  } catch (error) {
+    console.error("Error in getSubjects (Supabase): ", error);
+    throw error;
+  }
 };
 
 /**
- * Fetches a single subject by its ID.
- * TODO: Implement this function to fetch a subject by ID from Supabase.
+ * Fetches a single subject by its UUID from Supabase.
  */
 export const getSubjectById = async (subjectId: string): Promise<Subject | null> => {
-  console.warn(`getSubjectById (${subjectId}) needs to be implemented for Supabase. Returning null.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase.from('subjects').select('*').eq('id', subjectId).maybeSingle();
-  //   if (error) throw error;
-  //   return data as Subject | null;
-  // } catch (error) {
-  //   console.error(`Error fetching subject with ID ${subjectId} from Supabase: `, error);
-  //   throw error;
-  // }
-  return null;
+  try {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('id, name, branch, icon_name, description, image, image_hint, order, created_at, updated_at')
+      .eq('id', subjectId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching subject with ID ${subjectId} from Supabase: `, error);
+      throw error;
+    }
+    return data ? {...data, iconName: data.icon_name } as Subject : null;
+  } catch (error) {
+    console.error("Error in getSubjectById (Supabase): ", error);
+    throw error;
+  }
 };
 
 /**
  * Fetches all sections for a given subject.
- * TODO: Implement this function to fetch subject sections from Supabase.
+ * TODO: Implement this function to fetch subject sections from Supabase (using subject_id UUID).
  */
 export const getSubjectSections = async (subjectId: string): Promise<SubjectSection[]> => {
-  console.warn(`getSubjectSections (${subjectId}) needs to be implemented for Supabase. Returning empty array.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('subject_sections') // Assuming table name
-  //     .select('*')
-  //     .eq('subject_id', subjectId)
-  //     .order('order', { ascending: true });
-  //   if (error) throw error;
-  //   return (data || []) as SubjectSection[];
-  // } catch (error) {
-  //   console.error(`Error fetching sections for subject ${subjectId} from Supabase: `, error);
-  //   throw error;
-  // }
+  console.warn(`getSubjectSections (${subjectId} - UUID) needs to be implemented for Supabase. Returning empty array.`);
   return [];
 };
 
 /**
  * Fetches a single section by its ID within a subject.
- * TODO: Implement this function to fetch a section by ID from Supabase.
+ * TODO: Implement this function to fetch a section by ID from Supabase (using subject_id and section_id UUIDs).
  */
 export const getSectionById = async (subjectId: string, sectionId: string): Promise<SubjectSection | null> => {
-  console.warn(`getSectionById (${subjectId}/${sectionId}) needs to be implemented for Supabase. Returning null.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('subject_sections')
-  //     .select('*')
-  //     .eq('subject_id', subjectId)
-  //     .eq('id', sectionId)
-  //     .maybeSingle();
-  //   if (error) throw error;
-  //   return data as SubjectSection | null;
-  // } catch (error) {
-  //   console.error(`Error fetching section ${sectionId} for subject ${subjectId} from Supabase: `, error);
-  //   throw error;
-  // }
+  console.warn(`getSectionById (${subjectId}/${sectionId} - UUIDs) needs to be implemented for Supabase. Returning null.`);
   return null;
 };
 
 /**
  * Fetches all lessons for a given section within a subject.
- * TODO: Implement this function to fetch section lessons from Supabase.
+ * TODO: Implement this function to fetch section lessons from Supabase (using subject_id and section_id UUIDs).
  */
 export const getSectionLessons = async (subjectId: string, sectionId: string): Promise<Lesson[]> => {
-  console.warn(`getSectionLessons (${subjectId}/${sectionId}) needs to be implemented for Supabase. Returning empty array.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('lessons') // Assuming table name
-  //     .select('*')
-  //     .eq('subject_id', subjectId) // Assuming lessons also have subject_id
-  //     .eq('section_id', sectionId)
-  //     .order('order', { ascending: true });
-  //   if (error) throw error;
-  //   return (data || []) as Lesson[];
-  // } catch (error) {
-  //   console.error(`Error fetching lessons for section ${sectionId} in subject ${subjectId} from Supabase: `, error);
-  //   throw error;
-  // }
+  console.warn(`getSectionLessons (${subjectId}/${sectionId} - UUIDs) needs to be implemented for Supabase. Returning empty array.`);
   return [];
 };
 
 /**
  * Fetches a single lesson by its ID within a section and subject.
- * TODO: Implement this function to fetch a lesson by ID from Supabase.
+ * TODO: Implement this function to fetch a lesson by ID from Supabase (using subject_id, section_id, and lesson_id UUIDs).
  */
 export const getLessonById = async (subjectId: string, sectionId: string, lessonId: string): Promise<Lesson | null> => {
-  console.warn(`getLessonById (${subjectId}/${sectionId}/${lessonId}) needs to be implemented for Supabase. Returning null.`);
-  // Example structure:
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('lessons')
-  //     .select('*')
-  //     .eq('subject_id', subjectId)
-  //     .eq('section_id', sectionId)
-  //     .eq('id', lessonId)
-  //     .maybeSingle();
-  //   if (error) throw error;
-  //   return data as Lesson | null;
-  // } catch (error) {
-  //   console.error(`Error fetching lesson ${lessonId} from Supabase: `, error);
-  //   throw error;
-  // }
+  console.warn(`getLessonById (${subjectId}/${sectionId}/${lessonId} - UUIDs) needs to be implemented for Supabase. Returning null.`);
   return null;
 };

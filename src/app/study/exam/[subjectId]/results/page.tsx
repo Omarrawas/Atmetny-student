@@ -3,27 +3,43 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useParams, useRouter, useSearchParams } from "next/navigation"; // Added useSearchParams
+import { useParams, useRouter, useSearchParams } from "next/navigation"; 
 import Link from "next/link";
-import { CheckCircle, BookOpen, RefreshCcw, Sparkles, Award, XCircle } from "lucide-react"; // Added Award, XCircle
-import { subjects } from "@/lib/constants"; 
+import { CheckCircle, BookOpen, RefreshCcw, Sparkles, Award, XCircle, Loader2 } from "lucide-react"; 
+import { getSubjectById } from "@/lib/examService";
+import type { Subject } from "@/lib/types";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SubjectExamResultsPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams(); // To get query params
-  const subjectId = params.subjectId as string;
+  const searchParams = useSearchParams(); 
+  const subjectId = params.subjectId as string; // This will be a UUID
+  const { toast } = useToast();
   
-  const [subjectName, setSubjectName] = useState("المادة المحددة");
+  const [subject, setSubject] = useState<Subject | null>(null);
+  const [isLoadingSubject, setIsLoadingSubject] = useState(true);
   const [score, setScore] = useState<number | null>(null);
   const [correctAnswers, setCorrectAnswers] = useState<number | null>(null);
   const [totalQuestions, setTotalQuestions] = useState<number | null>(null);
 
   useEffect(() => {
-    const currentSubject = subjects.find(s => s.id === subjectId);
-    if (currentSubject) {
-      setSubjectName(currentSubject.name);
+    if (subjectId) {
+      setIsLoadingSubject(true);
+      getSubjectById(subjectId)
+        .then(subjectDetails => {
+          if (subjectDetails) {
+            setSubject(subjectDetails);
+          } else {
+            toast({ title: "خطأ", description: "لم يتم العثور على المادة.", variant: "destructive"});
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching subject for results page:", err);
+          toast({ title: "خطأ", description: "فشل تحميل تفاصيل المادة.", variant: "destructive"});
+        })
+        .finally(() => setIsLoadingSubject(false));
     }
 
     const scoreParam = searchParams.get('score');
@@ -34,20 +50,26 @@ export default function SubjectExamResultsPage() {
     setCorrectAnswers(correctParam ? parseInt(correctParam) : 0);
     setTotalQuestions(totalParam ? parseInt(totalParam) : 0);
 
-  }, [subjectId, searchParams]);
+  }, [subjectId, searchParams, toast]);
 
 
-  if (score === null || correctAnswers === null || totalQuestions === null) {
-    return <div className="text-center py-10">جاري تحميل النتائج...</div>;
+  if (isLoadingSubject || score === null || correctAnswers === null || totalQuestions === null) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ms-3 text-lg">جاري تحميل النتائج...</p>
+      </div>
+    );
   }
 
+  const subjectDisplayName = subject?.name || "المادة المحددة";
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 text-center">
       <Card className="shadow-xl">
         <CardHeader>
           <Award className="h-16 w-16 text-primary mx-auto mb-4" />
-          <CardTitle className="text-3xl font-bold">نتيجة اختبار مادة {subjectName}</CardTitle>
+          <CardTitle className="text-3xl font-bold">نتيجة اختبار مادة {subjectDisplayName}</CardTitle>
           <CardDescription>أداءك في الاختبار.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

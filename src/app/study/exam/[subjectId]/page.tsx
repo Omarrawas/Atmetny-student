@@ -13,9 +13,9 @@ import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2, AlertTriangle, S
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react"; 
 import { Progress } from "@/components/ui/progress";
-import { subjects, allQuestions as mockQuestionsBank } from "@/lib/constants"; // Mock data
-import { saveExamAttempt } from "@/lib/examService"; // Supabase version
-import type { Question as QuestionType } from "@/lib/types";
+import { allQuestions as mockQuestionsBank } from "@/lib/constants"; // Mock data for questions
+import { saveExamAttempt, getSubjectById } from "@/lib/examService"; // Supabase version
+import type { Question as QuestionType, Subject } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient"; // Supabase client
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
@@ -25,11 +25,12 @@ const MAX_QUESTIONS_LIMIT = 50;
 export default function SubjectExamPage() {
   const params = useParams();
   const router = useRouter();
-  const subjectId = params.subjectId as string;
+  const subjectId = params.subjectId as string; // This will be a UUID
   const { toast } = useToast();
 
-  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); // Supabase auth user
-  const [currentSubjectName, setCurrentSubjectName] = useState<string>("المادة المحددة");
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); 
+  const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
+  const [isLoadingSubject, setIsLoadingSubject] = useState(true);
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   
   const [configMode, setConfigMode] = useState(true);
@@ -74,21 +75,48 @@ export default function SubjectExamPage() {
   }, [router, toast]);
   
   useEffect(() => {
-    const subjectDetails = subjects.find(s => s.id === subjectId); // Using mock subjects
-    if (subjectDetails) {
-      setCurrentSubjectName(subjectDetails.name);
-      const topicsForSubject = mockQuestionsBank // Using mock questions
-        .filter(q => q.subjectId === subjectId && q.topic)
-        .map(q => q.topic as string);
-      setAvailableTopics(Array.from(new Set(topicsForSubject)));
-      setSelectedTopics(Array.from(new Set(topicsForSubject))); 
+    if (subjectId) {
+      setIsLoadingSubject(true);
+      getSubjectById(subjectId)
+        .then(subjectDetails => {
+          if (subjectDetails) {
+            setCurrentSubject(subjectDetails);
+            // For now, topics are still derived from mockQuestionsBank based on the UUID subjectId
+            const topicsForSubject = mockQuestionsBank
+              .filter(q => q.subjectId === subjectId && q.topic) // This linkage might break if mockQuestionsBank subjectIds are not UUIDs
+              .map(q => q.topic as string);
+            const uniqueTopics = Array.from(new Set(topicsForSubject));
+            setAvailableTopics(uniqueTopics);
+            // setSelectedTopics(uniqueTopics); // Default to all topics. Consider if this is desired.
+             if (uniqueTopics.length > 0) {
+              setSelectedTopics(uniqueTopics);
+            } else {
+              // If no topics found in mock data for this UUID, it implies a mismatch or data issue
+              // For now, allow proceeding with all questions of the subject (filtered later in handleStartExam)
+              setSelectedTopics([]); 
+              console.warn(`No specific topics found in mockQuestionsBank for subjectId (UUID): ${subjectId}. Exam will use all questions for this subject if available.`);
+            }
+
+          } else {
+            setError("لم يتم العثور على المادة المحددة.");
+            toast({ title: "خطأ", description: "المادة المطلوبة غير موجودة.", variant: "destructive"});
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching subject details:", err);
+          setError("خطأ في تحميل بيانات المادة.");
+           toast({ title: "خطأ", description: "فشل تحميل تفاصيل المادة.", variant: "destructive"});
+        })
+        .finally(() => {
+          setIsLoadingSubject(false);
+        });
     }
     setConfigMode(true);
     setConfiguredQuestions([]);
     setCurrentQuestionIndex(0);
     setAnswers({});
     setError(null);
-  }, [subjectId]);
+  }, [subjectId, toast]);
 
   const handleTopicChange = (topic: string) => {
     setSelectedTopics(prev => 
@@ -117,7 +145,14 @@ export default function SubjectExamPage() {
     setIsLoading(true);
     setError(null);
     
-    let filtered = mockQuestionsBank.filter(q => q.subjectId === subjectId);
+    // Note: mockQuestionsBank.filter(q => q.subjectId === subjectId) will likely fail if mockQuestionsBank uses string IDs and subjectId is UUID.
+    // This part needs to be refactored to fetch questions from Supabase by subject_id (UUID) and topic.
+    // For this step, we'll assume mockQuestionsBank still contains questions linked by the OLD string IDs,
+    // or that you intend to update mockQuestionsBank to use UUIDs if this page is to continue using it.
+    // Ideally, questions are fetched from Supabase directly.
+    let filtered = mockQuestionsBank.filter(q => q.subjectId === subjectId); // This line is problematic with UUIDs
+    console.warn(`Filtering mockQuestionsBank with subjectId (UUID): ${subjectId}. This might yield no questions if mock data uses string IDs.`);
+
 
     if (selectedTopics.length > 0 && selectedTopics.length < availableTopics.length) { 
       filtered = filtered.filter(q => q.topic && selectedTopics.includes(q.topic));
@@ -131,7 +166,7 @@ export default function SubjectExamPage() {
     const questionsToDisplay = shuffled.slice(0, numQuestions);
 
     if (questionsToDisplay.length === 0) {
-      setError("لم يتم العثور على أسئلة تطابق معاييرك. الرجاء تعديل إعدادات الاختبار.");
+      setError("لم يتم العثور على أسئلة تطابق معاييرك. الرجاء تعديل إعدادات الاختبار أو التأكد من توفر أسئلة لهذه المادة/الأبحاث (قد تكون المشكلة بسبب استخدام معرفات UUID مع بيانات نموذجية قديمة).");
       setConfiguredQuestions([]);
     } else {
       setConfiguredQuestions(questionsToDisplay);
@@ -144,14 +179,16 @@ export default function SubjectExamPage() {
   };
 
 
-  if (!authUser) {
+  if (!authUser || isLoadingSubject) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="ms-4 text-xl">يجب تسجيل الدخول...</p>
+        <p className="ms-4 text-xl">{!authUser ? "يجب تسجيل الدخول..." : `جاري تحميل مادة ${subjectId}...`}</p>
       </div>
     );
   }
+
+  const subjectDisplayName = currentSubject?.name || "المادة المحددة";
 
   if (configMode) {
     return (
@@ -159,7 +196,7 @@ export default function SubjectExamPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Settings className="h-8 w-8 text-primary" />
-            إعدادات اختبار مادة {currentSubjectName}
+            إعدادات اختبار مادة {subjectDisplayName}
           </CardTitle>
           <CardDescription>اختر الدروس، عدد الأسئلة، مستوى الصعوبة، والمؤقت.</CardDescription>
         </CardHeader>
@@ -170,7 +207,7 @@ export default function SubjectExamPage() {
               <p>{error}</p>
             </div>
           )}
-          {availableTopics.length > 0 && (
+          {availableTopics.length > 0 ? (
             <div className="space-y-3">
               <Label className="text-lg font-semibold flex items-center gap-2"><ListChecks /> اختر الدروس (الأبحاث):</Label>
               <div className="flex items-center space-x-2 space-x-reverse mb-2">
@@ -185,15 +222,17 @@ export default function SubjectExamPage() {
                 {availableTopics.map(topic => (
                   <div key={topic} className="flex items-center space-x-2 space-x-reverse">
                     <Checkbox
-                      id={`topic-${topic}`}
+                      id={`topic-${topic.replace(/\s+/g, '-')}`}
                       checked={selectedTopics.includes(topic)}
                       onCheckedChange={() => handleTopicChange(topic)}
                     />
-                    <Label htmlFor={`topic-${topic}`} className="cursor-pointer text-sm">{topic}</Label>
+                    <Label htmlFor={`topic-${topic.replace(/\s+/g, '-')}`} className="cursor-pointer text-sm">{topic}</Label>
                   </div>
                 ))}
               </div>
             </div>
+          ) : (
+             <p className="text-sm text-muted-foreground">لا توجد أبحاث محددة لهذه المادة في البيانات النموذجية. سيتم اختيار الأسئلة من كامل المادة إذا توفرت.</p>
           )}
 
           <div className="space-y-2">
@@ -231,8 +270,8 @@ export default function SubjectExamPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleStartExam} disabled={isLoading} className="w-full text-lg py-3">
-            {isLoading ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : "ابدأ الاختبار"}
+          <Button onClick={handleStartExam} disabled={isLoading || isLoadingSubject} className="w-full text-lg py-3">
+            {(isLoading || isLoadingSubject) ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : "ابدأ الاختبار"}
           </Button>
         </CardFooter>
       </Card>
@@ -243,7 +282,7 @@ export default function SubjectExamPage() {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="ms-4 text-xl">جاري تحضير أسئلة مادة {currentSubjectName}...</p>
+        <p className="ms-4 text-xl">جاري تحضير أسئلة مادة {subjectDisplayName}...</p>
       </div>
     );
   }
@@ -264,7 +303,7 @@ export default function SubjectExamPage() {
       <div className="max-w-3xl mx-auto text-center space-y-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {currentSubjectName}</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {subjectDisplayName}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-4 py-10">
             <AlertCircle className="h-16 w-16 text-yellow-500" />
@@ -306,7 +345,7 @@ export default function SubjectExamPage() {
   };
 
   const handleSubmit = useCallback(async () => { 
-     if (!authUser) { // Check Supabase authUser
+     if (!authUser) { 
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لتسليم الإجابات.", variant: "destructive" });
       return;
     }
@@ -328,9 +367,9 @@ export default function SubjectExamPage() {
 
       const score = (correctAnswersCount / configuredQuestions.length) * 100;
 
-      await saveExamAttempt({ // Supabase version
-        userId: authUser.id, // Use Supabase user ID
-        subjectId: subjectId,
+      await saveExamAttempt({ 
+        userId: authUser.id, 
+        subjectId: subjectId, // subjectId is UUID here
         examType: 'subject_practice',
         score: parseFloat(score.toFixed(2)),
         correctAnswersCount,
@@ -353,7 +392,7 @@ export default function SubjectExamPage() {
     <div className="space-y-8 max-w-3xl mx-auto">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {currentSubjectName}</CardTitle>
+          <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {subjectDisplayName}</CardTitle>
           <CardDescription>السؤال {currentQuestionIndex + 1} من {configuredQuestions.length}</CardDescription>
           <Progress value={progressPercentage} className="w-full mt-2" />
         </CardHeader>
@@ -398,4 +437,3 @@ export default function SubjectExamPage() {
     </div>
   );
 }
-

@@ -1,15 +1,15 @@
 
-import type { LucideIcon } from 'lucide-react';
-import { Home, FileText, Brain, CreditCard, QrCode, Users, UserCircle, Settings, ShieldCheck, Zap, Sparkles, BookOpen, Newspaper, Megaphone, Atom, Feather } from 'lucide-react';
-import type { Question } from './types';
+import type { LucideIcon, LucideIconName as ActualLucideIconName } from 'lucide-react'; // Keep LucideIcon for other uses
+import { Home, FileText, Brain, CreditCard, QrCode, Users, UserCircle, Settings, ShieldCheck, Zap, Sparkles, BookOpen, Newspaper, Megaphone, Atom, Feather, CaseUpper } from 'lucide-react';
+import type { Question, Subject as AppSubjectType } from './types'; // Import Subject type from types.ts
 
 
 export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  keywords?: string; // For search/filtering if ever implemented
-  children?: NavItem[]; // For sub-menus
+  keywords?: string; 
+  children?: NavItem[]; 
 }
 
 export const mainNavItems: NavItem[] = [
@@ -25,7 +25,7 @@ export const mainNavItems: NavItem[] = [
   { href: '/settings', label: 'الإعدادات', icon: Settings, keywords: 'settings configuration options account' },
 ];
 
-export const teacherNavItems: NavItem[] = [ // Example, not implemented in this iteration
+export const teacherNavItems: NavItem[] = [ 
   { href: '/teacher/dashboard', label: 'لوحة تحكم المعلم', icon: Settings, keywords: 'teacher panel content management' },
   { href: '/teacher/questions', label: 'إدارة الأسئلة', icon: FileText, keywords: 'question bank create edit' },
   { href: '/teacher/analytics', label: 'تحليلات الطلاب', icon: Zap, keywords: 'student performance data insights' },
@@ -37,28 +37,33 @@ export const accountNavItems: NavItem[] = [
   { href: '/privacy', label: 'الخصوصية والأمان', icon: ShieldCheck },
 ];
 
-export interface Subject {
-  id: string;
+// This interface is now slightly different from AppSubjectType in types.ts
+// as AppSubjectType will get icon_name as string from DB.
+// This constants.ts subjects array is more for mock/fallback or mapping string icon names.
+export interface ConstantSubject {
+  id: string; // In constants, this might still be a string like 'math'
   name: string;
-  icon?: LucideIcon;
-  section: 'scientific' | 'literary' | 'common';
+  icon_name?: ActualLucideIconName | string; // Keep as string name
+  branch: 'scientific' | 'literary' | 'common'; // Matches enum, but as string literals here
   topics: string[];
 }
-
-export const subjects: Subject[] = [
-  { id: 'math', name: 'الرياضيات', icon: Brain, section: 'scientific', topics: ['الجبر', 'الهندسة التحليلية', 'التفاضل والتكامل', 'الأعداد العقدية'] },
-  { id: 'physics', name: 'الفيزياء', icon: Atom, section: 'scientific', topics: ['الميكانيكا', 'الكهرباء والمغناطيسية', 'الأمواج والضوء', 'الفيزياء الحديثة'] },
-  { id: 'chemistry', name: 'الكيمياء', icon: Zap, section: 'scientific', topics: ['الكيمياء العضوية', 'الكيمياء غير العضوية', 'الكيمياء الفيزيائية', 'الكيمياء التحليلية'] },
-  { id: 'biology', name: 'الأحياء', icon: Feather, section: 'scientific', topics: ['الخلية والأنسجة', 'الوراثة', 'التطور', 'علم البيئة', 'وظائف الأعضاء'] },
-  { id: 'arabic_language', name: 'اللغة العربية', icon: BookOpen, section: 'common', topics: ['النحو والصرف', 'البلاغة', 'الأدب العربي', 'العروض'] },
-  { id: 'english_language', name: 'اللغة الإنجليزية', icon: BookOpen, section: 'common', topics: ['Grammar', 'Vocabulary', 'Reading Comprehension', 'Writing'] },
-  { id: 'french_language', name: 'اللغة الفرنسية', icon: BookOpen, section: 'common', topics: ['Grammaire', 'Vocabulaire', 'Compréhension Écrite', 'Expression Écrite'] },
-  { id: 'civics', name: 'التربية الوطنية', icon: Users, section: 'common', topics: ['الدستور والمواطنة', 'المؤسسات الوطنية', 'الحقوق والواجبات'] },
-  { id: 'islamic_education', name: 'التربية الإسلامية', icon: BookOpen, section: 'common', topics: ['العقيدة الإسلامية', 'الفقه', 'السيرة النبوية', 'الأخلاق'] },
-  { id: 'christian_education', name: 'التربية المسيحية', icon: BookOpen, section: 'common', topics: ['الكتاب المقدس', 'العقائد المسيحية', 'تاريخ الكنيسة', 'الحياة المسيحية'] },
-  { id: 'history', name: 'التاريخ', icon: Newspaper, section: 'literary', topics: ['التاريخ القديم', 'التاريخ الوسيط', 'التاريخ الحديث والمعاصر', 'تاريخ سوريا'] },
-  { id: 'geography', name: 'الجغرافيا', icon: Megaphone, section: 'literary', topics: ['الجغرافيا الطبيعية', 'الجغرافيا البشرية', 'جغرافية سوريا', 'الاقتصاد'] },
-  { id: 'philosophy_psychology', name: 'الفلسفة وعلم النفس', icon: Sparkles, section: 'literary', topics: ['تاريخ الفلسفة', 'المنطق', 'علم النفس العام', 'علم الاجتماع'] },
+// This array is now primarily for mock data or associating topics with string-based IDs
+// if direct DB calls for topics per subject are not yet implemented.
+// The main source of subjects for display should be getSubjects() from examService.ts.
+export const subjects: ConstantSubject[] = [
+  { id: 'math', name: 'الرياضيات', icon_name: 'Brain', branch: 'scientific', topics: ['الجبر', 'الهندسة التحليلية', 'التفاضل والتكامل', 'الأعداد العقدية'] },
+  { id: 'physics', name: 'الفيزياء', icon_name: 'Atom', branch: 'scientific', topics: ['الميكانيكا', 'الكهرباء والمغناطيسية', 'الأمواج والضوء', 'الفيزياء الحديثة'] },
+  { id: 'chemistry', name: 'الكيمياء', icon_name: 'Zap', branch: 'scientific', topics: ['الكيمياء العضوية', 'الكيمياء غير العضوية', 'الكيمياء الفيزيائية', 'الكيمياء التحليلية'] },
+  { id: 'biology', name: 'الأحياء', icon_name: 'Feather', branch: 'scientific', topics: ['الخلية والأنسجة', 'الوراثة', 'التطور', 'علم البيئة', 'وظائف الأعضاء'] },
+  { id: 'arabic_language', name: 'اللغة العربية', icon_name: 'BookOpen', branch: 'common', topics: ['النحو والصرف', 'البلاغة', 'الأدب العربي', 'العروض'] },
+  { id: 'english_language', name: 'اللغة الإنجليزية', icon_name: 'BookOpen', branch: 'common', topics: ['Grammar', 'Vocabulary', 'Reading Comprehension', 'Writing'] },
+  { id: 'french_language', name: 'اللغة الفرنسية', icon_name: 'BookOpen', branch: 'common', topics: ['Grammaire', 'Vocabulaire', 'Compréhension Écrite', 'Expression Écrite'] },
+  { id: 'civics', name: 'التربية الوطنية', icon_name: 'Users', branch: 'common', topics: ['الدستور والمواطنة', 'المؤسسات الوطنية', 'الحقوق والواجبات'] },
+  { id: 'islamic_education', name: 'التربية الإسلامية', icon_name: 'BookOpen', branch: 'common', topics: ['العقيدة الإسلامية', 'الفقه', 'السيرة النبوية', 'الأخلاق'] },
+  { id: 'christian_education', name: 'التربية المسيحية', icon_name: 'BookOpen', branch: 'common', topics: ['الكتاب المقدس', 'العقائد المسيحية', 'تاريخ الكنيسة', 'الحياة المسيحية'] },
+  { id: 'history', name: 'التاريخ', icon_name: 'Newspaper', branch: 'literary', topics: ['التاريخ القديم', 'التاريخ الوسيط', 'التاريخ الحديث والمعاصر', 'تاريخ سوريا'] },
+  { id: 'geography', name: 'الجغرافيا', icon_name: 'Megaphone', branch: 'literary', topics: ['الجغرافيا الطبيعية', 'الجغرافيا البشرية', 'جغرافية سوريا', 'الاقتصاد'] },
+  { id: 'philosophy_psychology', name: 'الفلسفة وعلم النفس', icon_name: 'Sparkles', branch: 'literary', topics: ['تاريخ الفلسفة', 'المنطق', 'علم النفس العام', 'علم الاجتماع'] },
 ];
 
 
@@ -162,9 +167,11 @@ export const teachers = [
   { id: 'teacher4', name: 'الأستاذة سارة' },
 ];
 
+// Note: The 'subjectId' in mockExams may need to be updated to UUIDs if you want to link them
+// to the new UUID-based subjects from the database. This is a data migration/seeding task.
 export const mockExams = [
-  { id: "exam1", title: "اختبار الرياضيات الشامل", subjectId: "math", subjectName: "الرياضيات", teacherName: "الأستاذ أحمد", duration: "ساعتان", totalQuestions: allQuestions.filter(q => q.subjectId === 'math').length, image: "https://placehold.co/600x400.png", imageHint: "math equations", published: true, questions: allQuestions.filter(q => q.subjectId === 'math').slice(0,3) },
-  { id: "exam2", title: "اختبار الفيزياء: الكهرباء", subjectId: "physics", subjectName: "الفيزياء", teacherName: "الأستاذة فاطمة", duration: "ساعة ونصف", totalQuestions: allQuestions.filter(q => q.subjectId === 'physics').length, image: "https://placehold.co/600x400.png", imageHint: "physics experiment", published: true, questions: allQuestions.filter(q => q.subjectId === 'physics').slice(0,2) },
-  { id: "exam3", title: "اختبار الكيمياء العضوية", subjectId: "chemistry", subjectName: "الكيمياء", teacherName: "الأستاذ خالد", duration: "ساعة واحدة", totalQuestions: allQuestions.filter(q => q.subjectId === 'chemistry').length, image: "https://placehold.co/600x400.png", imageHint: "chemistry lab", published: true, questions: allQuestions.filter(q => q.subjectId === 'chemistry').slice(0,1) },
-  { id: "exam4", title: "اختبار تجريبي في اللغة العربية", subjectId: "arabic_language", subjectName: "اللغة العربية", teacherName: "الأستاذة سارة", duration: "ساعتان", totalQuestions: allQuestions.filter(q => q.subjectId === 'arabic_language').length, image: "https://placehold.co/600x400.png", imageHint: "arabic calligraphy", published: true, questions: allQuestions.filter(q => q.subjectId === 'arabic_language').slice(0,1) },
+  { id: "exam1", title: "اختبار الرياضيات الشامل", subject_id: "math", subjectName: "الرياضيات", teacherName: "الأستاذ أحمد", durationInMinutes: 120, totalQuestions: allQuestions.filter(q => q.subjectId === 'math').length, image: "https://placehold.co/600x400.png", imageHint: "math equations", published: true, questions: allQuestions.filter(q => q.subjectId === 'math').slice(0,3) },
+  { id: "exam2", title: "اختبار الفيزياء: الكهرباء", subject_id: "physics", subjectName: "الفيزياء", teacherName: "الأستاذة فاطمة", durationInMinutes: 90, totalQuestions: allQuestions.filter(q => q.subjectId === 'physics').length, image: "https://placehold.co/600x400.png", imageHint: "physics experiment", published: true, questions: allQuestions.filter(q => q.subjectId === 'physics').slice(0,2) },
+  { id: "exam3", title: "اختبار الكيمياء العضوية", subject_id: "chemistry", subjectName: "الكيمياء", teacherName: "الأستاذ خالد", durationInMinutes: 60, totalQuestions: allQuestions.filter(q => q.subjectId === 'chemistry').length, image: "https://placehold.co/600x400.png", imageHint: "chemistry lab", published: true, questions: allQuestions.filter(q => q.subjectId === 'chemistry').slice(0,1) },
+  { id: "exam4", title: "اختبار تجريبي في اللغة العربية", subject_id: "arabic_language", subjectName: "اللغة العربية", teacherName: "الأستاذة سارة", durationInMinutes: 120, totalQuestions: allQuestions.filter(q => q.subjectId === 'arabic_language').length, image: "https://placehold.co/600x400.png", imageHint: "arabic calligraphy", published: true, questions: allQuestions.filter(q => q.subjectId === 'arabic_language').slice(0,1) },
 ];

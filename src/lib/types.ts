@@ -32,7 +32,7 @@ export interface SubscriptionDetails {
   subjectName?: string | null;
 }
 
-export type SubjectBranch = 'scientific' | 'literary' | 'general' | 'common' | 'undetermined';
+export type SubjectBranch = 'scientific' | 'literary' | 'common' | 'undetermined';
 
 
 export interface UserProfile {
@@ -87,7 +87,7 @@ export interface Question {
   questionText: string;
   options: QuestionOption[];
   correctOptionId?: string | null;
-  subjectId: string;
+  subjectId: string; // This will be UUID if linked to public.subjects
   subjectName: string;
   explanation?: string;
   points?: number;
@@ -98,26 +98,29 @@ export interface Question {
 }
 
 export interface Subject {
-  id: string;
+  id: string; // Will be UUID from Supabase
   name: string;
-  branch: SubjectBranch;
-  iconName?: LucideIconName;
+  branch: SubjectBranch; // Matches the enum type in Supabase
+  icon_name?: LucideIconName | string; // Stored as TEXT in DB, can be mapped to LucideIconName
   description?: string;
   image?: string;
-  imageHint?: string;
+  image_hint?: string;
+  order?: number; // Matches 'order' column in Supabase
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SubjectSection {
-  id: string;
+  id: string; // Will be UUID
   title: string;
   description?: string;
   order?: number;
   type?: string;
-  subjectId?: string;
+  subject_id?: string; // Foreign key to public.subjects.id (UUID)
   isUsed?: boolean;
-  createdAt?: string; // Changed from Timestamp
-  updatedAt?: string; // Changed from Timestamp
-  usedAt?: string | null; // Changed from Timestamp
+  created_at?: string;
+  updated_at?: string;
+  usedAt?: string | null;
   usedByUserId?: string | null;
 }
 
@@ -133,7 +136,7 @@ export interface LessonTeacher {
 }
 
 export interface Lesson {
-  id: string;
+  id: string; // Will be UUID
   title: string;
   content?: string;
   notes?: string;
@@ -141,25 +144,25 @@ export interface Lesson {
   teachers?: LessonTeacher[];
   files?: LessonFile[];
   order?: number;
-  subjectId?: string;
-  sectionId?: string;
+  subject_id?: string; // Foreign key to public.subjects.id (UUID)
+  section_id?: string; // Foreign key to public.subject_sections.id (UUID)
   teacherId?: string | null;
   teacherName?: string | null;
   linkedExamIds?: string[];
-  createdAt?: string; // Changed from Timestamp
-  updatedAt?: string; // Changed from Timestamp
+  created_at?: string;
+  updated_at?: string;
   isLocked?: boolean;
   isUsed?: boolean;
-  usedAt?: string | null; // Changed from Timestamp
+  usedAt?: string | null;
   usedByUserId?: string | null;
 }
 
 
 export interface Exam {
-  id: string;
+  id: string; // Will be UUID
   title: string;
-  subjectId: string;
-  subjectName: string;
+  subject_id: string; // Foreign key to public.subjects.id (UUID)
+  subjectName: string; // Denormalized or joined
   teacherId?: string;
   teacherName?: string;
   durationInMinutes?: number;
@@ -168,66 +171,66 @@ export interface Exam {
   imageHint?: string;
   description?: string;
   published: boolean;
-  createdAt?: string; // Changed from Timestamp
-  updatedAt?: string; // Changed from Timestamp
+  created_at?: string;
+  updated_at?: string;
   questionIds?: string[];
-  questions?: Question[];
+  questions?: Question[]; // Can be populated by joining/fetching separately
 }
 
 export type FirebaseUser = User; // Placeholder, ideally replace with SupabaseUser if different structure needed
 
 export interface AiAnalysisResult {
-  id?: string;
-  userId: string;
-  userExamAttemptId?: string;
+  id?: string; // Will be UUID
+  userId: string; // Foreign key to public.profiles.id (UUID)
+  userExamAttemptId?: string; // Foreign key to user_exam_attempts.id (UUID)
   inputExamResultsText: string;
   inputStudentGoalsText?: string;
   recommendations: string;
   followUpQuestions?: string;
-  analyzedAt: string; // Changed from Timestamp
+  analyzedAt: string;
 }
 
 export interface NewsItem {
-  id: string;
+  id: string; // Will be UUID
   title: string;
   content: string;
   imageUrl?: string;
   imageHint?: string;
-  publishedAt: string; // Changed from Timestamp
+  publishedAt: string;
   source?: string;
   category?: string;
-  createdAt?: string; // Changed from Timestamp
-  updatedAt?: string; // Changed from Timestamp
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ActivationCode {
-  id: string; 
-  createdAt: string; // Changed from Timestamp
-  encodedValue: string; 
-  isActive: boolean;    
-  isUsed: boolean;      
-  name: string;         
-  subjectId: string | null; 
-  subjectName: string | null;
+  id: string; // Will be UUID
+  created_at: string;
+  encoded_value: string;
+  is_active: boolean;
+  is_used: boolean;
+  name: string;
+  subject_id: string | null; // Foreign key to public.subjects.id (UUID), nullable
+  subject_name: string | null; // Denormalized or joined
   type: "general_monthly" | "general_quarterly" | "general_yearly" |
         "trial_weekly" |
         "choose_single_subject_monthly" | "choose_single_subject_quarterly" | "choose_single_subject_yearly" |
-        string; 
-  updatedAt: string; // Changed from Timestamp
-  usedAt: string | null; // Changed from Timestamp
-  usedByUserId: string | null;
-  usedForSubjectId?: string | null;
-  validFrom: string; // Changed from Timestamp
-  validUntil: string; // Changed from Timestamp
+        string;
+  updated_at: string;
+  used_at: string | null;
+  used_by_user_id: string | null; // Foreign key to public.profiles.id (UUID)
+  used_for_subject_id?: string | null; // Foreign key to public.subjects.id (UUID), nullable
+  valid_from: string;
+  valid_until: string;
 }
 
 
 export interface BackendCodeDetails {
-  id: string; 
+  id: string;
   type: string;
   subjectId: string | null;
   subjectName: string | null;
-  validUntil: string | null; // Changed from Timestamp
+  validUntil: string | null;
   name?: string;
   encodedValue?: string;
 }
@@ -241,10 +244,10 @@ export interface BackendCheckResult {
 
 export interface BackendConfirmationPayload {
   userId: string;
-  email: string; 
-  codeId: string; 
+  email: string;
+  codeId: string;
   codeType: string;
-  codeValidUntil: string; // Changed from Timestamp
+  codeValidUntil: string;
   chosenSubjectId?: string;
   chosenSubjectName?: string;
 }
@@ -253,21 +256,20 @@ export interface BackendConfirmationResult {
   success: boolean;
   message: string;
   activatedPlanName?: string;
-  subscriptionEndDate?: string; // Changed from Timestamp
+  subscriptionEndDate?: string;
 }
 
 
 export interface Announcement {
-  id: string;
+  id: string; // Will be UUID
   title: string;
   message: string;
   type: 'success' | 'info' | 'warning' | 'error' | 'general';
-  isActive: boolean;
-  createdAt: string; // Changed from Timestamp
-  updatedAt: string; // Changed from Timestamp
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
-
