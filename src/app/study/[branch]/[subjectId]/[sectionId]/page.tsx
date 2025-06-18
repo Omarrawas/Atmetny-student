@@ -33,49 +33,6 @@ export default function SectionLessonsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsLoadingData(true);
-    setError(null);
-    if (subjectId && sectionId) {
-      const fetchData = async () => {
-        try {
-          const [sectionData, lessonsData] = await Promise.all([
-            getSectionById(subjectId, sectionId), 
-            getSectionLessons(subjectId, sectionId),
-          ]);
-
-          if (!sectionData) {
-            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}.`);
-            setSection(null);
-            setLessons([]);
-            toast({ title: "خطأ", description: `لم يتم العثور على تفاصيل القسم.`, variant: "destructive" });
-          } else {
-            setSection(sectionData);
-          }
-          setLessons(lessonsData);
-          if (sectionData && lessonsData.length === 0) {
-            // This toast can be noisy if sections genuinely have no lessons yet.
-            // Consider making it more contextual or removing if sections can be legitimately empty.
-            // toast({ title: "تنبيه", description: `لا توجد دروس متاحة للقسم "${sectionData.title}" حالياً.`, variant: "default" });
-          }
-
-        } catch (e: any) {
-          console.error("Failed to fetch section lessons data (Supabase):", e);
-          setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.");
-          setSection(null);
-          setLessons([]);
-          toast({ title: "خطأ فادح", description: e.message || "فشل تحميل بيانات دروس القسم.", variant: "destructive" });
-        } finally {
-          setIsLoadingData(false);
-        }
-      };
-      fetchData();
-    } else {
-      setIsLoadingData(false);
-      setError("معرفات المادة أو القسم غير متوفرة.");
-    }
-  }, [subjectId, sectionId, toast]);
-
-  useEffect(() => {
     const getSessionAndProfile = async () => {
       setIsLoadingAuthProfile(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -86,9 +43,9 @@ export default function SectionLessonsPage() {
           const profile = await getUserProfile(user.id);
           setUserProfile(profile);
         } catch (profileError) {
-          console.error("Error fetching user profile in SectionLessonsPage:", profileError);
+          console.error("[SectionLessonsPage] Error fetching user profile:", profileError);
           setUserProfile(null);
-          toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات المستخدم.", variant: "destructive"});
+          // toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات المستخدم.", variant: "destructive"});
         }
       } else {
         setUserProfile(null);
@@ -102,12 +59,12 @@ export default function SectionLessonsPage() {
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user) {
-        setIsLoadingAuthProfile(true);
+        setIsLoadingAuthProfile(true); // Re-set loading when auth changes to re-fetch profile
         try {
           const profile = await getUserProfile(user.id);
           setUserProfile(profile);
         } catch (profileError) {
-          console.error("Error fetching user profile on auth change in SectionLessonsPage:", profileError);
+          console.error("[SectionLessonsPage] Error fetching user profile on auth change:", profileError);
           setUserProfile(null);
         } finally {
           setIsLoadingAuthProfile(false);
@@ -118,13 +75,81 @@ export default function SectionLessonsPage() {
       }
     });
     return () => authListener.subscription.unsubscribe();
-  }, [toast]);
+  }, []); // Removed toast from dependencies here as it's stable
+
+  useEffect(() => {
+    if (isLoadingAuthProfile) {
+      console.log("[SectionLessonsPage] Waiting for auth profile to load...");
+      return; // Wait for authentication check to complete
+    }
+
+    // At this point, authUser is either set or definitively null.
+    // RLS policies will be evaluated by Supabase based on the current session state.
+
+    setIsLoadingData(true);
+    setError(null);
+
+    if (subjectId && sectionId) {
+      const fetchData = async () => {
+        try {
+          console.log(`[SectionLessonsPage] Fetching section with ID: ${sectionId} for subject ID: ${subjectId}`);
+          const sectionData = await getSectionById(sectionId); // subjectId is implicitly checked by section's subject_id
+
+          if (!sectionData) {
+            console.error(`[SectionLessonsPage] Section with ID ${sectionId} not found or access denied.`);
+            setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}. قد لا يكون موجودًا أو لا تملك صلاحية الوصول إليه.`);
+            setSection(null);
+            setLessons([]);
+            toast({ title: "خطأ في القسم", description: `تفاصيل القسم (المعرف: ${sectionId}) غير موجودة أو الوصول إليها مرفوض.`, variant: "destructive" });
+            setIsLoadingData(false);
+            return; // Exit early if section not found
+          }
+          
+          console.log(`[SectionLessonsPage] Section data found for ID ${sectionId}:`, sectionData);
+          setSection(sectionData); // Set section data immediately
+
+          console.log(`[SectionLessonsPage] Fetching lessons for section ID: ${sectionId}`);
+          const lessonsData = await getSectionLessons(sectionId);
+          
+          console.log(`[SectionLessonsPage] Lessons data fetched for section ID ${sectionId}, count: ${lessonsData.length}`);
+          setLessons(lessonsData);
+
+          if (sectionData && lessonsData.length === 0) {
+            // This toast can be noisy if sections genuinely have no lessons yet.
+            // Consider making it more contextual or removing if sections can be legitimately empty.
+            // toast({ title: "تنبيه", description: `لا توجد دروس متاحة للقسم "${sectionData.title}" حالياً.`, variant: "default" });
+          }
+
+        } catch (e: any) {
+          console.error(`[SectionLessonsPage] Error in fetchData for section ${sectionId}:`, e);
+          let errorMessage = "فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.";
+          if (e.message && e.message.toLowerCase().includes('failed to fetch')) {
+            errorMessage = "فشل الاتصال بالخادم لجلب بيانات القسم أو الدروس. يرجى التحقق من اتصالك بالإنترنت وإعدادات CORS في Supabase.";
+          } else if (e.message) {
+            errorMessage = e.message;
+          }
+          setError(errorMessage);
+          // setSection(null); // Keep section if it was fetched before lessons error, or clear if section fetch failed
+          setLessons([]);
+          toast({ title: "خطأ فادح", description: errorMessage, variant: "destructive" });
+        } finally {
+          setIsLoadingData(false);
+        }
+      };
+      fetchData();
+    } else {
+      setIsLoadingData(false);
+      setError("معرفات المادة أو القسم غير متوفرة في الرابط.");
+      console.error("[SectionLessonsPage] Missing subjectId or sectionId in params.");
+    }
+  }, [subjectId, sectionId, isLoadingAuthProfile, authUser, toast]);
+
 
   const isSubjectActiveForCurrentUser = useMemo(() => {
-    if (!authUser || !userProfile || !userProfile.activeSubscription) {
+    if (!authUser || !userProfile || !userProfile.active_subscription) {
       return false;
     }
-    const sub = userProfile.activeSubscription;
+    const sub = userProfile.active_subscription;
     const now = new Date(); 
     const endDate = new Date(sub.endDate);
 
@@ -143,7 +168,7 @@ export default function SectionLessonsPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-lg text-muted-foreground">
-          {isLoadingData ? 'جاري تحميل دروس القسم...' : 'جاري تحميل بيانات المستخدم...'}
+          {isLoadingAuthProfile ? 'جاري التحقق من المستخدم...' : (isLoadingData ? 'جاري تحميل دروس القسم...' : 'جاري التحميل...')}
         </p>
       </div>
     );
@@ -161,11 +186,11 @@ export default function SectionLessonsPage() {
     );
   }
 
-  if (!section) {
+  if (!section) { // This will be true if setError was called with the "Section not found" message
     return (
       <div className="text-center py-10">
          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على القسم.</p>
+        <p className="text-lg text-muted-foreground">{error || "لم يتم العثور على القسم."}</p>
          <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
@@ -196,44 +221,19 @@ export default function SectionLessonsPage() {
           ) : (
             <ul className="space-y-4">
               {lessons.map((lesson, index) => {
-                const isFirstLesson = index === 0;
                 const sectionIsLockedByAdmin = section.is_locked === true;
-                const lessonIsExplicitlyOpen = lesson.is_locked === false;
-                const lessonIsExplicitlyLocked = lesson.is_locked === true;
 
                 let effectiveIsLockedByAdmin: boolean;
-                if (lessonIsExplicitlyOpen) {
+                if (lesson.is_locked === false) { // Lesson explicitly open
                   effectiveIsLockedByAdmin = false;
-                } else if (lessonIsExplicitlyLocked) {
+                } else if (lesson.is_locked === true) { // Lesson explicitly locked
                   effectiveIsLockedByAdmin = true;
-                } else {
-                  // Inherit logic: if section is locked by admin, all lessons are locked.
-                  // Otherwise, only non-first lessons are locked by default (older logic, might need revision based on product reqs)
-                  // A simpler approach if is_locked default is false for lessons:
-                  // effectiveIsLockedByAdmin = sectionIsLockedByAdmin || (lesson.is_locked === null ? false : lesson.is_locked);
-                  // Current logic based on problem description for is_locked:
-                  // A lesson is locked by default (is_locked=true in DB for section, and lesson inherits if not specified)
-                  // unless it's the first lesson OR its own is_locked is false.
-                  // This needs to be adapted to new lesson.is_locked which defaults to FALSE in the DB.
-                  // New logic: if lesson.is_locked is true, it's locked. If false, it's open.
-                  // If null, then section.is_locked determines. If section.is_locked is true, lesson is locked.
-                  // If section.is_locked is false (or null treated as false), then lesson is open.
-
-                  if (lesson.is_locked === true) {
-                    effectiveIsLockedByAdmin = true;
-                  } else if (lesson.is_locked === false) {
-                    effectiveIsLockedByAdmin = false;
-                  } else { // lesson.is_locked is null, check section
-                    effectiveIsLockedByAdmin = sectionIsLockedByAdmin;
-                  }
+                } else { // lesson.is_locked is null, inherit from section
+                  effectiveIsLockedByAdmin = sectionIsLockedByAdmin;
                 }
                 
-                let displayAsLocked;
-                if (effectiveIsLockedByAdmin === false) { 
-                  displayAsLocked = false;
-                } else { 
-                  displayAsLocked = !isSubjectActiveForCurrentUser;
-                }
+                // Final lock status depends on admin lock AND user subscription
+                const displayAsLocked = effectiveIsLockedByAdmin && !isSubjectActiveForCurrentUser;
                 
                 const lessonPath = `/study/${branch}/${subjectId}/${sectionId}/${lesson.id}`;
                 const linkHref = displayAsLocked ? '#' : lessonPath;
@@ -295,3 +295,5 @@ export default function SectionLessonsPage() {
     </div>
   );
 }
+
+    
