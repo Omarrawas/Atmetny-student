@@ -215,16 +215,12 @@ export interface AiAnalysisResult {
 }
 
 export interface NewsItem {
-  id: string; // Will be UUID
+  id: string; // UUID from news_articles table
   title: string;
   content: string;
-  imageUrl?: string;
-  imageHint?: string;
-  publishedAt: string;
-  source?: string;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
+  image_url?: string | null; // from news_articles table
+  created_at?: string; // from news_articles table
+  updated_at?: string; // from news_articles table
 }
 
 export interface ActivationCode {

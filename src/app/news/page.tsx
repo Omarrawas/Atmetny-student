@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "تابع آخر الأخبار والتحديثات المتعلقة بالمنصة والتعليم.",
 };
 
-const formatDateSafe = (isoString: string | undefined): string => {
+const formatDateSafe = (isoString: string | undefined | null): string => {
   if (!isoString) return 'تاريخ غير محدد';
   try {
     const dateToFormat = new Date(isoString);
@@ -32,12 +32,10 @@ export default async function NewsPage() {
   let fetchError: string | null = null;
 
   try {
-    // getNewsItems will now return an empty array and log a warning.
-    // UI will show "No news" until it's implemented for Supabase.
     newsItems = await getNewsItems(20); 
   } catch (error) {
     console.error("Failed to fetch news items for page:", error);
-    fetchError = "حدث خطأ أثناء تحميل الأخبار. يرجى المحاولة مرة أخرى لاحقًا. (Service needs full Supabase implementation)";
+    fetchError = "حدث خطأ أثناء تحميل الأخبار. يرجى المحاولة مرة أخرى لاحقًا.";
   }
 
   return (
@@ -62,7 +60,7 @@ export default async function NewsPage() {
         <div className="text-center py-10 bg-card shadow-md rounded-lg">
           <AlertTriangle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <p className="text-xl text-muted-foreground">
-            لا توجد أخبار متاحة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)
+            لا توجد أخبار متاحة حالياً.
           </p>
         </div>
       )}
@@ -71,15 +69,15 @@ export default async function NewsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {newsItems.map((item) => (
             <Card key={item.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card">
-              {item.imageUrl && item.imageUrl.trim() !== '' ? (
+              {item.image_url && item.image_url.trim() !== '' ? (
                 <div className="relative w-full h-52">
                   <Image
-                    src={item.imageUrl}
+                    src={item.image_url}
                     alt={item.title}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover"
-                    data-ai-hint={item.imageHint || "news article image"}
+                    data-ai-hint="news article image"
                   />
                 </div>
               ) : (
@@ -95,21 +93,10 @@ export default async function NewsPage() {
                   <div className="flex items-center gap-1.5">
                     <CalendarDays className="h-3.5 w-3.5" />
                     <span>
-                      {formatDateSafe(item.publishedAt)}
+                      {formatDateSafe(item.created_at)}
                     </span>
                   </div>
-                  {item.source && (
-                    <div className="flex items-center gap-1.5">
-                      <Building className="h-3.5 w-3.5" />
-                      <span>المصدر: {item.source}</span>
-                    </div>
-                  )}
-                  {item.category && (
-                    <div className="flex items-center gap-1.5">
-                      <Tag className="h-3.5 w-3.5" />
-                      <span>التصنيف: {item.category}</span>
-                    </div>
-                  )}
+                  {/* Removed source and category as they are not in the new news_articles table */}
                 </div>
               </CardHeader>
               <CardContent className="flex-grow pt-0">
@@ -124,3 +111,4 @@ export default async function NewsPage() {
     </div>
   );
 }
+
