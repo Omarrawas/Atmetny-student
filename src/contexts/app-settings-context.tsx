@@ -11,7 +11,7 @@ interface AppSettingsContextType {
 }
 
 const defaultAppName = 'Atmetny';
-const defaultLogoUrl = '/default-logo.svg'; // Path to a default logo in /public
+const defaultLogoUrl = null; // Changed from '/default-logo.svg' to null
 const defaultLogoHint = 'application logo';
 const defaultSupportEmail = 'support@example.com';
 
@@ -54,7 +54,10 @@ interface AppSettingsProviderProps {
 }
 
 export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ children, fetchedSettings }) => {
-  const settings = fetchedSettings || defaultSettings;
+  // If fetchedSettings is null (e.g., DB error), use defaultSettings.
+  // If fetchedSettings is an object but app_logo_url is null/undefined within it, it will correctly use that null.
+  const settings = fetchedSettings !== null ? fetchedSettings : defaultSettings;
+
 
   const getIconComponent = (iconName?: LucideIconName | string): React.ElementType => {
     if (!iconName || typeof iconName !== 'string') return Icons.ExternalLink; // Default icon
@@ -68,3 +71,4 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ childr
     </AppSettingsContext.Provider>
   );
 };
+

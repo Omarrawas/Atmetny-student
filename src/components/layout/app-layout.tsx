@@ -42,7 +42,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [customLogoLoadError, setCustomLogoLoadError] = useState(false);
 
   const currentAppName = appSettings?.app_name || 'Atmetny';
-  const currentAppLogoUrl = appSettings?.app_logo_url;
+  const currentAppLogoUrl = appSettings?.app_logo_url; // This will be null if not set in DB and context default is null
   const currentAppLogoHint = appSettings?.app_logo_hint;
 
   useEffect(() => {
@@ -69,17 +69,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Reset logo error state if the URL changes
-    setCustomLogoLoadError(false);
+    // Reset logo error state if the URL changes (e.g., admin updates it in settings)
+    setCustomLogoLoadError(false); 
     if (currentAppLogoUrl && currentAppLogoUrl.trim() !== "") {
-      console.log(`[AppLayout] Attempting to load custom logo from URL: ${currentAppLogoUrl}`);
+      console.log(`[AppLayout] Attempting to load configured logo from URL: ${currentAppLogoUrl}`);
       if (!currentAppLogoUrl.startsWith('/') && !currentAppLogoUrl.startsWith('data:')) {
          console.warn(`[AppLayout] The logo URL "${currentAppLogoUrl}" is external. Ensure its hostname is whitelisted in next.config.ts's images.remotePatterns.`);
       }
-    } else if (currentAppLogoUrl === "") {
+    } else if (currentAppLogoUrl === "") { // Explicitly empty string from settings
       console.warn("[AppLayout] app_logo_url from settings is an empty string. Fallback SVG will be used.");
-    } else {
-      console.log("[AppLayout] app_logo_url is null or undefined. Fallback SVG will be used.");
+    } else { // currentAppLogoUrl is null or undefined (no logo configured in settings)
+      console.log("[AppLayout] No app_logo_url configured in settings. Fallback SVG will be used.");
     }
   }, [currentAppLogoUrl]);
 
@@ -108,25 +108,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const avatarHint = 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
+  // Determine if we should attempt to show the custom logo from settings
+  const showConfiguredLogo = currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError;
+
   return (
     <>
       <Sidebar side="right" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
-            {currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError ? (
+            {showConfiguredLogo ? (
               <Image
-                src={currentAppLogoUrl}
+                src={currentAppLogoUrl} // At this point, currentAppLogoUrl is a non-empty string from settings
                 alt={`${currentAppName} Logo`}
                 width={32}
                 height={32}
                 className="rounded-sm"
                 data-ai-hint={currentAppLogoHint || 'application logo'}
                 onError={(e) => {
-                  console.error(`[AppLayout] Error loading logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src, e);
+                  console.error(`[AppLayout] Error loading configured logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src, e);
                   setCustomLogoLoadError(true);
                 }}
               />
             ) : (
+              // Inline SVG fallback (used if no logo URL in settings, or if configured logo fails to load)
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-sidebar-primary">
                 <path d="M12 .75a8.25 8.25 0 00-6.065 2.663A8.25 8.25 0 003.75 12c0 3.97 2.807 7.283 6.495 8.015A8.25 8.25 0 0012 21.75a8.25 8.25 0 008.25-8.25c0-4.019-2.863-7.34-6.635-8.092A8.255 8.255 0 0012 .75zM8.25 12a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0z" />
                 <path d="M8.625 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM15.375 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM11.25 12.375a.375.375 0 01.375-.375h.75a.375.375 0 01.375.375V15a.375.375 0 01-.375.375h-.75a.375.375 0 01-.375-.375V12.375z" />
