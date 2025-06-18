@@ -298,6 +298,22 @@ export interface ActivationLog {
   activated_at: string; // ISO string
 }
 
+export interface SubscriptionPlan {
+  id: string; // UUID
+  name: string;
+  price: number; // Stored as numeric in DB
+  currency: string;
+  period_label: string;
+  features: string[]; // Stored as text[] in DB
+  cta_text: string;
+  is_featured: boolean;
+  tagline?: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
