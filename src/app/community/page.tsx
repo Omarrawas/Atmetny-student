@@ -29,7 +29,7 @@ export default function CommunityPage() {
           <CardTitle>قريباً... منتدى النقاش التفاعلي!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Image src="https://placehold.co/600x350.png" alt="طلاب يتناقشون" width={600} height={350} className="rounded-lg mx-auto shadow-md mb-4" data-ai-hint="students discussion" />
+          <Image src="https://images.unsplash.com/photo-1556484687-30636164638b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOXx8Y29tbXVuaXR5fGVufDB8fHx8MTc1MDI4MTg1Nnww&ixlib=rb-4.1.0&q=80&w=1080" alt="طلاب يتناقشون" width={600} height={350} className="rounded-lg mx-auto shadow-md mb-4" data-ai-hint="students discussion" />
           <p className="text-lg text-muted-foreground">
             نعمل بجد لإطلاق منتدى تفاعلي حيث يمكنك:
           </p>
