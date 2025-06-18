@@ -17,8 +17,9 @@ import {
   confirmActivationWithBackend, 
 } from "@/lib/activationService";
 import type { BackendCodeDetails, BackendConfirmationPayload } from '@/lib/types';
-import { getSubjects, type Subject } from "@/lib/examService"; // Will return empty array and log warning
+import { getSubjects, type Subject } from "@/lib/examService";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 type ActivationStep = 'enterCode' | 'chooseSubject' | 'activated';
 
@@ -31,6 +32,7 @@ export default function ActivateQrPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const [activationStep, setActivationStep] = useState<ActivationStep>('enterCode');
   const [pendingCodeDetails, setPendingCodeDetails] = useState<BackendCodeDetails | null>(null);
@@ -66,16 +68,15 @@ export default function ActivateQrPage() {
   const requestCamera = async () => {
     if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         setHasCameraPermission(true);
+        setMediaStream(stream);
         setIsCameraActive(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
         setIsCameraActive(false);
+        setMediaStream(null);
         toast({
           variant: 'destructive',
           title: 'فشل الوصول للكاميرا',
@@ -85,6 +86,7 @@ export default function ActivateQrPage() {
     } else {
       setHasCameraPermission(false);
       setIsCameraActive(false);
+      setMediaStream(null);
       toast({
         variant: 'destructive',
         title: 'الكاميرا غير مدعومة',
@@ -94,13 +96,31 @@ export default function ActivateQrPage() {
   };
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      setMediaStream(null);
     }
+    // No need to directly manipulate videoRef.current.srcObject here, useEffect will handle it
     setIsCameraActive(false);
   };
+  
+  useEffect(() => {
+    if (isCameraActive && mediaStream && videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
+      videoRef.current.play().catch(err => {
+        console.error("Video play failed:", err);
+        // Optionally inform user if play fails, e.g. due to browser restrictions
+        toast({
+          variant: 'destructive',
+          title: 'فشل تشغيل الفيديو',
+          description: 'قد تكون هناك قيود من المتصفح تمنع التشغيل التلقائي للفيديو.',
+        });
+      });
+    } else if (!isCameraActive && videoRef.current) {
+      videoRef.current.srcObject = null; // Clear stream when camera is not active
+    }
+  }, [isCameraActive, mediaStream, toast]);
+
 
   const handleToggleCamera = () => {
     if (isCameraActive) {
@@ -110,24 +130,26 @@ export default function ActivateQrPage() {
     }
   };
 
+  // Cleanup effect for when the component unmounts
   useEffect(() => {
     return () => {
       stopCamera(); 
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stopCamera reference is stable
 
   const fetchSubjects = async () => {
     setIsFetchingSubjects(true);
     setSubjectChoiceError(null);
     try {
-      const fetchedSubjects = await getSubjects(); // This will now return [] and log a warning
+      const fetchedSubjects = await getSubjects(); 
       const relevantSubjects = fetchedSubjects.filter(s => s.branch === 'scientific' || s.branch === 'literary' || s.branch === 'common');
       setSubjectsList(relevantSubjects); 
       if (relevantSubjects.length > 0) {
          setSelectedSubject(relevantSubjects[0].id); 
       } else {
         setSelectedSubject(""); 
-        if (fetchedSubjects.length === 0) { // Only toast if the original fetch was empty
+        if (fetchedSubjects.length === 0) { 
             toast({ title: "تنبيه", description: "قائمة المواد للاختيار تحتاج للتحديث لـ Supabase.", variant: "default" });
         }
       }
@@ -289,10 +311,28 @@ export default function ActivateQrPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center p-1 relative overflow-hidden">
-            {isCameraActive ? ( <video ref={videoRef} className="w-full h-full object-cover rounded-md" autoPlay playsInline muted /> ) : ( <div className="text-center text-muted-foreground space-y-2"> <ScanLine className="h-16 w-16 mx-auto" /> <p>اضغط لتشغيل الكاميرا ومسح الكود.</p> <p className="text-xs">(ميزة مسح QR قيد التطوير)</p> </div> )}
+            <video
+              ref={videoRef}
+              className={cn(
+                "w-full h-full object-cover rounded-md",
+                isCameraActive ? "block" : "hidden" // Control visibility
+              )}
+              autoPlay
+              playsInline
+              muted
+            />
+            {!isCameraActive && (
+              <div className="text-center text-muted-foreground space-y-2 absolute inset-0 flex flex-col items-center justify-center bg-muted">
+                <ScanLine className="h-16 w-16 mx-auto" />
+                <p>اضغط لتشغيل الكاميرا ومسح الكود.</p>
+                <p className="text-xs">(ميزة مسح QR قيد التطوير)</p>
+              </div>
+            )}
           </div>
           <Button size="lg" onClick={handleToggleCamera} className="w-full"> {isCameraActive ? <VideoOff className="ms-2 h-5 w-5" /> : <Video className="ms-2 h-5 w-5" />} {isCameraActive ? "إيقاف الكاميرا" : "تشغيل الكاميرا لمسح QR"} </Button>
+          
           {hasCameraPermission === false && ( <Alert variant="destructive"> <AlertTitle>الوصول إلى الكاميرا مطلوب</AlertTitle> <AlertDescription> يرجى السماح بالوصول إلى الكاميرا في إعدادات المتصفح لاستخدام ميزة مسح QR. </AlertDescription> </Alert> )}
+          
           {hasCameraPermission === true && isCameraActive && ( <p className="text-xs text-muted-foreground text-center">وجه الكاميرا نحو رمز QR... (المعالجة قيد التطوير)</p> )}
           
           <div className="relative flex items-center"> <div className="flex-grow border-t border-border"></div> <span className="flex-shrink mx-4 text-muted-foreground">أو</span> <div className="flex-grow border-t border-border"></div> </div>
@@ -315,3 +355,5 @@ export default function ActivateQrPage() {
     </div>
   );
 }
+
+  
