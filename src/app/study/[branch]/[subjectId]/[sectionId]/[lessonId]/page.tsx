@@ -178,7 +178,19 @@ export default function LessonPage() {
           </CardContent>
         )}
         
-        {lesson.content && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3> <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert"> <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} > {lesson.content} </ReactMarkdown> </div> </CardContent> </> )}
+        {lesson.content && (
+          <>
+            <Separator className="my-0" />
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3>
+              <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {String(lesson.content)}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </>
+        )}
         
         {lesson.files && lesson.files.length > 0 && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">المرفقات:</h3> <ul className="space-y-2"> {lesson.files.map((file, index) => ( file.url ? ( <li key={index}> <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline" > <Download className="h-4 w-4" /> {file.name || `ملف ${index + 1}`} {file.type && `(.${file.type})`} </a> </li> ) : null ))} </ul> </CardContent> </> )}
 
@@ -201,3 +213,4 @@ export default function LessonPage() {
     </div>
   );
 }
+
