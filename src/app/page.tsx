@@ -136,15 +136,6 @@ export default function HomePage() {
           </div>
       </section>
       
-      <section className="text-center">
-        {promoUrl ? (
-          <Link href={promoUrl} target="_blank" rel="noopener noreferrer" aria-label="عرض ترويجي">
-            <Image src={newImageUrl} alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md hover:opacity-90 transition-opacity" data-ai-hint="students studying education" />
-          </Link>
-        ) : (
-          <Image src={newImageUrl} alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md" data-ai-hint="students studying education" />
-        )}
-      </section>
     </div>
   );
 }
