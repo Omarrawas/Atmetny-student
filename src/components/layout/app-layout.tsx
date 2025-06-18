@@ -39,6 +39,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
   const [session, setSession] = useState<SupabaseSession | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [customLogoLoadError, setCustomLogoLoadError] = useState(false);
 
   const currentAppName = appSettings?.app_name || 'Atmetny';
   const currentAppLogoUrl = appSettings?.app_logo_url;
@@ -68,6 +69,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Reset logo error state if the URL changes
+    setCustomLogoLoadError(false);
     if (currentAppLogoUrl && currentAppLogoUrl.trim() !== "") {
       console.log(`[AppLayout] Attempting to load custom logo from URL: ${currentAppLogoUrl}`);
       if (!currentAppLogoUrl.startsWith('/') && !currentAppLogoUrl.startsWith('data:')) {
@@ -105,22 +108,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const avatarHint = 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
+  const showCustomLogo = currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError;
+
   return (
     <>
       <Sidebar side="right" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
-            {currentAppLogoUrl && currentAppLogoUrl.trim() !== "" ? (
+            {showCustomLogo ? (
               <Image
-                src={currentAppLogoUrl}
+                src={currentAppLogoUrl!} // Assert non-null because showCustomLogo checks it
                 alt={`${currentAppName} Logo`}
                 width={32}
                 height={32}
                 className="rounded-sm"
                 data-ai-hint={currentAppLogoHint || 'application logo'}
                 onError={(e) => {
-                  console.error(`[AppLayout] Error loading logo image from ${currentAppLogoUrl}:`, e.target.src, e);
-                  // Optionally, you could set a state here to force showing the SVG fallback
+                  console.error(`[AppLayout] Error loading logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src);
+                  setCustomLogoLoadError(true);
                 }}
               />
             ) : (
