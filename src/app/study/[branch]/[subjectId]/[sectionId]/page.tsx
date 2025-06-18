@@ -92,7 +92,7 @@ export default function SectionLessonsPage() {
         console.log("[SectionLessonsPage] Unsubscribing auth listener.");
         authListener.subscription.unsubscribe();
     };
-  }, [toast]); // Added toast to dependencies as it's used inside
+  }, [toast]);
 
   useEffect(() => {
     console.log(`[SectionLessonsPage] useEffect for data fetching triggered. isLoadingAuthProfile: ${isLoadingAuthProfile}, authUser: ${authUser?.id || 'null'}`);
@@ -153,33 +153,46 @@ export default function SectionLessonsPage() {
   const isSubjectActiveForCurrentUser = useMemo(() => {
     console.log("[SectionLessonsPage] Evaluating isSubjectActiveForCurrentUser...");
     console.log("  AuthUser present:", !!authUser);
-    if (!authUser || !userProfile || !userProfile.active_subscription) {
-      console.log("  isSubjectActiveForCurrentUser: false (no auth/profile/subscription object).");
+    if (!authUser) {
+      console.log("  isSubjectActiveForCurrentUser: false (no authUser).");
+      return false;
+    }
+    console.log("  UserProfile present:", !!userProfile);
+    if (!userProfile) {
+      console.log("  isSubjectActiveForCurrentUser: false (no userProfile).");
+      return false;
+    }
+    console.log("  UserProfile.active_subscription present:", !!userProfile.activeSubscription);
+    if (!userProfile.activeSubscription) {
+      console.log("  isSubjectActiveForCurrentUser: false (no activeSubscription object in profile).");
       return false;
     }
 
-    const sub = userProfile.active_subscription;
-    console.log("  UserProfile.active_subscription:", JSON.stringify(sub, null, 2));
+    const sub = userProfile.activeSubscription;
+    console.log("  UserProfile.active_subscription (raw):", JSON.stringify(sub, null, 2));
     console.log("  Current subjectId (page param):", subjectId);
-
-    const now = new Date();
-    const endDate = new Date(sub.endDate);
-    const startDate = new Date(sub.startDate);
 
     if (sub.status !== 'active') {
       console.log(`  isSubjectActiveForCurrentUser: false (subscription status is ${sub.status}).`);
       return false;
     }
-    if (now < startDate) {
-        console.log("  isSubjectActiveForCurrentUser: false (subscription start date is in the future).");
-        console.log(`    Current date: ${now.toISOString()}, Start date: ${startDate.toISOString()}`);
-        return false;
-    }
+
+    const now = new Date();
+    const endDate = new Date(sub.endDate);
+
     if (endDate < now) {
       console.log("  isSubjectActiveForCurrentUser: false (subscription expired).");
       console.log(`    Current date: ${now.toISOString()}, End date: ${endDate.toISOString()}`);
       return false;
     }
+
+    // Start date check removed as per user request
+    // const startDate = new Date(sub.startDate);
+    // if (now < startDate) {
+    //     console.log("  isSubjectActiveForCurrentUser: false (subscription start date is in the future).");
+    //     console.log(`    Current date: ${now.toISOString()}, Start date: ${startDate.toISOString()}`);
+    //     return false;
+    // }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
     const isSpecificSubjectMatch = sub.subjectId === subjectId; 
@@ -323,3 +336,4 @@ export default function SectionLessonsPage() {
     </div>
   );
 }
+
