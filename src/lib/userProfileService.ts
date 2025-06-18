@@ -18,29 +18,31 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
   // Conditionally add fields from `data` to `payloadForSupabase`, mapping names
   if (data.name !== undefined) payloadForSupabase.name = data.name;
   if (data.email !== undefined) payloadForSupabase.email = data.email;
-  // Ensure avatarUrl is handled correctly: null should clear it, undefined should not change it unless it's an insert.
-  if (Object.prototype.hasOwnProperty.call(data, 'avatarUrl')) {
-    payloadForSupabase.avatar_url = data.avatarUrl === '' ? null : data.avatarUrl;
+  
+  // Correctly handle 'avatar_url' (snake_case) from UserProfileWriteData
+  if (Object.prototype.hasOwnProperty.call(data, 'avatar_url')) {
+    payloadForSupabase.avatar_url = data.avatar_url === '' ? null : data.avatar_url;
   }
-  if (data.avatarHint !== undefined) payloadForSupabase.avatar_hint = data.avatarHint;
+  
+  if (data.avatar_hint !== undefined) payloadForSupabase.avatar_hint = data.avatar_hint;
   if (data.points !== undefined) payloadForSupabase.points = data.points;
   if (data.level !== undefined) payloadForSupabase.level = data.level;
-  if (data.progressToNextLevel !== undefined) payloadForSupabase.progress_to_next_level = data.progressToNextLevel;
+  if (data.progress_to_next_level !== undefined) payloadForSupabase.progress_to_next_level = data.progress_to_next_level;
   if (data.badges !== undefined) payloadForSupabase.badges = data.badges.map(b => ({...b, date: new Date(b.date).toISOString()}));
   if (data.rewards !== undefined) payloadForSupabase.rewards = data.rewards.map(r => ({...r, expiry: new Date(r.expiry).toISOString()}));
-  if (data.studentGoals !== undefined) payloadForSupabase.student_goals = data.studentGoals;
+  if (data.student_goals !== undefined) payloadForSupabase.student_goals = data.student_goals;
   if (data.branch !== undefined) payloadForSupabase.branch = data.branch;
   if (data.university !== undefined) payloadForSupabase.university = data.university;
   if (data.major !== undefined) payloadForSupabase.major = data.major;
 
-  if (Object.prototype.hasOwnProperty.call(data, 'activeSubscription')) {
-    if (data.activeSubscription === null) {
+  if (Object.prototype.hasOwnProperty.call(data, 'active_subscription')) {
+    if (data.active_subscription === null) {
       payloadForSupabase.active_subscription = null;
-    } else if (data.activeSubscription) {
+    } else if (data.active_subscription) {
       payloadForSupabase.active_subscription = { 
-        ...data.activeSubscription,
-        startDate: new Date(data.activeSubscription.startDate).toISOString(),
-        endDate: new Date(data.activeSubscription.endDate).toISOString(),
+        ...data.active_subscription,
+        startDate: new Date(data.active_subscription.startDate).toISOString(),
+        endDate: new Date(data.active_subscription.endDate).toISOString(),
       };
     }
   }
@@ -57,21 +59,21 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
   }
 
   if (!existingProfile) { 
-    payloadForSupabase.created_at = data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString();
+    payloadForSupabase.created_at = data.created_at ? new Date(data.created_at).toISOString() : new Date().toISOString();
     if (data.name === undefined) payloadForSupabase.name = data.email?.split('@')[0] || "طالب جديد";
     if (data.email === undefined && data.id) payloadForSupabase.email = data.id; 
     if (payloadForSupabase.avatar_url === undefined) payloadForSupabase.avatar_url = `https://placehold.co/150x150.png?text=${(payloadForSupabase.name || "U").charAt(0).toUpperCase()}`;
-    if (data.avatarHint === undefined) payloadForSupabase.avatar_hint = 'person avatar';
+    if (data.avatar_hint === undefined) payloadForSupabase.avatar_hint = 'person avatar';
     if (data.points === undefined) payloadForSupabase.points = 0;
     if (data.level === undefined) payloadForSupabase.level = 1;
-    if (data.progressToNextLevel === undefined) payloadForSupabase.progress_to_next_level = 0;
+    if (data.progress_to_next_level === undefined) payloadForSupabase.progress_to_next_level = 0;
     if (data.badges === undefined) payloadForSupabase.badges = [];
     if (data.rewards === undefined) payloadForSupabase.rewards = [];
-    if (data.studentGoals === undefined) payloadForSupabase.student_goals = '';
+    if (data.student_goals === undefined) payloadForSupabase.student_goals = '';
     if (data.branch === undefined) payloadForSupabase.branch = 'undetermined';
     if (data.university === undefined) payloadForSupabase.university = '';
     if (data.major === undefined) payloadForSupabase.major = '';
-    if (!Object.prototype.hasOwnProperty.call(data, 'activeSubscription')) {
+    if (!Object.prototype.hasOwnProperty.call(data, 'active_subscription')) {
         payloadForSupabase.active_subscription = null;
     }
   }
@@ -92,9 +94,9 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
 
     // After successfully updating the profiles table, if avatar_url was changed,
     // update it in the auth.users.user_metadata as well.
-    // Check if 'avatarUrl' was explicitly provided in the input data, not just if payloadForSupabase.avatar_url has a value (it might have a default).
-    if (Object.prototype.hasOwnProperty.call(data, 'avatarUrl')) {
-      const newAvatarForAuth = data.avatarUrl === '' ? null : data.avatarUrl; // Use null if cleared, otherwise the new URL
+    // Check if 'avatar_url' was explicitly provided in the input data.
+    if (Object.prototype.hasOwnProperty.call(data, 'avatar_url')) {
+      const newAvatarForAuth = data.avatar_url === '' ? null : data.avatar_url; // Use null if cleared, otherwise the new URL
       const { data: updatedUser, error: updateUserError } = await supabase.auth.updateUser({
         data: { avatar_url: newAvatarForAuth } // Supabase Auth expects avatar_url in user_metadata.data
       });
@@ -102,7 +104,6 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
       if (updateUserError) {
         console.error("Supabase error updating user_metadata (avatar_url) in auth:", updateUserError);
         // Do not throw here, as the primary profile save was successful. Log the error.
-        // throw updateUserError; 
       } else {
         console.log("User metadata (avatar_url) successfully updated in Supabase Auth for user ID:", updatedUser?.user?.id);
       }
@@ -184,5 +185,4 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
     throw error; 
   }
 };
-
     
