@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import mime from 'mime';
+import * as mime from 'mime';
 
 // Ensure these environment variables are set in your .env.local file
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,8 +12,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 }
 
 // Initialize Supabase client with service_role key for admin-level access
-const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey 
-                      ? createClient(supabaseUrl, supabaseServiceRoleKey) 
+const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey
+                      ? createClient(supabaseUrl, supabaseServiceRoleKey)
                       : null;
 
 export async function POST(request: Request) {
