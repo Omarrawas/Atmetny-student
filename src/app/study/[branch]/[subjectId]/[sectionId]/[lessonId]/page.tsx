@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw'; // Import rehype-raw
 import 'katex/dist/katex.min.css'; 
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
@@ -69,8 +70,8 @@ export default function LessonPage() {
               setSelectedVideoUrl(null);
             }
           } else {
-            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}.`);
-            toast({ title: "خطأ", description: `تفاصيل الدرس "${lessonId}" غير موجودة أو تعذر تحميلها.`, variant: "destructive" });
+            setError(\`لم يتم العثور على الدرس بالمعرف: \${lessonId}.\`);
+            toast({ title: "خطأ", description: \`تفاصيل الدرس "\${lessonId}" غير موجودة أو تعذر تحميلها.\`, variant: "destructive" });
           }
         } catch (e: any) {
           console.error("Failed to fetch lesson data:", e);
@@ -123,8 +124,8 @@ export default function LessonPage() {
     );
   }
 
-  const lessonExamsListPath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}/lesson-exams-list`;
-  const lessonNotesPath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}/notes`;
+  const lessonExamsListPath = \`/study/\${branch}/\${subjectId}/\${sectionId}/\${lessonId}/lesson-exams-list\`;
+  const lessonNotesPath = \`/study/\${branch}/\${subjectId}/\${sectionId}/\${lessonId}/notes\`;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -168,7 +169,7 @@ export default function LessonPage() {
               <iframe
                 width="100%"
                 height="100%"
-                src={`https://www.youtube.com/embed/${currentVideoId}`}
+                src={\`https://www.youtube.com/embed/\${currentVideoId}\`}
                 title={lesson.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -184,7 +185,10 @@ export default function LessonPage() {
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3>
               <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkMath]} 
+                  rehypePlugins={[rehypeKatex, rehypeRaw]} // Added rehypeRaw here
+                >
                   {String(lesson.content)}
                 </ReactMarkdown>
               </div>
@@ -192,7 +196,7 @@ export default function LessonPage() {
           </>
         )}
         
-        {lesson.files && lesson.files.length > 0 && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">المرفقات:</h3> <ul className="space-y-2"> {lesson.files.map((file, index) => ( file.url ? ( <li key={index}> <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline" > <Download className="h-4 w-4" /> {file.name || `ملف ${index + 1}`} {file.type && `(.${file.type})`} </a> </li> ) : null ))} </ul> </CardContent> </> )}
+        {lesson.files && lesson.files.length > 0 && ( <> <Separator className="my-0" /> <CardContent className="pt-6 space-y-4"> <h3 className="text-xl font-semibold text-primary">المرفقات:</h3> <ul className="space-y-2"> {lesson.files.map((file, index) => ( file.url ? ( <li key={index}> <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline" > <Download className="h-4 w-4" /> {file.name || \`ملف \${index + 1}\`} {file.type && \`(.\${file.type})\`} </a> </li> ) : null ))} </ul> </CardContent> </> )}
 
         <Separator className="my-0" />
         <CardContent className="pt-6">
