@@ -1,3 +1,4 @@
+
 'use client';
 
 import { supabase } from '@/lib/supabaseClient';
@@ -8,6 +9,7 @@ import { getUserProfile, saveUserProfile } from './userProfileService';
  * Fetches all published exams, with optional filtering by subjectId and teacherId.
  */
 export const getPublicExams = async (filters?: { subjectId?: string; teacherId?: string }): Promise<Exam[]> => {
+  console.log(`[examService] getPublicExams called with filters:`, filters);
   try {
     let query = supabase
       .from('exams')
@@ -40,13 +42,18 @@ export const getPublicExams = async (filters?: { subjectId?: string; teacherId?:
     const { data, error, status } = await query;
 
     if (error) {
-      console.error("[examService] Supabase error fetching public exams. Status:", status, "Code:", error.code, "Message:", error.message, "Details:", error.details, "Hint:", error.hint);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || 'Failed to fetch public exams.'));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch public exams. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings (Dashboard > API > URL Configuration) to allow requests from this application's origin. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching public exams. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch public exams. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch public exams. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -55,7 +62,6 @@ export const getPublicExams = async (filters?: { subjectId?: string; teacherId?:
       ...exam,
       subjectName: exam.subjects?.name || 'غير محدد',
       duration: exam.duration, 
-      // totalQuestions will need to be fetched separately or calculated if not denormalized
     }));
 
     for (const exam of exams) {
@@ -64,7 +70,7 @@ export const getPublicExams = async (filters?: { subjectId?: string; teacherId?:
             .select('question_id', { count: 'exact', head: true })
             .eq('exam_id', exam.id);
         if (countError) {
-            console.warn(`Could not fetch question count for exam ${exam.id}:`, countError.message);
+            console.warn(`[examService] Could not fetch question count for exam ${exam.id}:`, countError.message);
             exam.totalQuestions = 0;
         } else {
             exam.totalQuestions = count ?? 0;
@@ -72,13 +78,18 @@ export const getPublicExams = async (filters?: { subjectId?: string; teacherId?:
     }
     return exams as Exam[];
 
-  } catch (error) {
-    console.error("[examService] Error in getPublicExams (Supabase): ", error);
-    // Ensure a generic error is thrown if not already an Error instance
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in getPublicExams. Raw error:", e);
+     if (e instanceof Error && e.message.startsWith("Failed to fetch public exams")) {
+        throw e;
     }
-    throw new Error('An unexpected error occurred while fetching public exams.');
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch public exams. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || 'An unexpected error occurred while fetching public exams.');
   }
 };
 
@@ -86,6 +97,7 @@ export const getPublicExams = async (filters?: { subjectId?: string; teacherId?:
  * Fetches multiple questions by their IDs from the 'questions' table.
  */
 export const getQuestionsByIds = async (questionIds: string[]): Promise<Question[]> => {
+  console.log(`[examService] getQuestionsByIds called for IDs:`, questionIds);
   if (!questionIds || questionIds.length === 0) {
     return [];
   }
@@ -114,13 +126,18 @@ export const getQuestionsByIds = async (questionIds: string[]): Promise<Question
       .in('id', questionIds);
 
     if (error) {
-      console.error("[examService] Supabase error fetching questions by IDs. Status:", status, "Code:", error.code, "Message:", error.message, "Details:", error.details, "Hint:", error.hint);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || 'Failed to fetch questions by IDs.'));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch questions by IDs. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings to allow requests from this application's origin. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching questions by IDs. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch questions by IDs. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch questions by IDs. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -130,12 +147,18 @@ export const getQuestionsByIds = async (questionIds: string[]): Promise<Question
         options: q.options as QuestionOption[] || [], 
         explanation: q.model_answer 
     })) as Question[];
-  } catch (error) {
-    console.error("[examService] Error in getQuestionsByIds (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in getQuestionsByIds. Raw error:", e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch questions by IDs")) {
+        throw e;
     }
-    throw new Error('An unexpected error occurred while fetching questions by IDs.');
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch questions by IDs. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || 'An unexpected error occurred while fetching questions by IDs.');
   }
 };
 
@@ -143,6 +166,7 @@ export const getQuestionsByIds = async (questionIds: string[]): Promise<Question
  * Fetches a single exam by its ID, and resolves its questions.
  */
 export const getExamById = async (examId: string): Promise<Exam | null> => {
+  console.log(`[examService] getExamById called for ID: ${examId}`);
   try {
     const { data: examData, error: examError, status: examStatus } = await supabase
       .from('exams')
@@ -165,13 +189,18 @@ export const getExamById = async (examId: string): Promise<Exam | null> => {
       .maybeSingle();
 
     if (examError) {
-      console.error(`[examService] Error fetching exam ${examId} from Supabase. Status: ${examStatus}, Code: ${examError.code}, Message: ${examError.message}`);
-      let displayError = examError instanceof Error ? examError : new Error(String(examError.message || `Failed to fetch exam ${examId}.`));
-       if (examStatus === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch exam ${examId}. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${examStatus}, Code: ${examError.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching exam ${examId}. Status: ${examStatus}`);
+      console.error(`  Message: ${examError.message}`);
+      console.error(`  Details: ${examError.details}`);
+      console.error(`  Hint: ${examError.hint}`);
+      console.error(`  Code: ${examError.code}`);
+      let displayError = new Error(examError.message || `Failed to fetch exam ${examId}. Supabase code: ${examError.code || 'N/A'}`);
+       if (examStatus === 0 && examError.message && examError.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch exam ${examId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${examError.message} (Status: ${examStatus}, Code: ${examError.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -186,12 +215,18 @@ export const getExamById = async (examId: string): Promise<Exam | null> => {
       .order('order_number', { ascending: true, nullsFirst: false });
 
     if (linksError) {
-      console.error(`[examService] Error fetching question links for exam ${examId}. Status: ${linksStatus}, Code: ${linksError.code}, Message: ${linksError.message}`);
-      let displayError = linksError instanceof Error ? linksError : new Error(String(linksError.message || `Failed to fetch question links for exam ${examId}.`));
-       if (linksStatus === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch question links for exam ${examId}. This often indicates a network or CORS issue. ` +
-              `Please check CORS settings. Original error: ${displayError.message} (Status: ${linksStatus}, Code: ${linksError.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching question links for exam ${examId}. Status: ${linksStatus}`);
+      console.error(`  Message: ${linksError.message}`);
+      console.error(`  Details: ${linksError.details}`);
+      console.error(`  Hint: ${linksError.hint}`);
+      console.error(`  Code: ${linksError.code}`);
+      let displayError = new Error(linksError.message || `Failed to fetch question links for exam ${examId}. Supabase code: ${linksError.code || 'N/A'}`);
+       if (linksStatus === 0 && linksError.message && linksError.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch question links for exam ${examId}. This is often a network or CORS issue. ` +
+              `Ensure Supabase allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${linksError.message} (Status: ${linksStatus}, Code: ${linksError.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -217,17 +252,24 @@ export const getExamById = async (examId: string): Promise<Exam | null> => {
       duration: examData.duration 
     } as Exam;
 
-  } catch (error) {
-    console.error(`[examService] Error in getExamById (${examId}) (Supabase): `, error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error(`[examService] General catch block in getExamById (${examId}). Raw error:`, e);
+    if (e instanceof Error && (e.message.startsWith("Failed to fetch exam") || e.message.startsWith("Failed to fetch question links"))) {
+        throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching exam ${examId}.`);
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch data for exam ${examId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching exam ${examId}.`);
   }
 };
 
 
 export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
+  console.log(`[examService] getExamsByIds called for IDs:`, examIds);
   if (!examIds || examIds.length === 0) {
     return [];
   }
@@ -253,12 +295,18 @@ export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("[examService] Supabase error fetching exams by IDs. Status:", status, "Code:", error.code, "Message:", error.message);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || 'Failed to fetch exams by IDs.'));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch exams by IDs. This often indicates a network or CORS issue. Please check CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching exams by IDs. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch exams by IDs. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch exams by IDs. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -282,17 +330,24 @@ export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
     }
     return exams as Exam[];
 
-  } catch (error) {
-    console.error("[examService] Error in getExamsByIds (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in getExamsByIds. Raw error:", e);
+     if (e instanceof Error && e.message.startsWith("Failed to fetch exams by IDs")) {
+        throw e;
     }
-    throw new Error('An unexpected error occurred while fetching exams by IDs.');
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch exams by IDs. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || 'An unexpected error occurred while fetching exams by IDs.');
   }
 };
 
 
 export const getQuestionsBySubject = async (subjectId: string, questionLimit: number = 20): Promise<Question[]> => {
+  console.log(`[examService] getQuestionsBySubject called for subjectId: ${subjectId}, limit: ${questionLimit}`);
    try {
     const { data, error, status } = await supabase
       .from('questions')
@@ -313,12 +368,18 @@ export const getQuestionsBySubject = async (subjectId: string, questionLimit: nu
       .limit(questionLimit); 
 
     if (error) {
-      console.error(`[examService] Error fetching questions for subject ${subjectId}. Status: ${status}, Code: ${error.code}, Message: ${error.message}`);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch questions for subject ${subjectId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch questions for subject ${subjectId}. This often indicates a network or CORS issue. Please check CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching questions for subject ${subjectId}. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch questions for subject ${subjectId}. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch questions for subject ${subjectId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -328,12 +389,18 @@ export const getQuestionsBySubject = async (subjectId: string, questionLimit: nu
         options: q.options as QuestionOption[] || [],
         explanation: q.model_answer
     })) as Question[];
-  } catch (error) {
-    console.error("[examService] Error in getQuestionsBySubject (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error(`[examService] General catch block in getQuestionsBySubject for subject ${subjectId}. Raw error:`, e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch questions for subject")) {
+        throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching questions for subject ${subjectId}.`);
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch questions for subject ${subjectId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching questions for subject ${subjectId}.`);
   }
 };
 
@@ -349,6 +416,7 @@ export const saveExamAttempt = async (attemptData: {
   startedAt: Date;
   completedAt: Date;
 }): Promise<string> => {
+  console.log(`[examService] saveExamAttempt called for userId: ${attemptData.userId}`);
   try {
     const { userId, startedAt, completedAt, ...restOfAttemptData } = attemptData;
     
@@ -366,10 +434,14 @@ export const saveExamAttempt = async (attemptData: {
       .single();
 
     if (attemptError) {
-      console.error(`[examService] Error saving exam attempt. Status: ${status}, Code: ${attemptError.code}, Message: ${attemptError.message}`);
+      console.error(`[examService] Supabase error saving exam attempt. Status: ${status}`);
+      console.error(`  Message: ${attemptError.message}`);
+      console.error(`  Details: ${attemptError.details}`);
+      console.error(`  Hint: ${attemptError.hint}`);
+      console.error(`  Code: ${attemptError.code}`);
       throw attemptError;
     }
-    if (!insertedAttempt) throw new Error("Failed to save exam attempt, no data returned.");
+    if (!insertedAttempt) throw new Error("Failed to save exam attempt, no data returned from Supabase.");
 
     const userProfile = await getUserProfile(userId);
     if (userProfile) {
@@ -381,26 +453,27 @@ export const saveExamAttempt = async (attemptData: {
       
       await saveUserProfile({
         id: userId, 
-        email: userProfile.email, // Pass email to satisfy type, though not strictly needed for points update
+        email: userProfile.email,
         points: newTotalPoints,
         updated_at: new Date().toISOString(),
       }); 
-      console.log(`User ${userId} earned ${pointsEarned} points. New total: ${newTotalPoints} (Supabase)`);
+      console.log(`[examService] User ${userId} earned ${pointsEarned} points. New total: ${newTotalPoints}`);
     } else {
-      console.warn(`User profile not found for ID ${userId} (Supabase) while trying to update points.`);
+      console.warn(`[examService] User profile not found for ID ${userId} while trying to update points.`);
     }
 
     return insertedAttempt.id;
-  } catch (error) {
-    console.error("[examService] Error saving exam attempt (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in saveExamAttempt. Raw error:", e);
+    if (e instanceof Error && e.message.includes("saving exam attempt")) { // Check for specific part of our error
+        throw e;
     }
-    throw new Error('An unexpected error occurred while saving the exam attempt.');
+    throw new Error(e.message || 'An unexpected error occurred while saving the exam attempt.');
   }
 };
 
 export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' | 'analyzedAt'>): Promise<string> => {
+  console.log(`[examService] saveAiAnalysis called for userId: ${analysisData.userId}`);
   try {
     const dataToSave = {
       user_id: analysisData.userId,
@@ -419,23 +492,28 @@ export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' |
       .single();
 
     if (error) {
-      console.error(`[examService] Error saving AI analysis. Status: ${status}, Code: ${error.code}, Message: ${error.message}`);
+      console.error(`[examService] Supabase error saving AI analysis. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
       throw error;
     }
-    if (!insertedAnalysis) throw new Error("Failed to save AI analysis, no data returned.");
+    if (!insertedAnalysis) throw new Error("Failed to save AI analysis, no data returned from Supabase.");
     
-    console.log(`AI Analysis result saved with ID: ${insertedAnalysis.id} (Supabase)`);
+    console.log(`[examService] AI Analysis result saved with ID: ${insertedAnalysis.id}`);
     return insertedAnalysis.id;
-  } catch (error) {
-    console.error("[examService] Error saving AI analysis result (Supabase): ", error);
-     if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in saveAiAnalysis. Raw error:", e);
+     if (e instanceof Error && e.message.includes("saving AI analysis")) {
+        throw e;
     }
-    throw new Error('An unexpected error occurred while saving AI analysis.');
+    throw new Error(e.message || 'An unexpected error occurred while saving AI analysis.');
   }
 };
 
 export const getSubjects = async (): Promise<Subject[]> => {
+  console.log(`[examService] getSubjects called.`);
   try {
     const { data, error, status } = await supabase
       .from('subjects')
@@ -444,26 +522,39 @@ export const getSubjects = async (): Promise<Subject[]> => {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error("[examService] Supabase error fetching subjects. Status:", status, "Code:", error.code, "Message:", error.message);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || 'Failed to fetch subjects.'));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch subjects. This often indicates a network or CORS issue. Please check CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching subjects. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch subjects. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch subjects. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
     return (data || []) as Subject[];
-  } catch (error) {
-    console.error("[examService] Error in getSubjects (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error("[examService] General catch block in getSubjects. Raw error:", e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch subjects")) {
+        throw e;
     }
-    throw new Error('An unexpected error occurred while fetching subjects.');
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch subjects. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || 'An unexpected error occurred while fetching subjects.');
   }
 };
 
 export const getSubjectById = async (subjectId: string): Promise<Subject | null> => {
+  console.log(`[examService] getSubjectById called for ID: ${subjectId}`);
   try {
     const { data, error, status } = await supabase
       .from('subjects')
@@ -472,69 +563,107 @@ export const getSubjectById = async (subjectId: string): Promise<Subject | null>
       .maybeSingle();
 
     if (error) {
-      console.error(`[examService] Error fetching subject with ID ${subjectId}. Status: ${status}, Code: ${error.code}, Message: ${error.message}`);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch subject ${subjectId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message =
-              `Failed to fetch subject ${subjectId}. This often indicates a network or CORS issue. Please check CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching subject with ID ${subjectId}. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch subject ${subjectId}. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch subject ${subjectId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
     return data ? data as Subject : null;
-  } catch (error) {
-    console.error("[examService] Error in getSubjectById (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error(`[examService] General catch block in getSubjectById for subject ${subjectId}. Raw error:`, e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch subject")) {
+        throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching subject ${subjectId}.`);
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch subject ${subjectId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching subject ${subjectId}.`);
   }
 };
 
 export const getSubjectSections = async (subjectId: string): Promise<SubjectSection[]> => {
-  console.log(`[examService] Attempting to fetch sections for subject_id: ${subjectId}`);
+  console.log(`[examService] Initiating getSubjectSections for subjectId: ${subjectId}`);
+  if (!supabase) {
+    console.error("[examService] Supabase client is not initialized in getSubjectSections!");
+    throw new Error("Supabase client is not initialized. Cannot fetch subject sections.");
+  }
+  // Log the Supabase URL being used by the client instance.
+  // Ensure this is the correct URL from your environment variables.
+  // console.log(`[examService] Supabase URL being used by client for getSubjectSections: ${supabase.supabaseUrl}`);
+
   try {
     if (!subjectId) {
       console.warn("[examService] getSubjectSections called with no subjectId. Returning empty array.");
       return [];
     }
+    console.log(`[examService] Querying Supabase 'subject_sections' for subject_id: ${subjectId}`);
     const { data, error, status } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at')
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
       .eq('subject_id', subjectId)
       .order('order', { ascending: true, nullsFirst: false })
       .order('title', { ascending: true });
 
     if (error) {
-      console.error(`[examService] Supabase error fetching sections for subject ${subjectId}. Status: ${status}.`);
-      console.error(`[examService] Error Message: ${error.message}`);
-      console.error(`[examService] Error Details: ${error.details}`);
-      console.error(`[examService] Error Hint: ${error.hint}`);
-      console.error(`[examService] Error Code: ${error.code}`);
-      
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch sections for subject ${subjectId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message = 
-              `Failed to fetch sections for subject ${subjectId}. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings (Dashboard > API > URL Configuration) to allow requests from this application's origin. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error returned from 'subject_sections' query for subject ${subjectId}.`);
+      console.error(`  Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+
+      let displayError = new Error(error.message || `Failed to fetch sections for subject ${subjectId}. Supabase code: ${error.code || 'N/A'}`);
+      // Enhance the error message for "Failed to fetch" specifically
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch sections for subject ${subjectId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
-      throw displayError;
+      throw displayError; // This error will be caught by the catch block below
     }
 
     console.log(`[examService] Successfully fetched ${data?.length || 0} sections for subject_id: ${subjectId}`);
     return (data || []) as SubjectSection[];
   } catch (e: any) {
-    console.error(`[examService] Catch block in getSubjectSections for subject ${subjectId}:`, e.message || e);
-    // Ensure a generic error is thrown if not already an Error instance
-    if (e instanceof Error) {
+    // This catch block now primarily handles errors not originating from the Supabase client's 'error' object,
+    // or re-throws the more specific error created in the `if (error)` block.
+    console.error(`[examService] General catch block in getSubjectSections for subject ${subjectId}. Raw error object:`, e);
+    
+    // Check if 'e' is already one of our custom, more informative errors
+    if (e instanceof Error && e.message.startsWith("Failed to fetch sections for subject")) {
         throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching sections for subject ${subjectId}.`);
+    // Specifically handle TypeError "Failed to fetch" if it wasn't caught and detailed by the `if (error)` block
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch sections for subject ${subjectId}. ` +
+            `Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. ` +
+            `Original error: ${e.message}`
+        );
+    }
+    // For other types of errors, or if the message is not specific enough.
+    throw new Error(e.message || `An unexpected error occurred in getSubjectSections for subject ${subjectId}.`);
   }
 };
 
 export const getSectionById = async (sectionId: string): Promise<SubjectSection | null> => {
+  console.log(`[examService] getSectionById called for ID: ${sectionId}`);
    try {
     if (!sectionId) {
       console.warn("[examService] getSectionById called with missing sectionId. Returning null.");
@@ -542,38 +671,56 @@ export const getSectionById = async (sectionId: string): Promise<SubjectSection 
     }
     const { data, error, status } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at')
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
       .eq('id', sectionId)
       .maybeSingle();
 
     if (error) {
-      console.error(`[examService] Supabase error fetching section ${sectionId}. Status: ${status}. Code: ${error.code}, Message: ${error.message}`);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch section ${sectionId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message = 
-              `Failed to fetch section ${sectionId}. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching section ${sectionId}. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch section ${sectionId}. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch section ${sectionId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
     return data ? data as SubjectSection : null;
-  } catch (error) {
-    console.error("[examService] Error in getSectionById (Supabase): ", error);
-    if (error instanceof Error) {
-        throw error;
+  } catch (e: any) {
+    console.error(`[examService] General catch block in getSectionById for section ${sectionId}. Raw error:`, e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch section")) {
+        throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching section ${sectionId}.`);
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch section ${sectionId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching section ${sectionId}.`);
   }
 };
 
 export const getSectionLessons = async (sectionId: string): Promise<Lesson[]> => {
-  console.log(`[examService] Attempting to fetch lessons for section_id: ${sectionId}`);
+  console.log(`[examService] Initiating getSectionLessons for section_id: ${sectionId}`);
+  if (!supabase) {
+    console.error("[examService] Supabase client is not initialized in getSectionLessons!");
+    throw new Error("Supabase client is not initialized. Cannot fetch lessons.");
+  }
+  // console.log(`[examService] Supabase URL being used by client for getSectionLessons: ${supabase.supabaseUrl}`);
+
   try {
     if (!sectionId) {
       console.warn("[examService] getSectionLessons called with no sectionId. Returning empty array.");
       return [];
     }
+    console.log(`[examService] Querying Supabase 'lessons' for section_id: ${sectionId}`);
     const { data, error, status } = await supabase
       .from('lessons')
       .select('id, section_id, subject_id, title, content, notes, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
@@ -582,18 +729,20 @@ export const getSectionLessons = async (sectionId: string): Promise<Lesson[]> =>
       .order('title', { ascending: true });
 
     if (error) {
-      console.error(`[examService] Supabase error fetching lessons for section ${sectionId}. Status: ${status}.`);
-      console.error(`[examService] Error Message: ${error.message}`);
-      console.error(`[examService] Error Details: ${error.details}`);
-      console.error(`[examService] Error Hint: ${error.hint}`);
-      console.error(`[examService] Error Code: ${error.code}`);
+      console.error(`[examService] Supabase error returned from 'lessons' query for section ${sectionId}.`);
+      console.error(`  Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
       
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch lessons for section ${sectionId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message = 
-              `Failed to fetch lessons for section ${sectionId}. This often indicates a network connectivity issue or a CORS misconfiguration. ` +
-              `Please check your Supabase project's CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      let displayError = new Error(error.message || `Failed to fetch lessons for section ${sectionId}. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch lessons for section ${sectionId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -606,16 +755,22 @@ export const getSectionLessons = async (sectionId: string): Promise<Lesson[]> =>
       linked_exam_ids: (item.linked_exam_ids || []) as string[],
     })) as Lesson[];
   } catch (e: any) {
-    console.error(`[examService] Catch block in getSectionLessons for section ${sectionId}:`, e.message || e);
-    if (e instanceof Error) {
+    console.error(`[examService] General catch block in getSectionLessons for section ${sectionId}. Raw error:`, e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch lessons for section")) {
         throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching lessons for section ${sectionId}.`);
+     if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch lessons for section ${sectionId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching lessons for section ${sectionId}.`);
   }
 };
 
 export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
-  console.log(`[examService] Attempting to fetch lesson by id: ${lessonId}`);
+  console.log(`[examService] getLessonById called for ID: ${lessonId}`);
   try {
     if (!lessonId) {
       console.warn("[examService] getLessonById called with no lessonId. Returning null.");
@@ -628,12 +783,18 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
       .maybeSingle();
 
     if (error && status !== 406) { 
-      console.error(`[examService] Supabase error fetching lesson ${lessonId}. Status: ${status}. Message: ${error.message}`);
-      let displayError = error instanceof Error ? error : new Error(String(error.message || `Failed to fetch lesson ${lessonId}.`));
-      if (status === 0 && displayError.message.toLowerCase().includes('failed to fetch')) {
-          displayError.message = 
-              `Failed to fetch lesson ${lessonId}. This often indicates a network or CORS issue. Please check CORS settings. ` +
-              `Original error: ${displayError.message} (Status: ${status}, Code: ${error.code || 'N/A'})`;
+      console.error(`[examService] Supabase error fetching lesson ${lessonId}. Status: ${status}`);
+      console.error(`  Message: ${error.message}`);
+      console.error(`  Details: ${error.details}`);
+      console.error(`  Hint: ${error.hint}`);
+      console.error(`  Code: ${error.code}`);
+      let displayError = new Error(error.message || `Failed to fetch lesson ${lessonId}. Supabase code: ${error.code || 'N/A'}`);
+      if (status === 0 && error.message && error.message.toLowerCase().includes('failed to fetch')) {
+          displayError = new Error(
+              `Failed to fetch lesson ${lessonId}. This is often a network or CORS issue. ` +
+              `Ensure your Supabase project allows requests from this application's origin (${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}). ` +
+              `Original Supabase error: ${error.message} (Status: ${status}, Code: ${error.code || 'N/A'})`
+          );
       }
       throw displayError;
     }
@@ -643,7 +804,6 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
         return null;
     }
 
-    console.log(`[examService] Successfully fetched lesson with id: ${lessonId}`);
     return {
       ...data,
       teachers: (data.teachers || []) as LessonTeacher[],
@@ -651,11 +811,17 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
       linked_exam_ids: (data.linked_exam_ids || []) as string[], 
     } as Lesson;
   } catch (e: any) {
-    console.error(`[examService] Catch block in getLessonById for lesson ${lessonId}:`, e.message || e);
-    if (e instanceof Error) {
+    console.error(`[examService] General catch block in getLessonById for lesson ${lessonId}. Raw error:`, e);
+    if (e instanceof Error && e.message.startsWith("Failed to fetch lesson")) {
         throw e;
     }
-    throw new Error(`An unexpected error occurred while fetching lesson ${lessonId}.`);
+    if (e instanceof TypeError && e.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(
+            `Network error: Failed to fetch lesson ${lessonId}. Please check your internet connection and Supabase CORS settings. ` +
+            `Ensure Supabase allows requests from origin: ${typeof window !== 'undefined' ? window.location.origin : 'UNKNOWN_ORIGIN'}. Original error: ${e.message}`
+        );
+    }
+    throw new Error(e.message || `An unexpected error occurred while fetching lesson ${lessonId}.`);
   }
 };
     
