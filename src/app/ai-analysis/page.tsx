@@ -1,20 +1,25 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
-import AiAnalysisClientForm from "./ai-analysis-client";
+import { Construction } from "lucide-react";
 
 export default function AiAnalysisPage() {
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <Card className="shadow-lg">
-        <CardHeader className="text-center">
-          <Sparkles className="h-12 w-12 text-primary mx-auto mb-3" />
-          <CardTitle className="text-3xl font-bold">تحليل الأداء بالذكاء الاصطناعي</CardTitle>
-          <CardDescription className="text-lg">
-            احصل على توصيات مخصصة لتحسين درجاتك بناءً على نتائج اختباراتك وأهدافك.
+    <div className="max-w-xl mx-auto space-y-8 text-center">
+      <Card className="shadow-lg border-primary/30">
+        <CardHeader className="pt-8">
+          <Construction className="h-20 w-20 text-primary mx-auto mb-6" />
+          <CardTitle className="text-3xl font-bold">ميزة تحليل الأداء بالذكاء الاصطناعي</CardTitle>
+          <CardDescription className="text-xl text-muted-foreground pt-2">
+            هذه الميزة قيد التطوير حالياً وستكون متاحة قريباً.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <AiAnalysisClientForm />
+        <CardContent className="pb-8">
+          <p className="text-lg">
+            نعمل بجد على تطوير أدوات تحليل متقدمة لمساعدتك على فهم أدائك بشكل أفضل وتحديد نقاط القوة والضعف لديك.
+          </p>
+          <p className="text-muted-foreground mt-3">
+            شكراً لتفهمك، يرجى التحقق مرة أخرى في وقت لاحق!
+          </p>
         </CardContent>
       </Card>
     </div>
