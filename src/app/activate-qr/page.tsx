@@ -325,7 +325,6 @@ export default function ActivateQrPage() {
               <div className="text-center text-muted-foreground space-y-2 absolute inset-0 flex flex-col items-center justify-center bg-muted">
                 <ScanLine className="h-16 w-16 mx-auto" />
                 <p>اضغط لتشغيل الكاميرا ومسح الكود.</p>
-                <p className="text-xs">(ميزة مسح QR قيد التطوير)</p>
               </div>
             )}
           </div>
@@ -357,3 +356,5 @@ export default function ActivateQrPage() {
 }
 
   
+
+    
