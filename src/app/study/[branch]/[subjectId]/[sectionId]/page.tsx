@@ -33,58 +33,75 @@ export default function SectionLessonsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Step 1: Get auth status and user profile first
     const getSessionAndProfile = async () => {
+      console.log("[SectionLessonsPage] useEffect for auth and profile triggered.");
       setIsLoadingAuthProfile(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("[SectionLessonsPage] Supabase error getting session:", sessionError);
+        setError("حدث خطأ أثناء التحقق من جلسة المستخدم.");
+        setIsLoadingAuthProfile(false);
+        return;
+      }
+
       const user = session?.user ?? null;
       setAuthUser(user);
+      console.log("[SectionLessonsPage] Auth user set:", user ? user.id : 'null');
+
       if (user) {
         try {
           const profile = await getUserProfile(user.id);
+          console.log("[SectionLessonsPage] Fetched user profile:", JSON.stringify(profile, null, 2));
           setUserProfile(profile);
-        } catch (profileError) {
+        } catch (profileError: any) {
           console.error("[SectionLessonsPage] Error fetching user profile:", profileError);
           setUserProfile(null);
-          // toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات المستخدم.", variant: "destructive"});
+          toast({ title: "خطأ", description: `لم نتمكن من تحميل بيانات المستخدم: ${profileError.message}`, variant: "destructive"});
         }
       } else {
         setUserProfile(null);
+         console.log("[SectionLessonsPage] No authenticated user session found.");
       }
       setIsLoadingAuthProfile(false);
+      console.log("[SectionLessonsPage] Finished auth and profile loading. isLoadingAuthProfile:", false);
     };
 
     getSessionAndProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[SectionLessonsPage] Auth state changed. Event: ${event}. Session user: ${session?.user?.id || 'null'}`);
+      setIsLoadingAuthProfile(true); // Set loading true while potentially refetching profile
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user) {
-        setIsLoadingAuthProfile(true); // Re-set loading when auth changes to re-fetch profile
         try {
           const profile = await getUserProfile(user.id);
+          console.log("[SectionLessonsPage] Fetched user profile on auth change:", JSON.stringify(profile, null, 2));
           setUserProfile(profile);
-        } catch (profileError) {
+        } catch (profileError: any) {
           console.error("[SectionLessonsPage] Error fetching user profile on auth change:", profileError);
           setUserProfile(null);
-        } finally {
-          setIsLoadingAuthProfile(false);
         }
       } else {
         setUserProfile(null);
-        setIsLoadingAuthProfile(false);
       }
+      setIsLoadingAuthProfile(false);
     });
-    return () => authListener.subscription.unsubscribe();
+    return () => {
+        console.log("[SectionLessonsPage] Unsubscribing auth listener.");
+        authListener.subscription.unsubscribe();
+    };
   }, []); // Removed toast from dependencies here as it's stable
 
   useEffect(() => {
+    // Step 2: Fetch section and lessons data, but only if auth check is complete
+    console.log(`[SectionLessonsPage] useEffect for data fetching triggered. isLoadingAuthProfile: ${isLoadingAuthProfile}, authUser: ${authUser?.id || 'null'}`);
     if (isLoadingAuthProfile) {
-      console.log("[SectionLessonsPage] Waiting for auth profile to load...");
-      return; // Wait for authentication check to complete
+      console.log("[SectionLessonsPage] Data fetching waiting for auth profile to load...");
+      return; 
     }
-
-    // At this point, authUser is either set or definitively null.
-    // RLS policies will be evaluated by Supabase based on the current session state.
 
     setIsLoadingData(true);
     setError(null);
@@ -93,20 +110,21 @@ export default function SectionLessonsPage() {
       const fetchData = async () => {
         try {
           console.log(`[SectionLessonsPage] Fetching section with ID: ${sectionId} for subject ID: ${subjectId}`);
-          const sectionData = await getSectionById(sectionId); // subjectId is implicitly checked by section's subject_id
+          const sectionData = await getSectionById(sectionId); 
 
           if (!sectionData) {
-            console.error(`[SectionLessonsPage] Section with ID ${sectionId} not found or access denied.`);
+            console.error(`[SectionLessonsPage] Section with ID ${sectionId} not found or access denied by RLS.`);
             setError(`لم يتم العثور على القسم بالمعرف: ${sectionId}. قد لا يكون موجودًا أو لا تملك صلاحية الوصول إليه.`);
             setSection(null);
             setLessons([]);
-            toast({ title: "خطأ في القسم", description: `تفاصيل القسم (المعرف: ${sectionId}) غير موجودة أو الوصول إليها مرفوض.`, variant: "destructive" });
+            // toast({ title: "خطأ في القسم", description: `تفاصيل القسم (المعرف: ${sectionId}) غير موجودة أو الوصول إليها مرفوض.`, variant: "destructive" });
+            // The error state will handle displaying this to the user.
             setIsLoadingData(false);
-            return; // Exit early if section not found
+            return; 
           }
           
           console.log(`[SectionLessonsPage] Section data found for ID ${sectionId}:`, sectionData);
-          setSection(sectionData); // Set section data immediately
+          setSection(sectionData);
 
           console.log(`[SectionLessonsPage] Fetching lessons for section ID: ${sectionId}`);
           const lessonsData = await getSectionLessons(sectionId);
@@ -114,26 +132,15 @@ export default function SectionLessonsPage() {
           console.log(`[SectionLessonsPage] Lessons data fetched for section ID ${sectionId}, count: ${lessonsData.length}`);
           setLessons(lessonsData);
 
-          if (sectionData && lessonsData.length === 0) {
-            // This toast can be noisy if sections genuinely have no lessons yet.
-            // Consider making it more contextual or removing if sections can be legitimately empty.
-            // toast({ title: "تنبيه", description: `لا توجد دروس متاحة للقسم "${sectionData.title}" حالياً.`, variant: "default" });
-          }
-
         } catch (e: any) {
           console.error(`[SectionLessonsPage] Error in fetchData for section ${sectionId}:`, e);
-          let errorMessage = "فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.";
-          if (e.message && e.message.toLowerCase().includes('failed to fetch')) {
-            errorMessage = "فشل الاتصال بالخادم لجلب بيانات القسم أو الدروس. يرجى التحقق من اتصالك بالإنترنت وإعدادات CORS في Supabase.";
-          } else if (e.message) {
-            errorMessage = e.message;
-          }
+          let errorMessage = `فشل تحميل بيانات دروس القسم. ${e.message || ''}`;
           setError(errorMessage);
-          // setSection(null); // Keep section if it was fetched before lessons error, or clear if section fetch failed
           setLessons([]);
-          toast({ title: "خطأ فادح", description: errorMessage, variant: "destructive" });
+          // toast({ title: "خطأ فادح", description: errorMessage, variant: "destructive" });
         } finally {
           setIsLoadingData(false);
+          console.log(`[SectionLessonsPage] Finished data fetching. isLoadingData: false`);
         }
       };
       fetchData();
@@ -146,21 +153,41 @@ export default function SectionLessonsPage() {
 
 
   const isSubjectActiveForCurrentUser = useMemo(() => {
+    console.log("[SectionLessonsPage] Evaluating isSubjectActiveForCurrentUser...");
+    console.log("  AuthUser present:", !!authUser);
+    if (userProfile) {
+      console.log("  UserProfile present. Active subscription:", JSON.stringify(userProfile.active_subscription, null, 2));
+      console.log("  Current subjectId (page param):", subjectId);
+    } else {
+      console.log("  UserProfile is null.");
+    }
+
     if (!authUser || !userProfile || !userProfile.active_subscription) {
+      console.log("  isSubjectActiveForCurrentUser: false (no auth/profile/subscription object).");
       return false;
     }
     const sub = userProfile.active_subscription;
     const now = new Date(); 
     const endDate = new Date(sub.endDate);
 
-    if (sub.status !== 'active' || endDate < now) {
+    if (sub.status !== 'active') {
+      console.log(`  isSubjectActiveForCurrentUser: false (subscription status is ${sub.status}).`);
+      return false;
+    }
+    if (endDate < now) {
+      console.log("  isSubjectActiveForCurrentUser: false (subscription expired).");
       return false;
     }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
     const isSpecificSubjectMatch = sub.subjectId === subjectId; 
 
-    return isGeneralSubscription || isSpecificSubjectMatch;
+    console.log(`  isGeneralSubscription: ${isGeneralSubscription} (sub.subjectId: '${sub.subjectId}')`);
+    console.log(`  isSpecificSubjectMatch: ${isSpecificSubjectMatch} (sub.subjectId: '${sub.subjectId}', page subjectId: '${subjectId}')`);
+    
+    const result = isGeneralSubscription || isSpecificSubjectMatch;
+    console.log("  isSubjectActiveForCurrentUser result:", result);
+    return result;
   }, [userProfile, subjectId, authUser]);
 
   if (isLoadingData || isLoadingAuthProfile) {
@@ -174,6 +201,7 @@ export default function SectionLessonsPage() {
     );
   }
 
+  // Error state should be checked after loading states
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
@@ -186,11 +214,11 @@ export default function SectionLessonsPage() {
     );
   }
 
-  if (!section) { // This will be true if setError was called with the "Section not found" message
+  if (!section) { 
     return (
       <div className="text-center py-10">
          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">{error || "لم يتم العثور على القسم."}</p>
+        <p className="text-lg text-muted-foreground">{error || "لم يتم العثور على القسم. قد يكون قد تم حذفه أو أن الرابط غير صحيح."}</p>
          <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
@@ -213,26 +241,25 @@ export default function SectionLessonsPage() {
           )}
         </CardHeader>
         <CardContent>
-          {lessons.length === 0 ? (
+          {lessons.length === 0 && !isLoadingData ? ( // Check !isLoadingData here too
             <div className="text-center py-8 text-muted-foreground">
               <BookText className="h-10 w-10 mx-auto mb-2" />
               <p className="text-lg">لا توجد دروس متاحة لهذا القسم حاليًا.</p>
             </div>
           ) : (
             <ul className="space-y-4">
-              {lessons.map((lesson, index) => {
+              {lessons.map((lesson) => {
                 const sectionIsLockedByAdmin = section.is_locked === true;
 
                 let effectiveIsLockedByAdmin: boolean;
-                if (lesson.is_locked === false) { // Lesson explicitly open
+                if (lesson.is_locked === false) { 
                   effectiveIsLockedByAdmin = false;
-                } else if (lesson.is_locked === true) { // Lesson explicitly locked
+                } else if (lesson.is_locked === true) { 
                   effectiveIsLockedByAdmin = true;
-                } else { // lesson.is_locked is null, inherit from section
+                } else { 
                   effectiveIsLockedByAdmin = sectionIsLockedByAdmin;
                 }
                 
-                // Final lock status depends on admin lock AND user subscription
                 const displayAsLocked = effectiveIsLockedByAdmin && !isSubjectActiveForCurrentUser;
                 
                 const lessonPath = `/study/${branch}/${subjectId}/${sectionId}/${lesson.id}`;
@@ -287,9 +314,9 @@ export default function SectionLessonsPage() {
         </CardContent>
       </Card>
        <div className="text-center mt-8">
-        <Button onClick={() => router.back()} variant="outline">
+        <Button onClick={() => router.push(`/study/${branch}/${subjectId}`)} variant="outline">
           <ChevronRight className="ms-2 h-4 w-4" /> 
-          العودة إلى الأقسام
+          العودة إلى أقسام المادة
         </Button>
       </div>
     </div>
