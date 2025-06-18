@@ -37,9 +37,13 @@ const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey ? createClient(supab
 export const getNewsItems = async (count: number = 20): Promise<NewsItem[]> => {
   if (!supabaseAdmin) {
     // Use the detailed initialization error message if available, otherwise a fallback.
-    const errorMsg = supabaseInitializationError || "getNewsItems (serverExamService): Supabase admin client is not initialized. This usually means NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server-side) is missing or incorrect in your environment variables.";
-    console.error(errorMsg); // Log on server
-    throw new Error(errorMsg); // Throw an error to be caught by the calling page.
+    let errorMsg = "Server-side Supabase client cannot be initialized.";
+    if (!supabaseUrl) errorMsg += " NEXT_PUBLIC_SUPABASE_URL is not set.";
+    if (!supabaseServiceRoleKey) errorMsg += " SUPABASE_SERVICE_ROLE_KEY is not set.";
+    if (supabaseUrl && supabaseServiceRoleKey) errorMsg = supabaseInitializationError || "An unknown error occurred during Supabase client initialization.";
+
+    console.error(`getNewsItems (serverExamService): ${errorMsg} Please ensure these environment variables are correctly set and accessible to the server process.`);
+    throw new Error(errorMsg);
   }
   try {
     console.log("[serverExamService] getNewsItems: Fetching news articles...");
@@ -65,7 +69,7 @@ export const getNewsItems = async (count: number = 20): Promise<NewsItem[]> => {
     })) as NewsItem[];
   } catch (error: any) {
     console.error("[serverExamService] getNewsItems: Error caught during execution:", error.message);
-    if (error.message.startsWith("Failed to fetch news items") || error.message.includes("Supabase admin client is not initialized")) {
+    if (error.message.startsWith("Failed to fetch news items") || error.message.includes("Supabase client cannot be initialized")) {
         throw error;
     }
     throw new Error(`An unexpected error occurred while fetching news items: ${error.message}`);
@@ -78,8 +82,12 @@ export const getNewsItems = async (count: number = 20): Promise<NewsItem[]> => {
  */
 export const getActiveAnnouncements = async (count: number = 10): Promise<Announcement[]> => {
   if (!supabaseAdmin) {
-    const errorMsg = supabaseInitializationError || "getActiveAnnouncements (serverExamService): Supabase admin client is not initialized. This usually means NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server-side) is missing or incorrect in your environment variables.";
-    console.error(errorMsg); 
+    let errorMsg = "Server-side Supabase client cannot be initialized.";
+    if (!supabaseUrl) errorMsg += " NEXT_PUBLIC_SUPABASE_URL is not set.";
+    if (!supabaseServiceRoleKey) errorMsg += " SUPABASE_SERVICE_ROLE_KEY is not set.";
+    if (supabaseUrl && supabaseServiceRoleKey) errorMsg = supabaseInitializationError || "An unknown error occurred during Supabase client initialization.";
+    
+    console.error(`getActiveAnnouncements (serverExamService): ${errorMsg} Please ensure these environment variables are correctly set and accessible to the server process.`);
     throw new Error(errorMsg); 
   }
   try {
@@ -99,7 +107,7 @@ export const getActiveAnnouncements = async (count: number = 10): Promise<Announ
     return (data || []) as Announcement[];
   } catch (error: any) {
     console.error("[serverExamService] getActiveAnnouncements: Error caught during execution:", error.message);
-    if (error.message.startsWith("Failed to fetch active announcements") || error.message.includes("Supabase admin client is not initialized")) {
+    if (error.message.startsWith("Failed to fetch active announcements") || error.message.includes("Supabase client cannot be initialized")) {
         throw error;
     }
     throw new Error(`An unexpected error occurred while fetching active announcements: ${error.message}`);
@@ -111,8 +119,12 @@ export const getActiveAnnouncements = async (count: number = 10): Promise<Announ
  */
 export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
   if (!supabaseAdmin) {
-    const errorMsg = supabaseInitializationError || "getSubscriptionPlans (serverExamService): Supabase admin client is not initialized. This usually means NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server-side) is missing or incorrect in your environment variables.";
-    console.error(errorMsg);
+    let errorMsg = "Server-side Supabase client cannot be initialized.";
+    if (!supabaseUrl) errorMsg += " NEXT_PUBLIC_SUPABASE_URL is not set.";
+    if (!supabaseServiceRoleKey) errorMsg += " SUPABASE_SERVICE_ROLE_KEY is not set.";
+    if (supabaseUrl && supabaseServiceRoleKey) errorMsg = supabaseInitializationError || "An unknown error occurred during Supabase client initialization.";
+    
+    console.error(`getSubscriptionPlans (serverExamService): ${errorMsg} Please ensure these environment variables are correctly set and accessible to the server process.`);
     throw new Error(errorMsg);
   }
   try {
@@ -134,7 +146,7 @@ export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
     })) as SubscriptionPlan[];
   } catch (error: any) {
     console.error("[serverExamService] getSubscriptionPlans: Error caught during execution:", error.message);
-    if (error.message.startsWith("Failed to fetch subscription plans") || error.message.includes("Supabase admin client is not initialized")) {
+    if (error.message.startsWith("Failed to fetch subscription plans") || error.message.includes("Supabase client cannot be initialized")) {
         throw error;
     }
     throw new Error(`An unexpected error occurred while fetching subscription plans: ${error.message}`);
@@ -146,33 +158,31 @@ export const getSubscriptionPlans = async (): Promise<SubscriptionPlan[]> => {
  */
 export const getAppSettings = async (): Promise<AppSettings | null> => {
   if (!supabaseAdmin) {
-    const errorMsg = supabaseInitializationError || "getAppSettings (serverExamService): Supabase admin client is not initialized. Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are correctly set.";
-    console.error(errorMsg);
-    // For getAppSettings, we might want to return null or default settings instead of throwing,
-    // so the app can still function with defaults if settings are misconfigured.
-    // However, for initial setup, throwing helps identify the problem.
-    // Let's return null for now and let consuming components handle it.
+    let errorMsg = "Server-side Supabase client cannot be initialized.";
+    if (!supabaseUrl) errorMsg += " NEXT_PUBLIC_SUPABASE_URL is not set.";
+    if (!supabaseServiceRoleKey) errorMsg += " SUPABASE_SERVICE_ROLE_KEY is not set.";
+    if (supabaseUrl && supabaseServiceRoleKey) errorMsg = supabaseInitializationError || "An unknown error occurred during Supabase client initialization.";
+
+    console.error(`getAppSettings (serverExamService): ${errorMsg} Please ensure these environment variables are correctly set and accessible to the server process.`);
     return null; 
   }
   try {
-    console.log("[serverExamService] getAppSettings: Fetching application settings...");
-    // Fetch the row with the known fixed ID, or the first row if no fixed ID is used.
-    // Using a fixed ID '00000000-0000-0000-0000-000000000001' as seeded in migration.
+    const settingsRowId = '438ae94a-f8ee-4a36-85a3-eed670aa55d8'; // User-provided ID
+    console.log(`[serverExamService] getAppSettings: Fetching application settings using ID: ${settingsRowId}`);
+    
     const { data, error, status } = await supabaseAdmin
       .from('app_settings')
       .select('id, app_name, app_logo_url, app_logo_hint, support_phone_number, support_email, social_media_links, terms_of_service_url, privacy_policy_url, created_at, updated_at')
-      .eq('id', '00000000-0000-0000-0000-000000000001') // Query by the fixed ID
-      .maybeSingle(); // Expects one row or null
+      .eq('id', settingsRowId) 
+      .maybeSingle(); 
 
     if (error) {
-      console.error(`[serverExamService] getAppSettings: Supabase error fetching app settings. Status: ${status}, Code: ${error.code}, Message: ${error.message}`);
-      // Don't throw, return null so app can use defaults
+      console.error(`[serverExamService] getAppSettings: Supabase error fetching app settings with ID ${settingsRowId}. Status: ${status}, Code: ${error.code}, Message: ${error.message}`);
       return null; 
     }
     
     if (data) {
         console.log("[serverExamService] getAppSettings: Successfully fetched app settings.");
-        // Ensure social_media_links is parsed as an array
         const socialMediaLinks = Array.isArray(data.social_media_links) 
             ? data.social_media_links 
             : (data.social_media_links ? JSON.parse(data.social_media_links as any) : []);
@@ -182,11 +192,11 @@ export const getAppSettings = async (): Promise<AppSettings | null> => {
             social_media_links: socialMediaLinks as SocialMediaLink[] | null,
         } as AppSettings;
     }
-    console.warn("[serverExamService] getAppSettings: No app settings found in the database with the fixed ID.");
+    console.warn(`[serverExamService] getAppSettings: No app settings found in the database with ID ${settingsRowId}.`);
     return null;
   } catch (error: any) {
     console.error("[serverExamService] getAppSettings: Error caught during execution:", error.message);
-    // Don't throw, return null
     return null;
   }
 };
+
