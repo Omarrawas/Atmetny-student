@@ -1,28 +1,26 @@
 
-// IMPORTANT: You need to implement the file saving logic here.
-// This is a placeholder API route.
-// For local storage, you might use 'fs' and 'path' modules, and a library like 'formidable' or 'multer'.
-// Ensure the target directory (e.g., 'public/uploads/avatars') exists and is writable by the server process.
-
 import { NextResponse } from 'next/server';
-import { stat, mkdir, writeFile } from 'fs/promises';
-import { join } from 'path';
-import mime from 'mime'; // For getting MIME type based on extension
+import { createClient } from '@supabase/supabase-js';
+import mime from 'mime';
 
-// Helper to ensure directory exists
-async function ensureDirExists(dirPath: string) {
-  try {
-    await stat(dirPath);
-  } catch (e: any) {
-    if (e.code === 'ENOENT') {
-      await mkdir(dirPath, { recursive: true });
-    } else {
-      throw e;
-    }
-  }
+// Ensure these environment variables are set in your .env.local file
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('Supabase URL or Service Role Key is missing. Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in .env.local');
 }
 
+// Initialize Supabase client with service_role key for admin-level access
+const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey 
+                      ? createClient(supabaseUrl, supabaseServiceRoleKey) 
+                      : null;
+
 export async function POST(request: Request) {
+  if (!supabaseAdmin) {
+    return NextResponse.json({ message: 'Supabase client not initialized. Server configuration error.' }, { status: 500 });
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get('avatar') as File | null;
@@ -31,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'لم يتم استقبال أي ملف.' }, { status: 400 });
     }
 
-    // Basic validation (optional, but recommended)
+    // Basic validation
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
         return NextResponse.json({ message: 'حجم الملف كبير جدًا (الحد الأقصى 5 ميجابايت).' }, { status: 413 });
     }
@@ -40,37 +38,48 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'نوع الملف غير مدعوم. الأنواع المدعومة: JPG, PNG, GIF, WebP.' }, { status: 415 });
     }
 
-
-    // Create a more unique filename to avoid collisions
-    const fileExtension = mime.getExtension(file.type) || 'png'; // Fallback to png
+    const fileExtension = mime.getExtension(file.type) || 'png';
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const filename = `${file.name.replace(/\.[^/.]+$/, "")}-${uniqueSuffix}.${fileExtension}`;
-    
-    // Define the path where files will be stored
-    // IMPORTANT: This path is relative to the project root when running locally.
-    // For Vercel/Netlify, saving to the filesystem like this is generally not persistent.
-    // Consider using 'public/uploads/avatars' if you want Next.js to serve them easily as static files.
-    // The '/tmp' directory is often writable on serverless platforms for temporary storage.
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
-    await ensureDirExists(uploadDir);
-    
-    const filePath = join(uploadDir, filename);
-    const publicPath = `/uploads/avatars/${filename}`; // Path to be used in avatar_url
+    // Store avatars in an 'avatars' folder within the 'appfiles' bucket
+    const fileNameInBucket = `avatars/${file.name.replace(/\.[^/.]+$/, "")}-${uniqueSuffix}.${fileExtension}`;
+    const bucketName = 'appfiles';
 
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Save the file
-    await writeFile(filePath, buffer);
+    // Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(fileNameInBucket, buffer, {
+        contentType: file.type,
+        upsert: true, // Overwrite if file with same name exists (should be rare with uniqueSuffix)
+      });
 
-    console.log(`File uploaded successfully: ${filePath}`);
-    console.log(`Public path for DB: ${publicPath}`);
+    if (uploadError) {
+      console.error('Supabase Storage upload error:', uploadError);
+      return NextResponse.json({ message: `فشل رفع الصورة إلى Supabase Storage: ${uploadError.message}` }, { status: 500 });
+    }
 
-    // Return the public path of the saved file
+    // Get the public URL of the uploaded file
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(fileNameInBucket);
+
+    if (!publicUrlData?.publicUrl) {
+        console.error('Supabase Storage error: Could not get public URL for uploaded file:', fileNameInBucket);
+        // Attempt to delete the orphaned file if URL retrieval fails?
+        // await supabaseAdmin.storage.from(bucketName).remove([fileNameInBucket]); // Optional: cleanup
+        return NextResponse.json({ message: 'تم رفع الصورة ولكن فشل استرداد الرابط العام.' }, { status: 500 });
+    }
+    
+    const publicPath = publicUrlData.publicUrl;
+    console.log(`File uploaded to Supabase Storage: ${bucketName}/${fileNameInBucket}`);
+    console.log(`Public URL for DB: ${publicPath}`);
+
     return NextResponse.json({ success: true, filePath: publicPath, message: 'تم رفع الصورة بنجاح.' });
 
   } catch (error) {
-    console.error('Error in /api/upload-avatar:', error);
+    console.error('Error in /api/upload-avatar (Supabase Storage):', error);
     let errorMessage = 'فشل رفع الصورة على الخادم.';
     if (error instanceof Error) {
         errorMessage = error.message;
@@ -78,5 +87,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }
-
     
