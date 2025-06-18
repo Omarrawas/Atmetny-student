@@ -7,16 +7,22 @@ import type { NewsItem, Announcement } from './types';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-let supabaseAdminMessage = "";
+let supabaseInitializationError = "";
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  supabaseAdminMessage = "Supabase URL or Service Role Key is not set for server-side operations.";
+if (!supabaseUrl && !supabaseServiceRoleKey) {
+  supabaseInitializationError = "Server-side Supabase client cannot be initialized: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not set.";
+} else if (!supabaseUrl) {
+  supabaseInitializationError = "Server-side Supabase client cannot be initialized: NEXT_PUBLIC_SUPABASE_URL is not set.";
+} else if (!supabaseServiceRoleKey) {
+  supabaseInitializationError = "Server-side Supabase client cannot be initialized: SUPABASE_SERVICE_ROLE_KEY is not set.";
+}
+
+if (supabaseInitializationError) {
+  const fullErrorMessage = supabaseInitializationError + " Please ensure these environment variables are correctly set and accessible to the server process.";
   if (process.env.NODE_ENV !== 'production') {
-    console.warn(`${supabaseAdminMessage} This is expected during build if env vars are not available, but will cause issues at runtime if not set.`);
+    console.warn(`${fullErrorMessage} This warning is shown in development if env vars are not available at build time, but they are critical at runtime.`);
   } else {
-    // In production, this might be too noisy if we throw here directly,
-    // as this file is imported at module level. Better to check in each function.
-    console.error(supabaseAdminMessage + " Server-side Supabase calls will fail.");
+    console.error(fullErrorMessage + " Server-side Supabase calls will fail.");
   }
 }
 
@@ -31,7 +37,8 @@ const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey ? createClient(supab
  */
 export const getNewsItems = async (count: number = 20): Promise<NewsItem[]> => {
   if (!supabaseAdmin) {
-    const errorMsg = supabaseAdminMessage || "getNewsItems (serverExamService): Supabase admin client is not initialized, likely due to missing server-side environment variables (NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY).";
+    // Use the detailed initialization error message if available, otherwise a fallback.
+    const errorMsg = supabaseInitializationError || "getNewsItems (serverExamService): Supabase admin client is not initialized. This usually means NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server-side) is missing or incorrect in your environment variables.";
     console.error(errorMsg); // Log on server
     throw new Error(errorMsg); // Throw an error to be caught by the calling page.
   }
@@ -73,7 +80,7 @@ export const getNewsItems = async (count: number = 20): Promise<NewsItem[]> => {
  */
 export const getActiveAnnouncements = async (count: number = 10): Promise<Announcement[]> => {
   if (!supabaseAdmin) {
-    const errorMsg = supabaseAdminMessage || "getActiveAnnouncements (serverExamService): Supabase admin client is not initialized, likely due to missing server-side environment variables.";
+    const errorMsg = supabaseInitializationError || "getActiveAnnouncements (serverExamService): Supabase admin client is not initialized. This usually means NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (server-side) is missing or incorrect in your environment variables.";
     console.error(errorMsg); // Log on server
     throw new Error(errorMsg); // Throw an error to be caught by the calling page.
   }
@@ -100,3 +107,4 @@ export const getActiveAnnouncements = async (count: number = 10): Promise<Announ
     throw new Error(`An unexpected error occurred while fetching active announcements: ${error.message}`);
   }
 };
+
