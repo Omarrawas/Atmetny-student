@@ -38,10 +38,30 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'نوع الملف غير مدعوم. الأنواع المدعومة: JPG, PNG, GIF, WebP.' }, { status: 415 });
     }
 
-    const fileExtension = mime.getExtension(file.type) || 'png';
+    const fileExtensionFromMime = mime.getExtension(file.type) || 'png'; // Safe extension from MIME type
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+
+    // Get the base name from the original file.name
+    let originalBaseName = file.name;
+    const lastDotIndex = file.name.lastIndexOf('.');
+    if (lastDotIndex !== -1 && lastDotIndex > 0) { // Ensure dot is not the first char and exists
+      originalBaseName = file.name.substring(0, lastDotIndex);
+    } else {
+      originalBaseName = file.name; // No extension or dot is first char
+    }
+
+    // Sanitize the originalBaseName
+    // Allow Arabic, English letters, numbers, hyphens, underscores. Replace others with underscore.
+    const sanitizedBaseName = originalBaseName
+      .replace(/[^\u0600-\u06FF\u0750-\u077Fa-zA-Z0-9\s_.-]/g, '') // Remove most special chars, keep specified ones and space temporarily
+      .replace(/\s+/g, '_') // Replace spaces (and multiple spaces) with a single underscore
+      .replace(/_{2,}/g, '_') // Replace multiple consecutive underscores with a single one
+      .replace(/^[-_]+|[-_]+$/g, ''); // Trim leading/trailing underscores or hyphens
+
+    const finalBaseName = sanitizedBaseName || 'file'; // Fallback if sanitization results in an empty name
+
     // Store avatars in an 'avatars' folder within the 'appfiles' bucket
-    const fileNameInBucket = `avatars/${file.name.replace(/\.[^/.]+$/, "")}-${uniqueSuffix}.${fileExtension}`;
+    const fileNameInBucket = `avatars/${finalBaseName}-${uniqueSuffix}.${fileExtensionFromMime}`;
     const bucketName = 'appfiles';
 
     // Convert file to buffer
@@ -67,8 +87,6 @@ export async function POST(request: Request) {
 
     if (!publicUrlData?.publicUrl) {
         console.error('Supabase Storage error: Could not get public URL for uploaded file:', fileNameInBucket);
-        // Attempt to delete the orphaned file if URL retrieval fails?
-        // await supabaseAdmin.storage.from(bucketName).remove([fileNameInBucket]); // Optional: cleanup
         return NextResponse.json({ message: 'تم رفع الصورة ولكن فشل استرداد الرابط العام.' }, { status: 500 });
     }
     
