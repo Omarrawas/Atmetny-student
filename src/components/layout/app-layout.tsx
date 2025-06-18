@@ -108,23 +108,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const avatarHint = 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
-  const showCustomLogo = currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError;
-
   return (
     <>
       <Sidebar side="right" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
-            {showCustomLogo ? (
+            {currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError ? (
               <Image
-                src={currentAppLogoUrl!} // Assert non-null because showCustomLogo checks it
+                src={currentAppLogoUrl}
                 alt={`${currentAppName} Logo`}
                 width={32}
                 height={32}
                 className="rounded-sm"
                 data-ai-hint={currentAppLogoHint || 'application logo'}
                 onError={(e) => {
-                  console.error(`[AppLayout] Error loading logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src);
+                  console.error(`[AppLayout] Error loading logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src, e);
                   setCustomLogoLoadError(true);
                 }}
               />
@@ -244,3 +242,5 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </>
   );
 }
+
+    
