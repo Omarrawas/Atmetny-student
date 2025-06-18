@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/storage/v1/object/**', // More general path for Supabase storage objects
       },
+      { // Added for Unsplash images
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   experimental: {

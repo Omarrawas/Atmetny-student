@@ -12,6 +12,7 @@ export default function HomePage() {
   const { settings } = useAppSettings();
   const appName = settings?.app_name || "Atmetny";
   const promoUrl = settings?.homepage_promo_url;
+  const newImageUrl = "https://images.unsplash.com/photo-1747081952506-8dbfbabd7067?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOXx8JUQ4JUE3JUQ5JTg0JUQ4JUI1JUQ5JTg4JUQ4JUIxJUQ4JUE5JTIwJUQ5JTg0JUQ4JUE3JUQ4JUFBJUQ4JUI5JUQ4JUIxJUQ4JUI2JTIwJUQ4JUE3JUQ5JThBJTIwJUQ4JUI0JUQ5JThBJUQ4JUExJTIwJUQ4JUIzJUQ5JTg4JUQ5JTg5JTIwJUQ4JUE3JUQ5JTg0JUQ4JUIxJUQ4JUE3JUQ4JUE4JUQ4JUI3JTIwfGVufDB8fHx8MTc1MDI3ODM1MHww&ixlib=rb-4.1.0&q=80&w=1080";
 
   return (
     <div className="space-y-8">
@@ -138,15 +139,13 @@ export default function HomePage() {
       <section className="text-center">
         {promoUrl ? (
           <Link href={promoUrl} target="_blank" rel="noopener noreferrer" aria-label="عرض ترويجي">
-            <Image src="https://placehold.co/800x400.png" alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md hover:opacity-90 transition-opacity" data-ai-hint="students studying education" />
+            <Image src={newImageUrl} alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md hover:opacity-90 transition-opacity" data-ai-hint="students studying education" />
           </Link>
         ) : (
-          <Image src="https://placehold.co/800x400.png" alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md" data-ai-hint="students studying education" />
+          <Image src={newImageUrl} alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md" data-ai-hint="students studying education" />
         )}
       </section>
     </div>
   );
 }
-
-
     
