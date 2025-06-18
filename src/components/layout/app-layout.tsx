@@ -15,60 +15,47 @@ import {
   SidebarTrigger,
   SidebarFooter,
   useSidebar,
-  SidebarInset, // Added SidebarInset here
+  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { mainNavItems } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, Moon, Sun, ArrowRight, UserCircle } from 'lucide-react';
+import { LogOut, Moon, Sun, ArrowRight, UserCircle, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from 'next-themes';
 import { supabase } from '@/lib/supabaseClient'; 
 import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js'; 
-// TODO: When migrating profile, import Supabase-specific profile fetching
-// import { getUserProfileFromSupabase } from '@/lib/supabaseUserProfileService'; // Example
-// import type { UserProfile } from '@/lib/types'; // This type might need adjustment for Supabase
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAppSettings } from '@/contexts/app-settings-context';
+import Image from 'next/image';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
+  const { settings: appSettings } = useAppSettings();
 
   const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
   const [session, setSession] = useState<SupabaseSession | null>(null);
-  // const [userProfile, setUserProfile] = useState<UserProfile | null>(null); // TODO: Re-enable and adapt for Supabase profile
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     setIsLoadingUser(true);
-    // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setAuthUser(session?.user ?? null);
       setIsLoadingUser(false);
-      // if (session?.user) {
-      //   // TODO: Fetch profile if user exists
-      // }
     }).catch(error => {
       console.error("Error getting initial Supabase session:", error);
       setIsLoadingUser(false);
     });
 
-    // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log("Supabase auth state changed. Event:", _event, "Session:", session);
       setSession(session);
       const currentUser = session?.user ?? null;
       setAuthUser(currentUser);
-      // setUserProfile(null); // Reset profile on auth change
-
-      if (currentUser) {
-        // TODO: Fetch Supabase user profile here if needed
-        // e.g., const profile = await getSupabaseUserProfile(currentUser.id); setUserProfile(profile);
-      }
-      setIsLoadingUser(false); // Ensure loading is set to false after initial check and any subsequent changes
+      setIsLoadingUser(false); 
     });
 
     return () => {
@@ -86,37 +73,46 @@ export function AppLayout({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      // Auth state will be cleared by onAuthStateChange listener
-      // No need to manually setAuthUser(null) or setUserProfile(null) here
       router.push('/auth');
       if (isMobile) {
         setOpenMobile(false);
       }
     } catch (error) {
       console.error("Error signing out with Supabase: ", error);
-      // Optionally show a toast message for logout error
     }
   };
 
-  // TODO: Adapt these once Supabase profile is integrated.
-  // For now, use basic info from Supabase authUser.
   const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || "مستخدم";
   const displayEmail = authUser?.email || "";
-  const avatarUrl = authUser?.user_metadata?.avatar_url; // Standard Supabase metadata field
-  const avatarHint = 'person avatar'; // Placeholder
+  const avatarUrl = authUser?.user_metadata?.avatar_url;
+  const avatarHint = 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
+  const currentAppName = appSettings?.app_name || 'Atmetny';
+  const currentAppLogoUrl = appSettings?.app_logo_url;
+  const currentAppLogoHint = appSettings?.app_logo_hint || 'application logo';
 
   return (
     <>
       <Sidebar side="right" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-sidebar-primary">
-              <path d="M12 .75a8.25 8.25 0 00-6.065 2.663A8.25 8.25 0 003.75 12c0 3.97 2.807 7.283 6.495 8.015A8.25 8.25 0 0012 21.75a8.25 8.25 0 008.25-8.25c0-4.019-2.863-7.34-6.635-8.092A8.255 8.255 0 0012 .75zM8.25 12a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0z" />
-              <path d="M8.625 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM15.375 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM11.25 12.375a.375.375 0 01.375-.375h.75a.375.375 0 01.375.375V15a.375.375 0 01-.375.375h-.75a.375.375 0 01-.375-.375V12.375z" />
-            </svg>
-            {state === 'expanded' && <h1 className="text-xl font-semibold text-sidebar-foreground">Atmetny</h1>}
+            {currentAppLogoUrl ? (
+              <Image 
+                src={currentAppLogoUrl} 
+                alt={`${currentAppName} Logo`} 
+                width={32} 
+                height={32} 
+                className="rounded-sm"
+                data-ai-hint={currentAppLogoHint}
+              />
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-sidebar-primary">
+                <path d="M12 .75a8.25 8.25 0 00-6.065 2.663A8.25 8.25 0 003.75 12c0 3.97 2.807 7.283 6.495 8.015A8.25 8.25 0 0012 21.75a8.25 8.25 0 008.25-8.25c0-4.019-2.863-7.34-6.635-8.092A8.255 8.255 0 0012 .75zM8.25 12a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0z" />
+                <path d="M8.625 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM15.375 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM11.25 12.375a.375.375 0 01.375-.375h.75a.375.375 0 01.375.375V15a.375.375 0 01-.375.375h-.75a.375.375 0 01-.375-.375V12.375z" />
+              </svg>
+            )}
+            {state === 'expanded' && <h1 className="text-xl font-semibold text-sidebar-foreground">{currentAppName}</h1>}
           </Link>
         </SidebarHeader>
         <SidebarContent className="p-0">
@@ -220,7 +216,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <footer className="py-4 px-6 border-t text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Atmetny. جميع الحقوق محفوظة.
+          © {new Date().getFullYear()} {currentAppName}. جميع الحقوق محفوظة.
         </footer>
       </SidebarInset>
     </>

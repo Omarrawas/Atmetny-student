@@ -314,8 +314,27 @@ export interface SubscriptionPlan {
   updated_at?: string;
 }
 
+export interface SocialMediaLink {
+  platform: string;
+  url: string;
+  icon?: LucideIconName; // Optional: Lucide icon name for the platform
+}
+
+export interface AppSettings {
+  id: string; // UUID
+  app_name?: string | null;
+  app_logo_url?: string | null;
+  app_logo_hint?: string | null;
+  support_phone_number?: string | null;
+  support_email?: string | null;
+  social_media_links?: SocialMediaLink[] | null; // Parsed from JSONB
+  terms_of_service_url?: string | null;
+  privacy_policy_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
-

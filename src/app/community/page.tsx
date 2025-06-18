@@ -1,14 +1,24 @@
+
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Zap } from "lucide-react";
+import { MessageSquare, Users, Zap, Link as LinkIcon, ExternalLink } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useAppSettings } from "@/contexts/app-settings-context";
+import type { SocialMediaLink } from "@/lib/types";
 
 export default function CommunityPage() {
+  const { settings, getIconComponent } = useAppSettings();
+  const socialLinks = settings?.social_media_links || [];
+  const supportEmail = settings?.support_email;
+
   return (
     <div className="max-w-3xl mx-auto text-center space-y-8">
       <header className="space-y-3">
         <Users className="h-16 w-16 text-primary mx-auto" />
-        <h1 className="text-4xl font-bold">مجتمع Atmetny</h1>
+        <h1 className="text-4xl font-bold">مجتمع {settings?.app_name || "Atmetny"}</h1>
         <p className="text-xl text-muted-foreground">
           تواصل، تعلم، وشارك مع زملائك الطلاب والمعلمين في بيئة تفاعلية وآمنة.
         </p>
@@ -40,15 +50,34 @@ export default function CommunityPage() {
         <p className="text-muted-foreground">
             يمكنك متابعتنا على وسائل التواصل الاجتماعي أو التواصل مع فريق الدعم إذا كانت لديك أي استفسارات.
         </p>
-        <div className="flex gap-4 justify-center">
-            <Button variant="outline">
-                <MessageSquare className="ms-2 h-4 w-4" />
-                تواصل معنا
-            </Button>
-             <Button variant="outline">
-                <Zap className="ms-2 h-4 w-4" />
-                تابعنا على فيسبوك (مثال)
-            </Button>
+        <div className="flex flex-wrap gap-4 justify-center">
+            {supportEmail && (
+                 <Button variant="outline" asChild>
+                    <a href={`mailto:${supportEmail}`}>
+                        <MessageSquare className="ms-2 h-4 w-4" />
+                        تواصل معنا عبر الإيميل
+                    </a>
+                </Button>
+            )}
+            {socialLinks.map(link => {
+                const IconComponent = getIconComponent(link.icon);
+                return (
+                    <Button variant="outline" key={link.platform} asChild>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                            <IconComponent className="ms-2 h-4 w-4" />
+                            تابعنا على {link.platform}
+                        </a>
+                    </Button>
+                );
+            })}
+             {settings?.support_phone_number && (
+                 <Button variant="outline" asChild>
+                    <a href={`tel:${settings.support_phone_number}`}>
+                        <Zap className="ms-2 h-4 w-4" />
+                        اتصل بنا: {settings.support_phone_number}
+                    </a>
+                </Button>
+            )}
         </div>
       </div>
     </div>

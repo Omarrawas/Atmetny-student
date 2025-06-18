@@ -1,19 +1,24 @@
 
+'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award, Brain, FileText, Gift, Sparkles, Star, Users, BookOpen, Newspaper, Megaphone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAppSettings } from "@/contexts/app-settings-context";
 
 export default function HomePage() {
+  const { settings } = useAppSettings();
+  const appName = settings?.app_name || "Atmetny";
+
   return (
     <div className="space-y-8">
       <header className="relative rounded-lg overflow-hidden p-8 md:p-12 min-h-[350px] flex flex-col justify-center items-center text-center bg-gradient-to-br from-primary to-secondary shadow-lg">
         <div className="absolute inset-0 bg-black/30"></div>
         <div className="relative z-10">
           <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            مرحباً بك في Atmetny!
+            مرحباً بك في {appName}!
           </h1>
           <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-8">
             منصتك المثالية للاستعداد لامتحانات الصف الثالث الثانوي في سوريا. ابدأ رحلتك نحو النجاح اليوم.
