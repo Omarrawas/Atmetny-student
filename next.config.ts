@@ -29,11 +29,11 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      { // Example if using Supabase storage for images, replace with your actual Supabase project ref ID
+      { // Updated for Supabase storage to be more general
         protocol: 'https',
         hostname: '*.supabase.co', // Use a wildcard for the project-specific part
         port: '',
-        pathname: '/storage/v1/object/public/**', // Common path for public Supabase storage
+        pathname: '/storage/v1/object/**', // More general path for Supabase storage objects
       },
     ],
   },
