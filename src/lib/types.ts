@@ -27,9 +27,9 @@ export interface SubscriptionDetails {
   startDate: string; // Changed from Timestamp
   endDate: string; // Changed from Timestamp
   status: 'active' | 'expired' | 'cancelled' | 'trial';
-  activationCodeId?: string;
-  subjectId?: string | null; // UUID
-  subjectName?: string | null;
+  activationCodeId?: string; // UUID of the activation_code used
+  subjectId?: string | null; // UUID of the subject, if specific
+  subjectName?: string | null; // Name of the subject, if specific
 }
 
 export type SubjectBranch = 'scientific' | 'literary' | 'common' | 'undetermined';
@@ -118,7 +118,7 @@ export interface SubjectSection {
   title: string;
   type: string; // E.g., 'unit', 'chapter', 'theme' (NOT NULL in SQL)
   order?: number | null;
-  is_locked?: boolean | null; // Default true in SQL
+  is_locked?: boolean | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -149,7 +149,7 @@ export interface Lesson {
   teacher_name?: string | null; // Kept for potential direct teacher linking
   linked_exam_ids?: string[] | null; // Array of UUIDs
   is_locked?: boolean | null;
-  is_used?: boolean | null;
+  is_used?: boolean | null; // For tracking if a lesson (e.g., a trial lesson) has been "consumed"
   created_at: string;
   updated_at: string;
   used_at?: string | null;
@@ -203,33 +203,30 @@ export interface NewsItem {
 }
 
 export interface ActivationCode {
-  id: string; // Will be UUID
-  created_at: string;
+  id: string; // UUID
   encoded_value: string;
+  name: string;
+  type: string; // "general_monthly", "choose_single_subject_yearly", etc.
+  subject_id: string | null; // UUID, for codes pre-linked to a specific subject
+  subject_name: string | null; // Denormalized name of the pre-linked subject
   is_active: boolean;
   is_used: boolean;
-  name: string;
-  subject_id: string | null; // Foreign key to public.subjects.id (UUID), nullable
-  subject_name: string | null; // Denormalized or joined
-  type: "general_monthly" | "general_quarterly" | "general_yearly" |
-        "trial_weekly" |
-        "choose_single_subject_monthly" | "choose_single_subject_quarterly" | "choose_single_subject_yearly" |
-        string;
-  updated_at: string;
-  used_at: string | null;
-  used_by_user_id: string | null; // Foreign key to public.profiles.id (UUID)
-  used_for_subject_id?: string | null; // Foreign key to public.subjects.id (UUID), nullable
-  valid_from: string;
-  valid_until: string;
+  used_by_user_id: string | null; // UUID of the user who used the code
+  used_for_subject_id: string | null; // TEXT, name of the subject if 'type' is choose_single_subject_*
+  valid_from: string; // ISO string
+  valid_until: string; // ISO string
+  used_at: string | null; // ISO string
+  created_at: string; // ISO string
+  updated_at: string; // ISO string
 }
 
 
 export interface BackendCodeDetails {
-  id: string;
+  id: string; // UUID of the activation_code
   type: string;
-  subjectId: string | null;
-  subjectName: string | null;
-  validUntil: string | null;
+  subjectId: string | null; // UUID of pre-linked subject, if any
+  subjectName: string | null; // Name of pre-linked subject, if any
+  validUntil: string; // ISO string
   name?: string;
   encodedValue?: string;
 }
@@ -242,20 +239,20 @@ export interface BackendCheckResult {
 }
 
 export interface BackendConfirmationPayload {
-  userId: string;
+  userId: string; // UUID
   email: string;
-  codeId: string;
-  codeType: string;
-  codeValidUntil: string;
-  chosenSubjectId?: string;
-  chosenSubjectName?: string;
+  codeId: string; // UUID of the activation_code
+  codeType: string; // Type from the activation_code
+  codeValidUntil: string; // valid_until from the activation_code (ISO string)
+  chosenSubjectId?: string; // UUID of the chosen subject (if applicable)
+  chosenSubjectName?: string; // Name of the chosen subject (if applicable)
 }
 
 export interface BackendConfirmationResult {
   success: boolean;
   message: string;
   activatedPlanName?: string;
-  subscriptionEndDate?: string;
+  subscriptionEndDate?: string; // ISO string
 }
 
 
@@ -269,6 +266,19 @@ export interface Announcement {
   updated_at: string;
 }
 
+export interface ActivationLog {
+  id: string; // UUID
+  user_id: string; // UUID
+  code_id: string; // UUID
+  subject_id: string | null; // UUID
+  email: string | null;
+  code_type: string | null;
+  plan_name: string | null;
+  activated_at: string; // ISO string
+}
+
+
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
+

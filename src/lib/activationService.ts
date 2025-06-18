@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabaseClient';
 import type {
   ActivationCode,
   SubscriptionDetails,
-  UserProfileWriteData,
   BackendCodeDetails,
   BackendCheckResult,
   BackendConfirmationPayload,
@@ -33,10 +32,12 @@ export const getPlanNameFromType = (
       if (codeType === "general_yearly") return "اشتراك سنوي عام";
     }
     if (codeType.startsWith("choose_single_subject_")) {
+      // For these types, the subject name will be appended later or part of chosenSubjectName
       if (codeType === "choose_single_subject_monthly") return "اشتراك شهري لمادة واحدة";
       if (codeType === "choose_single_subject_quarterly") return "اشتراك ربع سنوي لمادة واحدة";
       if (codeType === "choose_single_subject_yearly") return "اشتراك سنوي لمادة واحدة";
     }
+    // Fallback for other types or specific subject types like "specific_subject_math_monthly"
     const parts = codeType.replace(/_/g, ' ').split(' ');
     const capitalizedParts = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1));
     return capitalizedParts.join(' ') || "اشتراك مخصص";
@@ -53,14 +54,14 @@ export const checkCodeWithBackend = async (encodedValue: string): Promise<Backen
 
   try {
     const { data: codeData, error } = await supabase
-      .from('activation_codes') // Assuming table name
-      .select('*')
-      .eq('encoded_value', encodedValue.trim()) // Assuming column name
-      .limit(1)
-      .single(); // Expects a single row or null
+      .from('activation_codes')
+      .select('id, encoded_value, name, type, subject_id, subject_name, is_active, is_used, valid_from, valid_until')
+      .eq('encoded_value', encodedValue.trim())
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116: "Row Not Found" when .single() is used and no row matches
-      throw error;
+    if (error) {
+      console.error("Supabase error checking code:", error);
+      throw new Error(error.message || "حدث خطأ أثناء التحقق من الرمز.");
     }
 
     if (!codeData) {
@@ -68,7 +69,7 @@ export const checkCodeWithBackend = async (encodedValue: string): Promise<Backen
     }
 
     const now = new Date();
-    const validUntilDate = new Date(codeData.valid_until); // Assuming valid_until is ISO string
+    const validUntilDate = new Date(codeData.valid_until);
     const validFromDate = codeData.valid_from ? new Date(codeData.valid_from) : null;
 
     if (!codeData.is_active) {
@@ -86,12 +87,12 @@ export const checkCodeWithBackend = async (encodedValue: string): Promise<Backen
     }
 
     const codeDetailsForClient: BackendCodeDetails = {
-      id: codeData.id, // Supabase primary key 'id'
+      id: codeData.id, // UUID
       encodedValue: codeData.encoded_value,
       name: codeData.name,
       type: codeData.type,
       validUntil: codeData.valid_until, // ISO string
-      subjectId: codeData.subject_id || null,
+      subjectId: codeData.subject_id || null, // UUID
       subjectName: codeData.subject_name || null,
     };
 
@@ -112,20 +113,18 @@ export const checkCodeWithBackend = async (encodedValue: string): Promise<Backen
 
 
 export const confirmActivationWithBackend = async (payload: BackendConfirmationPayload): Promise<BackendConfirmationResult> => {
-  const { userId, email, codeId, codeType, codeValidUntil, chosenSubjectId, chosenSubjectName } = payload;
+  const { userId, email, codeId, chosenSubjectId, chosenSubjectName } = payload;
 
-  if (!userId || !email || !codeId || !codeType) {
+  if (!userId || !email || !codeId) {
     return { success: false, message: "بيانات التفعيل الأساسية غير مكتملة (المستخدم، الرمز)." };
   }
-  // Note: True atomicity requires a database function (PostgreSQL stored procedure) called via supabase.rpc()
-  // The following operations are sequential and not truly atomic on the client-side.
 
   try {
-    // 1. Fetch the code again to ensure it's still valid (important for non-atomic operations)
+    // 1. Fetch the code again to ensure it's still valid
     const { data: codeData, error: fetchError } = await supabase
       .from('activation_codes')
-      .select('*')
-      .eq('id', codeId)
+      .select('*') // Select all columns needed
+      .eq('id', codeId) // codeId is UUID
       .single();
 
     if (fetchError || !codeData) {
@@ -147,20 +146,20 @@ export const confirmActivationWithBackend = async (payload: BackendConfirmationP
     const codeUpdatePayload: Partial<ActivationCode> & { used_by_user_id?: string, used_at?: string, used_for_subject_id?: string | null, updated_at: string } = {
       is_active: false,
       is_used: true,
-      used_by_user_id: userId,
+      used_by_user_id: userId, // UUID
       used_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
-    if (chosenSubjectId) {
-      codeUpdatePayload.used_for_subject_id = chosenSubjectId;
-    } else if (codeData.subject_id) {
-      codeUpdatePayload.used_for_subject_id = codeData.subject_id;
+
+    // If it's a 'choose_single_subject_*' type code, store the chosen subject's NAME in used_for_subject_id (TEXT)
+    if (codeData.type.startsWith("choose_single_subject_") && chosenSubjectName) {
+      codeUpdatePayload.used_for_subject_id = chosenSubjectName;
     }
     
     const { error: updateCodeError } = await supabase
       .from('activation_codes')
       .update(codeUpdatePayload)
-      .eq('id', codeId);
+      .eq('id', codeId); // UUID
 
     if (updateCodeError) {
       console.error("Supabase error updating activation code:", updateCodeError);
@@ -170,42 +169,51 @@ export const confirmActivationWithBackend = async (payload: BackendConfirmationP
     // 3. Prepare and Update User Profile (activeSubscription) in Supabase
     const planName = getPlanNameFromType(
       codeData.type,
-      codeData.subject_name, 
-      chosenSubjectName
+      codeData.subject_name, // Name of pre-linked subject (if any)
+      chosenSubjectName // Name of CHOSEN subject (if any)
     );
-    const subscriptionEndDateISO = codeData.valid_until; // This is already an ISO string from Supabase
+    const subscriptionEndDateISO = codeData.valid_until; // This is already an ISO string
 
-    const finalSubjectId = chosenSubjectId || codeData.subject_id || null;
-    const finalSubjectName = chosenSubjectName || codeData.subject_name || null;
+    // Determine final subjectId (UUID) and subjectName (TEXT) for the subscription
+    let finalSubscriptionSubjectId: string | null = null;
+    let finalSubscriptionSubjectName: string | null = null;
+
+    if (codeData.type.startsWith("choose_single_subject_")) {
+        finalSubscriptionSubjectId = chosenSubjectId || null; // UUID
+        finalSubscriptionSubjectName = chosenSubjectName || null;
+    } else if (codeData.subject_id) { // If code is pre-linked to a subject
+        finalSubscriptionSubjectId = codeData.subject_id; // UUID
+        finalSubscriptionSubjectName = codeData.subject_name;
+    }
+    // If it's a general plan, finalSubscriptionSubjectId and finalSubscriptionSubjectName will remain null.
+
 
     const newSubscription: SubscriptionDetails = {
-      planId: codeData.type,
+      planId: codeData.type, // Store the original code type as planId
       planName: planName,
       startDate: now.toISOString(),
       endDate: subscriptionEndDateISO,
       status: 'active',
-      activationCodeId: codeId, 
-      subjectId: finalSubjectId,
-      subjectName: finalSubjectName,
+      activationCodeId: codeId, // UUID
+      subjectId: finalSubscriptionSubjectId, // UUID or null
+      subjectName: finalSubscriptionSubjectName, // TEXT or null
     };
     
-    // We use the saveUserProfile function which handles upsert for profiles
-    // It requires the user's Supabase ID (which is userId in this context)
     await saveUserProfile({
-      id: userId, // Supabase user ID
-      email: email, // Pass email for consistency if profile is new
+      id: userId, // Supabase user ID (UUID)
+      email: email, 
       activeSubscription: newSubscription,
-      updatedAt: now.toISOString() // Ensure updatedAt is set
+      updatedAt: now.toISOString()
     });
 
 
     // 4. Log Activation in Supabase
     const { error: logError } = await supabase
-      .from('activation_logs') // Assuming table name
+      .from('activation_logs')
       .insert({
-        user_id: userId,
-        code_id: codeId, 
-        subject_id: finalSubjectId, 
+        user_id: userId, // UUID
+        code_id: codeId, // UUID
+        subject_id: finalSubscriptionSubjectId, // UUID of the subject the subscription is for (if any)
         email: email, 
         code_type: codeData.type, 
         plan_name: planName,
@@ -217,15 +225,11 @@ export const confirmActivationWithBackend = async (payload: BackendConfirmationP
       // Log this error but don't necessarily fail the whole activation if user profile and code updated
     }
 
-    let successMessage = `تم تفعيل اشتراكك بنجاح!`;
+    let successMessage = `تم تفعيل اشتراكك "${planName}" بنجاح!`;
     const subEndDateForMessage = new Date(subscriptionEndDateISO);
     
     successMessage += ` ينتهي في ${subEndDateForMessage.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}`;
     
-    if (finalSubjectName) {
-        successMessage = `تم تفعيل اشتراكك في مادة "${finalSubjectName}" بنجاح! ينتهي في ${subEndDateForMessage.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}.`;
-    }
-
     return {
       success: true,
       message: successMessage,
@@ -238,3 +242,4 @@ export const confirmActivationWithBackend = async (payload: BackendConfirmationP
     return { success: false, message: error.message || "حدث خطأ أثناء تأكيد التفعيل." };
   }
 };
+
