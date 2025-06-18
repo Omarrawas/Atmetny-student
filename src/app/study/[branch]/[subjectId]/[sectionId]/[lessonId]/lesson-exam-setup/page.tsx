@@ -23,10 +23,11 @@ export default function LessonExamSetupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const subjectId = params.subjectId as string;
+  // subjectId, sectionId, branch are kept for constructing back/navigation links if needed
+  const subjectIdFromRoute = params.subjectId as string;
   const lessonId = params.lessonId as string;
-  const sectionId = params.sectionId as string;
-  const branch = params.branch as string;
+  const sectionIdFromRoute = params.sectionId as string;
+  const branchFromRoute = params.branch as string;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoadingLesson, setIsLoadingLesson] = useState(true);
@@ -42,48 +43,45 @@ export default function LessonExamSetupPage() {
   const [isStartingExam, setIsStartingExam] = useState(false);
 
   useEffect(() => {
-    if (subjectId && sectionId && lessonId) {
+    if (lessonId) {
       const fetchLessonDetails = async () => {
         setIsLoadingLesson(true);
         setPageError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId);
+          const lessonData = await getLessonById(lessonId);
           if (lessonData) {
             setLesson(lessonData);
-            const currentSubjectDetails = allSubjectsFromConstants.find(s => s.id === lessonData.subjectId);
-            if (currentSubjectDetails) {
-              const topicsForSubject = mockQuestionsBank
-                .filter(q => q.subjectId === lessonData.subjectId && q.topic)
-                .map(q => q.topic as string);
-              const uniqueTopics = Array.from(new Set(topicsForSubject));
-              setAvailableTopics(uniqueTopics);
-              
-              // Try to auto-select the lesson's topic if it exists in the available topics
-              // The Lesson type doesn't explicitly have a 'topic' field.
-              // We can try to infer it from lesson.title or section.title for more relevance later.
-              // For now, select all topics by default if no specific lesson topic is easily identifiable.
-              if (lessonData.title && uniqueTopics.includes(lessonData.title)) { // Simple check if lesson title matches a topic
-                setSelectedTopics([lessonData.title]);
-              } else {
-                setSelectedTopics(uniqueTopics); // Default to all topics for the subject
-              }
+            // Topic selection logic still relies on mockQuestionsBank for now
+            // This needs to be updated if topics are stored in DB per lesson/question
+            const topicsForSubject = mockQuestionsBank
+              .filter(q => q.subjectId === lessonData.subject_id && q.topic) // Use lessonData.subject_id
+              .map(q => q.topic as string);
+            const uniqueTopics = Array.from(new Set(topicsForSubject));
+            setAvailableTopics(uniqueTopics);
+            
+            if (lessonData.title && uniqueTopics.includes(lessonData.title)) {
+              setSelectedTopics([lessonData.title]);
+            } else if (uniqueTopics.length > 0) {
+              setSelectedTopics(uniqueTopics); 
             } else {
-              setAvailableTopics([]);
               setSelectedTopics([]);
+              // Potentially toast if no topics are found but questions might exist for the subject broadly
             }
           } else {
             setPageError(`لم نتمكن من العثور على تفاصيل الدرس (المعرف: ${lessonId}).`);
+            toast({ title: "خطأ", description: `تفاصيل الدرس "${lessonId}" غير موجودة.`, variant: "destructive" });
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching lesson details for exam setup:", error);
           setPageError("حدث خطأ أثناء تحميل تفاصيل الدرس. حاول مرة أخرى.");
+          toast({ title: "خطأ فادح", description: error.message || "فشل تحميل تفاصيل الدرس.", variant: "destructive" });
         } finally {
           setIsLoadingLesson(false);
         }
       };
       fetchLessonDetails();
     }
-  }, [subjectId, sectionId, lessonId]);
+  }, [lessonId, toast]);
 
   const handleTopicChange = (topic: string) => {
     setSelectedTopics(prev =>
@@ -100,8 +98,8 @@ export default function LessonExamSetupPage() {
   };
   
   const handleStartExam = () => {
-    if (selectedTopics.length === 0 && availableTopics.length > 0) {
-      toast({ title: "خطأ في الإعدادات", description: "الرجاء اختيار درس واحد على الأقل.", variant: "destructive" });
+    if (availableTopics.length > 0 && selectedTopics.length === 0) { // Check only if topics were available
+      toast({ title: "خطأ في الإعدادات", description: "الرجاء اختيار موضوع واحد على الأقل من القائمة.", variant: "destructive" });
       return;
     }
     if (numQuestions <= 0 || numQuestions > MAX_QUESTIONS_LIMIT) {
@@ -109,25 +107,27 @@ export default function LessonExamSetupPage() {
       return;
     }
     setIsStartingExam(true);
-    console.log("Starting exam with config:", {
+    const examConfig = {
       lessonId,
-      subjectId: lesson?.subjectId,
-      selectedTopics,
+      subjectId: lesson?.subject_id,
+      selectedTopics: selectedTopics.length > 0 ? selectedTopics : null, // Send null if no topics selected (means all for subject)
       numQuestions,
       questionOrder,
       selectedDifficulty,
       timerEnabled,
-    });
+    };
+    console.log("Starting exam with config:", examConfig);
     toast({ title: "بدء الاختبار (قيد الإنشاء)", description: "سيتم توجيهك للاختبار بالإعدادات المحددة." });
-    // TODO: Navigate to an actual exam taking page with these configurations
-    // For example: router.push(`/study/${branch}/${subjectId}/${sectionId}/${lessonId}/take-exam?config=${encodeURIComponent(JSON.stringify(config))}`);
+    // Actual navigation should pass config to an exam-taking page
+    // Example: router.push(`/study/take-lesson-exam?config=${encodeURIComponent(JSON.stringify(examConfig))}`);
+    // For now, this part remains conceptual until the exam taking page for lessons is built.
     setIsStartingExam(false);
   };
 
   const handleBrowseQuestions = () => {
     console.log("Browsing questions with config:", {
       lessonId,
-      subjectId: lesson?.subjectId,
+      subjectId: lesson?.subject_id,
       selectedTopics,
       selectedDifficulty,
     });
@@ -168,7 +168,10 @@ export default function LessonExamSetupPage() {
     );
   }
   
-  const lessonSubjectName = allSubjectsFromConstants.find(s => s.id === lesson.subjectId)?.name || lesson.subjectId;
+  const lessonSubjectDetails = allSubjectsFromConstants.find(s => s.id === lesson.subject_id); // Still uses constants for subject name
+  const lessonSubjectName = lessonSubjectDetails?.name || lesson.subject_id; // Fallback to ID if name not found
+
+  const lessonPagePath = `/study/${branchFromRoute}/${lesson.subject_id}/${lesson.section_id}/${lesson.id}`;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -187,20 +190,20 @@ export default function LessonExamSetupPage() {
         <CardContent className="space-y-6">
           {availableTopics.length > 0 ? (
             <div className="space-y-3">
-              <Label className="text-lg font-semibold flex items-center gap-2"><ListChecks /> اختر الدروس (الأبحاث) من هذه المادة:</Label>
+              <Label className="text-lg font-semibold flex items-center gap-2"><ListChecks /> اختر المواضيع من هذه المادة:</Label>
               <div className="flex items-center space-x-2 space-x-reverse mb-2">
                 <Checkbox
                   id="select-all-topics-lesson"
                   checked={selectedTopics.length === availableTopics.length && availableTopics.length > 0}
                   onCheckedChange={(checked) => handleSelectAllTopics(checked as boolean)}
                 />
-                <Label htmlFor="select-all-topics-lesson" className="cursor-pointer">اختيار كل الدروس المتاحة</Label>
+                <Label htmlFor="select-all-topics-lesson" className="cursor-pointer">اختيار كل المواضيع المتاحة</Label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
                 {availableTopics.map(topic => (
                   <div key={topic} className="flex items-center space-x-2 space-x-reverse">
                     <Checkbox
-                      id={`topic-lesson-${topic.replace(/\s+/g, '-')}`} // Ensure valid ID
+                      id={`topic-lesson-${topic.replace(/\s+/g, '-')}`} 
                       checked={selectedTopics.includes(topic)}
                       onCheckedChange={() => handleTopicChange(topic)}
                     />
@@ -211,7 +214,7 @@ export default function LessonExamSetupPage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              لا توجد دروس (أبحاث) محددة لهذه المادة في قاعدة الأسئلة النموذجية. سيتم اختيار الأسئلة من كامل المادة ({lessonSubjectName}).
+              لا توجد مواضيع محددة لهذه المادة في قاعدة الأسئلة النموذجية. سيتم اختيار الأسئلة من كامل المادة ({lessonSubjectName}).
             </p>
           )}
 
@@ -274,7 +277,7 @@ export default function LessonExamSetupPage() {
         </CardFooter>
       </Card>
       <div className="text-center">
-        <Button onClick={() => router.back()} variant="outline">
+        <Button onClick={() => router.push(lessonPagePath)} variant="outline">
             العودة إلى الدرس
         </Button>
       </div>

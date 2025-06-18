@@ -2,7 +2,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabaseClient';
-import type { Exam, Question, QuestionOption, AiAnalysisResult, Subject, SubjectSection, Lesson } from './types';
+import type { Exam, Question, QuestionOption, AiAnalysisResult, Subject, SubjectSection, Lesson, LessonTeacher, LessonFile } from './types';
 import { getUserProfile, saveUserProfile } from './userProfileService';
 
 /**
@@ -201,7 +201,7 @@ export const getSubjectSections = async (subjectId: string): Promise<SubjectSect
     }
     const { data, error, status } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at')
       .eq('subject_id', subjectId)
       .order('order', { ascending: true, nullsFirst: false })
       .order('title', { ascending: true });
@@ -212,7 +212,6 @@ export const getSubjectSections = async (subjectId: string): Promise<SubjectSect
       console.error(`[examService] Error Details: ${error.details}`);
       console.error(`[examService] Error Hint: ${error.hint}`);
       console.error(`[examService] Error Code: ${error.code}`);
-      // Throw a new, more informative error object
       throw new Error(`Supabase error (Code: ${error.code || 'UNKNOWN'}, Status: ${status}): ${error.message || 'Failed to fetch subject sections.'}`);
     }
 
@@ -220,7 +219,6 @@ export const getSubjectSections = async (subjectId: string): Promise<SubjectSect
     return (data || []) as SubjectSection[];
   } catch (e: any) {
     console.error(`[examService] Catch block in getSubjectSections for subject ${subjectId}:`, e.message || e);
-    // Rethrow the error so the calling page component can handle it (e.g., show a message to the user)
     throw new Error(e.message || `An unexpected error occurred while fetching sections for subject ${subjectId}.`);
   }
 };
@@ -237,7 +235,7 @@ export const getSectionById = async (subjectId: string, sectionId: string): Prom
     }
     const { data, error } = await supabase
       .from('subject_sections')
-      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at') // Removed 'description'
+      .select('id, subject_id, title, type, order, is_locked, created_at, updated_at')
       .eq('id', sectionId)
       .eq('subject_id', subjectId) 
       .maybeSingle();
@@ -255,22 +253,80 @@ export const getSectionById = async (subjectId: string, sectionId: string): Prom
 
 
 /**
- * Fetches all lessons for a given section within a subject.
- * TODO: Implement this function to fetch section lessons from Supabase (using subject_id and section_id UUIDs).
+ * Fetches all lessons for a given section within a subject from Supabase.
  */
 export const getSectionLessons = async (subjectId: string, sectionId: string): Promise<Lesson[]> => {
-  console.warn(`getSectionLessons (${subjectId}/${sectionId} - UUIDs) needs to be implemented for Supabase. Returning empty array.`);
-  return [];
+  console.log(`[examService] Attempting to fetch lessons for section_id: ${sectionId} (subject_id: ${subjectId})`);
+  try {
+    if (!sectionId) {
+      console.warn("[examService] getSectionLessons called with no sectionId. Returning empty array.");
+      return [];
+    }
+    const { data, error, status } = await supabase
+      .from('lessons')
+      .select('id, section_id, subject_id, title, content, notes, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
+      .eq('section_id', sectionId)
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('title', { ascending: true });
+
+    if (error) {
+      console.error(`[examService] Supabase error fetching lessons for section ${sectionId}. Status: ${status}.`);
+      console.error(`[examService] Error Message: ${error.message}`);
+      console.error(`[examService] Error Details: ${error.details}`);
+      console.error(`[examService] Error Hint: ${error.hint}`);
+      console.error(`[examService] Error Code: ${error.code}`);
+      throw new Error(`Supabase error (Code: ${error.code || 'UNKNOWN'}, Status: ${status}): ${error.message || 'Failed to fetch lessons.'}`);
+    }
+
+    console.log(`[examService] Successfully fetched ${data?.length || 0} lessons for section_id: ${sectionId}`);
+    return (data || []).map(item => ({
+      ...item,
+      teachers: (item.teachers || []) as LessonTeacher[],
+      files: (item.files || []) as LessonFile[],
+      linked_exam_ids: (item.linked_exam_ids || []) as string[],
+    })) as Lesson[];
+  } catch (e: any) {
+    console.error(`[examService] Catch block in getSectionLessons for section ${sectionId}:`, e.message || e);
+    throw new Error(e.message || `An unexpected error occurred while fetching lessons for section ${sectionId}.`);
+  }
 };
 
 /**
- * Fetches a single lesson by its ID within a section and subject.
- * TODO: Implement this function to fetch a lesson by ID from Supabase (using subject_id, section_id, and lesson_id UUIDs).
+ * Fetches a single lesson by its ID from Supabase.
  */
-export const getLessonById = async (subjectId: string, sectionId: string, lessonId: string): Promise<Lesson | null> => {
-  console.warn(`getLessonById (${subjectId}/${sectionId}/${lessonId} - UUIDs) needs to be implemented for Supabase. Returning null.`);
-  return null;
-};
+export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
+  console.log(`[examService] Attempting to fetch lesson by id: ${lessonId}`);
+  try {
+    if (!lessonId) {
+      console.warn("[examService] getLessonById called with no lessonId. Returning null.");
+      return null;
+    }
+    const { data, error, status } = await supabase
+      .from('lessons')
+      .select('id, section_id, subject_id, title, content, notes, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
+      .eq('id', lessonId)
+      .maybeSingle();
 
-
+    if (error && status !== 406) { // 406: "Requested range not satisfiable" - expected if no row found with maybeSingle()
+      console.error(`[examService] Supabase error fetching lesson ${lessonId}. Status: ${status}.`);
+      console.error(`[examService] Error Message: ${error.message}`);
+      throw new Error(`Supabase error (Code: ${error.code || 'UNKNOWN'}, Status: ${status}): ${error.message || 'Failed to fetch lesson.'}`);
+    }
     
+    if (!data) {
+        console.log(`[examService] No lesson found with id: ${lessonId}`);
+        return null;
+    }
+
+    console.log(`[examService] Successfully fetched lesson with id: ${lessonId}`);
+    return {
+      ...data,
+      teachers: (data.teachers || []) as LessonTeacher[],
+      files: (data.files || []) as LessonFile[],
+      linked_exam_ids: (data.linked_exam_ids || []) as string[],
+    } as Lesson;
+  } catch (e: any) {
+    console.error(`[examService] Catch block in getLessonById for lesson ${lessonId}:`, e.message || e);
+    throw new Error(e.message || `An unexpected error occurred while fetching lesson ${lessonId}.`);
+  }
+};

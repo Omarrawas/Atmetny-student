@@ -17,7 +17,7 @@ export default function LessonExamsListPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { branch, subjectId, sectionId, lessonId } = params as {
+  const { branch, subjectId, sectionId, lessonId } = params as { // subjectId and sectionId for back navigation or breadcrumbs
     branch: string;
     subjectId: string;
     sectionId: string;
@@ -30,40 +30,42 @@ export default function LessonExamsListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (subjectId && sectionId && lessonId) {
+    if (lessonId) {
       const fetchData = async () => {
         setIsLoading(true);
         setError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId); // Will return null and log warning
+          const lessonData = await getLessonById(lessonId); 
           if (lessonData) {
             setLesson(lessonData);
-            if (lessonData.linkedExamIds && lessonData.linkedExamIds.length > 0) {
-              const examsData = await getExamsByIds(lessonData.linkedExamIds); // Will return [] and log warning
+            if (lessonData.linked_exam_ids && lessonData.linked_exam_ids.length > 0) {
+              const examsData = await getExamsByIds(lessonData.linked_exam_ids); 
               const filteredExams = examsData.filter(exam => exam.published);
               setLinkedExams(filteredExams);
               if (filteredExams.length === 0 && examsData.length > 0) {
                 toast({ title: "تنبيه", description: "بعض الاختبارات المرتبطة بالدرس غير منشورة.", variant: "default"});
-              } else if (examsData.length === 0 && lessonData.linkedExamIds.length > 0) {
-                toast({ title: "تنبيه", description: "الاختبارات المرتبطة بهذا الدرس تحتاج للتحديث لـ Supabase.", variant: "default"});
+              } else if (examsData.length === 0 && lessonData.linked_exam_ids.length > 0) {
+                // This toast might be shown if getExamsByIds is not yet fully implemented for Supabase
+                 toast({ title: "تنبيه", description: `الاختبارات المرتبطة بدرس "${lessonData.title}" تحتاج للتحديث لـ Supabase.`, variant: "default"});
               }
             } else {
               setLinkedExams([]);
             }
           } else {
-            setError(`لم نتمكن من العثور على تفاصيل الدرس (المعرف: ${lessonId}). (الخدمة تحتاج للتحديث لـ Supabase)`);
-            toast({ title: "تنبيه", description: `تفاصيل الدرس "${lessonId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            setError(`لم نتمكن من العثور على تفاصيل الدرس (المعرف: ${lessonId}).`);
+            toast({ title: "خطأ", description: `تفاصيل الدرس "${lessonId}" غير موجودة.`, variant: "destructive" });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Error fetching lesson exams data:", e);
-          setError("حدث خطأ أثناء تحميل بيانات اختبارات الدرس. حاول مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          setError("حدث خطأ أثناء تحميل بيانات اختبارات الدرس. حاول مرة أخرى.");
+           toast({ title: "خطأ فادح", description: e.message || "فشل تحميل بيانات اختبارات الدرس.", variant: "destructive" });
         } finally {
           setIsLoading(false);
         }
       };
       fetchData();
     }
-  }, [subjectId, sectionId, lessonId, toast]);
+  }, [lessonId, toast]);
 
   if (isLoading) {
     return (
@@ -90,13 +92,16 @@ export default function LessonExamsListPage() {
     return (
       <div className="text-center py-10">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس.</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة إلى الدرس
         </Button>
       </div>
     );
   }
+  
+  const lessonPagePath = `/study/${branch}/${lesson.subject_id}/${lesson.section_id}/${lesson.id}`;
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -138,7 +143,7 @@ export default function LessonExamsListPage() {
           <div>
             <h3 className="text-xl font-semibold mb-3 text-primary">أو</h3>
             <Button asChild size="lg" className="w-full" variant="outline">
-              <Link href={`/study/${branch}/${subjectId}/${sectionId}/${lessonId}/lesson-exam-setup`}>
+              <Link href={`/study/${branch}/${lesson.subject_id}/${lesson.section_id}/${lesson.id}/lesson-exam-setup`}>
                 <Settings className="ms-2 h-5 w-5" />
                 قم بإعداد اختبار مخصص لهذا الدرس
               </Link>
@@ -148,7 +153,7 @@ export default function LessonExamsListPage() {
       </Card>
 
       <div className="text-center mt-6">
-        <Button onClick={() => router.push(`/study/${branch}/${subjectId}/${sectionId}/${lessonId}`)} variant="outline">
+        <Button onClick={() => router.push(lessonPagePath)} variant="outline">
           <ChevronRight className="ms-2 h-4 w-4" />
           العودة إلى الدرس
         </Button>

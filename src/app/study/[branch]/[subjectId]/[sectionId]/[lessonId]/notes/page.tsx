@@ -19,38 +19,39 @@ export default function LessonNotesPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const subjectId = params.subjectId as string;
-  const sectionId = params.sectionId as string;
+  const subjectId = params.subjectId as string; // Keep for breadcrumbs/back navigation if needed
+  const sectionId = params.sectionId as string; // Keep for breadcrumbs/back navigation if needed
   const lessonId = params.lessonId as string;
-  const branch = params.branch as string;
+  const branch = params.branch as string; // Keep for breadcrumbs/back navigation
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (subjectId && sectionId && lessonId) {
+    if (lessonId) {
       const fetchLessonData = async () => {
         setIsLoading(true);
         setError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId); // Will return null and log warning
+          const lessonData = await getLessonById(lessonId); 
           if (lessonData) {
             setLesson(lessonData);
           } else {
-            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
-            toast({ title: "تنبيه", description: `ملاحظات الدرس "${lessonId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}.`);
+            toast({ title: "خطأ", description: `ملاحظات الدرس "${lessonId}" غير موجودة أو تعذر تحميلها.`, variant: "destructive" });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch lesson data for notes:", e);
-          setError("فشل تحميل بيانات الدرس لعرض الملاحظات. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          setError("فشل تحميل بيانات الدرس لعرض الملاحظات. يرجى المحاولة مرة أخرى.");
+          toast({ title: "خطأ فادح", description: e.message || "فشل تحميل ملاحظات الدرس.", variant: "destructive" });
         } finally {
           setIsLoading(false);
         }
       };
       fetchLessonData();
     }
-  }, [subjectId, sectionId, lessonId, toast]);
+  }, [lessonId, toast]);
 
   if (isLoading) {
     return (
@@ -77,7 +78,7 @@ export default function LessonNotesPage() {
     return (
       <div className="text-center py-10">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس.</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
@@ -85,7 +86,8 @@ export default function LessonNotesPage() {
     );
   }
 
-  const lessonPagePath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}`;
+  const lessonPagePath = `/study/${branch}/${lesson.subject_id}/${lesson.section_id}/${lesson.id}`;
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">

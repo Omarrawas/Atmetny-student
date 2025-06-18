@@ -116,7 +116,6 @@ export interface SubjectSection {
   id: string; // UUID
   subject_id: string; // UUID, Foreign key to public.subjects.id
   title: string;
-  // description?: string | null; // Removed as per database schema
   type: string; // E.g., 'unit', 'chapter', 'theme' (NOT NULL in SQL)
   order?: number | null;
   is_locked?: boolean | null; // Default true in SQL
@@ -136,25 +135,25 @@ export interface LessonTeacher {
 }
 
 export interface Lesson {
-  id: string; // Will be UUID
+  id: string; // UUID
+  section_id: string; // UUID, Foreign key to public.subject_sections.id
+  subject_id: string; // UUID, Foreign key to public.subjects.id
   title: string;
-  content?: string;
-  notes?: string;
-  videoUrl?: string;
-  teachers?: LessonTeacher[];
-  files?: LessonFile[];
-  order?: number;
-  subject_id?: string; // Foreign key to public.subjects.id (UUID)
-  section_id?: string; // Foreign key to public.subject_sections.id (UUID)
-  teacherId?: string | null;
-  teacherName?: string | null;
-  linkedExamIds?: string[];
-  created_at?: string;
-  updated_at?: string;
-  isLocked?: boolean;
-  isUsed?: boolean;
-  usedAt?: string | null;
-  usedByUserId?: string | null;
+  content?: string | null;
+  notes?: string | null;
+  video_url?: string | null;
+  teachers?: LessonTeacher[] | null; // From JSONB, parsed to array
+  files?: LessonFile[] | null; // From JSONB, parsed to array
+  order?: number | null;
+  teacher_id?: string | null; // Kept for potential direct teacher linking
+  teacher_name?: string | null; // Kept for potential direct teacher linking
+  linked_exam_ids?: string[] | null; // Array of UUIDs
+  is_locked?: boolean | null;
+  is_used?: boolean | null;
+  created_at: string;
+  updated_at: string;
+  used_at?: string | null;
+  used_by_user_id?: string | null; // UUID, Foreign key to auth.users.id
 }
 
 
@@ -273,4 +272,3 @@ export interface Announcement {
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
-

@@ -18,7 +18,7 @@ import 'katex/dist/katex.min.css';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 
-const getYouTubeVideoId = (url: string | undefined): string | null => {
+const getYouTubeVideoId = (url: string | undefined | null): string | null => {
   if (!url) return null;
   let videoId = null;
   try {
@@ -30,7 +30,7 @@ const getYouTubeVideoId = (url: string | undefined): string | null => {
     }
   } catch (e) {
     console.error("Invalid URL for YouTube video:", e);
-    if (url && !url.includes('/') && !url.includes('.')) {
+    if (url && !url.includes('/') && !url.includes('.')) { // Basic check for standalone ID
         videoId = url;
     }
   }
@@ -53,35 +53,36 @@ export default function LessonPage() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (subjectId && sectionId && lessonId) {
+    if (lessonId) { // Only lessonId is needed for getLessonById now
       const fetchLessonData = async () => {
         setIsLoading(true);
         setError(null);
         try {
-          const lessonData = await getLessonById(subjectId, sectionId, lessonId); // Will return null and log warning
+          const lessonData = await getLessonById(lessonId); 
           if (lessonData) {
             setLesson(lessonData);
             if (lessonData.teachers && lessonData.teachers.length > 0 && lessonData.teachers[0].youtubeUrl) {
               setSelectedVideoUrl(lessonData.teachers[0].youtubeUrl);
-            } else if (lessonData.videoUrl) {
-              setSelectedVideoUrl(lessonData.videoUrl);
+            } else if (lessonData.video_url) { // Match DB column name
+              setSelectedVideoUrl(lessonData.video_url);
             } else {
               setSelectedVideoUrl(null);
             }
           } else {
-            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}. (الخدمة تحتاج للتحديث لـ Supabase)`);
-            toast({ title: "تنبيه", description: `تفاصيل الدرس "${lessonId}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            setError(`لم يتم العثور على الدرس بالمعرف: ${lessonId}.`);
+            toast({ title: "خطأ", description: `تفاصيل الدرس "${lessonId}" غير موجودة أو تعذر تحميلها.`, variant: "destructive" });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch lesson data:", e);
-          setError("فشل تحميل بيانات الدرس. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          setError("فشل تحميل بيانات الدرس. يرجى المحاولة مرة أخرى.");
+          toast({ title: "خطأ فادح", description: e.message || "فشل تحميل بيانات الدرس.", variant: "destructive" });
         } finally {
           setIsLoading(false);
         }
       };
       fetchLessonData();
     }
-  }, [subjectId, sectionId, lessonId, toast]);
+  }, [lessonId, toast]);
 
   const currentVideoId = getYouTubeVideoId(selectedVideoUrl);
 
@@ -114,7 +115,7 @@ export default function LessonPage() {
     return (
       <div className="text-center py-10">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على بيانات الدرس.</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           العودة
         </Button>
@@ -145,8 +146,8 @@ export default function LessonPage() {
                   <SelectValue placeholder="اختر المدرس لعرض الفيديو الخاص به" />
                 </SelectTrigger>
                 <SelectContent>
-                  {lesson.videoUrl && !(lesson.teachers && lesson.teachers.some(t => t.youtubeUrl === lesson.videoUrl)) && ( 
-                     <SelectItem value={lesson.videoUrl}>فيديو الدرس العام</SelectItem>
+                  {lesson.video_url && !(lesson.teachers && lesson.teachers.some(t => t.youtubeUrl === lesson.video_url)) && ( 
+                     <SelectItem value={lesson.video_url}>فيديو الدرس العام</SelectItem>
                   )}
                   {lesson.teachers.map((teacher, index) => (
                     teacher.youtubeUrl ? ( <SelectItem key={teacher.name + index} value={teacher.youtubeUrl}> {teacher.name} </SelectItem> ) : null
@@ -154,9 +155,9 @@ export default function LessonPage() {
                 </SelectContent>
               </Select>
             </div>
-          ) : lesson.teacherName ? ( 
+          ) : lesson.teacher_name ? ( 
             <CardDescription className="text-md text-muted-foreground flex items-center gap-1.5 mt-2">
-              <User className="h-4 w-4" /> الأستاذ: {lesson.teacherName}
+              <User className="h-4 w-4" /> الأستاذ: {lesson.teacher_name}
             </CardDescription>
           ) : null}
         </CardHeader>

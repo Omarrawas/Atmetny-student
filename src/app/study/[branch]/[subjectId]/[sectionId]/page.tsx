@@ -40,7 +40,7 @@ export default function SectionLessonsPage() {
         try {
           const [sectionData, lessonsData] = await Promise.all([
             getSectionById(subjectId, sectionId), 
-            getSectionLessons(subjectId, sectionId), // This will return [] and log warning
+            getSectionLessons(subjectId, sectionId),
           ]);
 
           if (!sectionData) {
@@ -53,7 +53,9 @@ export default function SectionLessonsPage() {
           }
           setLessons(lessonsData);
           if (sectionData && lessonsData.length === 0) {
-            toast({ title: "تنبيه", description: `قائمة دروس القسم "${sectionData.title}" تحتاج للتحديث لـ Supabase.`, variant: "default" });
+            // This toast can be noisy if sections genuinely have no lessons yet.
+            // Consider making it more contextual or removing if sections can be legitimately empty.
+            // toast({ title: "تنبيه", description: `لا توجد دروس متاحة للقسم "${sectionData.title}" حالياً.`, variant: "default" });
           }
 
         } catch (e: any) {
@@ -61,7 +63,7 @@ export default function SectionLessonsPage() {
           setError("فشل تحميل بيانات دروس القسم. يرجى المحاولة مرة أخرى.");
           setSection(null);
           setLessons([]);
-          toast({ title: "خطأ فادح", description: "فشل تحميل بيانات دروس القسم.", variant: "destructive" });
+          toast({ title: "خطأ فادح", description: e.message || "فشل تحميل بيانات دروس القسم.", variant: "destructive" });
         } finally {
           setIsLoadingData(false);
         }
@@ -131,7 +133,7 @@ export default function SectionLessonsPage() {
     }
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
-    const isSpecificSubjectMatch = sub.subjectId === subjectId; // subjectId is from route params
+    const isSpecificSubjectMatch = sub.subjectId === subjectId; 
 
     return isGeneralSubscription || isSpecificSubjectMatch;
   }, [userProfile, subjectId, authUser]);
@@ -179,8 +181,6 @@ export default function SectionLessonsPage() {
             <ListChecks className="h-8 w-8 text-primary" />
             <CardTitle className="text-3xl font-bold">{section.title}</CardTitle>
           </div>
-          {/* section.description was removed as it's not in the DB schema */}
-          {/* For example, if you wanted to show the section type: */}
           {section.type && (
             <CardDescription className="text-md">
               نوع القسم: {section.type}
@@ -191,34 +191,47 @@ export default function SectionLessonsPage() {
           {lessons.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <BookText className="h-10 w-10 mx-auto mb-2" />
-              <p className="text-lg">لا توجد دروس متاحة لهذا القسم حاليًا. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+              <p className="text-lg">لا توجد دروس متاحة لهذا القسم حاليًا.</p>
             </div>
           ) : (
             <ul className="space-y-4">
               {lessons.map((lesson, index) => {
                 const isFirstLesson = index === 0;
-                // Use section.is_locked for section-level lock, and lesson.isLocked for lesson-level lock
                 const sectionIsLockedByAdmin = section.is_locked === true;
-                const lessonIsLockedByAdminSetting = lesson.isLocked === true || String(lesson.isLocked).toLowerCase() === "true";
-                const lessonIsOpenByAdminSetting = lesson.isLocked === false || String(lesson.isLocked).toLowerCase() === "false";
+                const lessonIsExplicitlyOpen = lesson.is_locked === false;
+                const lessonIsExplicitlyLocked = lesson.is_locked === true;
 
-                // Determine if lesson is locked by its own admin setting, or inherits section lock
                 let effectiveIsLockedByAdmin: boolean;
-                if (lessonIsOpenByAdminSetting) { // Lesson explicitly open
-                  effectiveIsLockedByAdmin = false; 
-                } else if (lessonIsLockedByAdminSetting) { // Lesson explicitly locked
-                  effectiveIsLockedByAdmin = true; 
-                } else { // Lesson inherits lock status
-                    // If section itself is locked by admin, all its lessons (without explicit open) are locked
-                    // If section is not locked by admin, then only non-first lessons (without explicit open) are locked by default
-                    effectiveIsLockedByAdmin = sectionIsLockedByAdmin ? true : !isFirstLesson;
+                if (lessonIsExplicitlyOpen) {
+                  effectiveIsLockedByAdmin = false;
+                } else if (lessonIsExplicitlyLocked) {
+                  effectiveIsLockedByAdmin = true;
+                } else {
+                  // Inherit logic: if section is locked by admin, all lessons are locked.
+                  // Otherwise, only non-first lessons are locked by default (older logic, might need revision based on product reqs)
+                  // A simpler approach if is_locked default is false for lessons:
+                  // effectiveIsLockedByAdmin = sectionIsLockedByAdmin || (lesson.is_locked === null ? false : lesson.is_locked);
+                  // Current logic based on problem description for is_locked:
+                  // A lesson is locked by default (is_locked=true in DB for section, and lesson inherits if not specified)
+                  // unless it's the first lesson OR its own is_locked is false.
+                  // This needs to be adapted to new lesson.is_locked which defaults to FALSE in the DB.
+                  // New logic: if lesson.is_locked is true, it's locked. If false, it's open.
+                  // If null, then section.is_locked determines. If section.is_locked is true, lesson is locked.
+                  // If section.is_locked is false (or null treated as false), then lesson is open.
+
+                  if (lesson.is_locked === true) {
+                    effectiveIsLockedByAdmin = true;
+                  } else if (lesson.is_locked === false) {
+                    effectiveIsLockedByAdmin = false;
+                  } else { // lesson.is_locked is null, check section
+                    effectiveIsLockedByAdmin = sectionIsLockedByAdmin;
+                  }
                 }
                 
-                // Determine if the lesson should be displayed as locked to the current user
                 let displayAsLocked;
-                if (effectiveIsLockedByAdmin === false) { // If admin set it as open, it's always open
+                if (effectiveIsLockedByAdmin === false) { 
                   displayAsLocked = false;
-                } else { // Otherwise, check user's subscription
+                } else { 
                   displayAsLocked = !isSubjectActiveForCurrentUser;
                 }
                 
@@ -282,4 +295,3 @@ export default function SectionLessonsPage() {
     </div>
   );
 }
-
