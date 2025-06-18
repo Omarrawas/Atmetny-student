@@ -332,7 +332,7 @@ export default function ActivateQrPage() {
           
           {hasCameraPermission === false && ( <Alert variant="destructive"> <AlertTitle>الوصول إلى الكاميرا مطلوب</AlertTitle> <AlertDescription> يرجى السماح بالوصول إلى الكاميرا في إعدادات المتصفح لاستخدام ميزة مسح QR. </AlertDescription> </Alert> )}
           
-          {hasCameraPermission === true && isCameraActive && ( <p className="text-xs text-muted-foreground text-center">وجه الكاميرا نحو رمز QR... (المعالجة قيد التطوير)</p> )}
+          {hasCameraPermission === true && isCameraActive && ( <p className="text-xs text-muted-foreground text-center">وجه الكاميرا نحو رمز QR...</p> )}
           
           <div className="relative flex items-center"> <div className="flex-grow border-t border-border"></div> <span className="flex-shrink mx-4 text-muted-foreground">أو</span> <div className="flex-grow border-t border-border"></div> </div>
 
@@ -348,7 +348,7 @@ export default function ActivateQrPage() {
         </CardContent>
       </Card>
       <div className="text-center">
-        <Image src="https://placehold.co/300x200.png" alt="بطاقة اشتراك" width={300} height={200} className="rounded-lg mx-auto shadow-md" data-ai-hint="subscription card" />
+        <Image src="https://images.unsplash.com/photo-1595079676339-1534801ad6cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxRciUyMGNvZGV8ZW58MHx8fHwxNzUwMjgxNTk2fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="بطاقة اشتراك" width={300} height={200} className="rounded-lg mx-auto shadow-md" data-ai-hint="QR code" />
         <p className="text-sm text-muted-foreground mt-2">مثال لبطاقة الاشتراك التي تحتوي على كود QR.</p>
       </div>
     </div>
