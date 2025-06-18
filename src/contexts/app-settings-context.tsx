@@ -11,7 +11,7 @@ interface AppSettingsContextType {
 }
 
 const defaultAppName = 'Atmetny';
-const defaultLogoUrl = null; // Changed from '/default-logo.svg' to null
+const defaultLogoUrl = null; 
 const defaultLogoHint = 'application logo';
 const defaultSupportEmail = 'support@example.com';
 
@@ -27,7 +27,7 @@ const defaultSettings: AppSettings = {
   ],
   terms_of_service_url: null,
   privacy_policy_url: null,
-  homepage_promo_url: null, // Added default for new field
+  homepage_promo_url: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -35,9 +35,20 @@ const defaultSettings: AppSettings = {
 const AppSettingsContext = createContext<AppSettingsContextType>({
   settings: defaultSettings,
   getIconComponent: (iconName?: LucideIconName | string): React.ElementType => {
-    if (!iconName || typeof iconName !== 'string') return Icons.ExternalLink;
-    const IconComponent = Icons[iconName as keyof typeof Icons];
-    return IconComponent || Icons.ExternalLink;
+    if (!iconName || typeof iconName !== 'string' || iconName.trim() === '') {
+        return Icons.ExternalLink; 
+    }
+    // Try direct match
+    let IconComponent = Icons[iconName as keyof typeof Icons];
+    if (IconComponent) return IconComponent;
+
+    // Try PascalCase
+    const pascalCaseIconName = iconName.charAt(0).toUpperCase() + iconName.slice(1);
+    IconComponent = Icons[pascalCaseIconName as keyof typeof Icons];
+    if (IconComponent) return IconComponent;
+    
+    console.warn(`[AppSettingsContext Default] Icon not found for name: "${iconName}". Defaulting to ExternalLink.`);
+    return Icons.ExternalLink;
   }
 });
 
@@ -55,15 +66,36 @@ interface AppSettingsProviderProps {
 }
 
 export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ children, fetchedSettings }) => {
-  // If fetchedSettings is null (e.g., DB error), use defaultSettings.
-  // If fetchedSettings is an object but app_logo_url is null/undefined within it, it will correctly use that null.
   const settings = fetchedSettings !== null ? fetchedSettings : defaultSettings;
 
-
   const getIconComponent = (iconName?: LucideIconName | string): React.ElementType => {
-    if (!iconName || typeof iconName !== 'string') return Icons.ExternalLink; // Default icon
-    const IconComponent = Icons[iconName as keyof typeof Icons];
-    return IconComponent || Icons.ExternalLink; // Default if name doesn't match any Lucide icon
+    if (!iconName || typeof iconName !== 'string' || iconName.trim() === '') {
+        return Icons.ExternalLink; // Default for empty or invalid
+    }
+
+    // Try direct match (e.g., "Facebook" or user correctly provided PascalCase)
+    let IconComponent = Icons[iconName as keyof typeof Icons];
+    if (IconComponent) {
+        return IconComponent;
+    }
+
+    // Try converting to PascalCase (e.g., "instagram" -> "Instagram")
+    const pascalCaseIconName = iconName.charAt(0).toUpperCase() + iconName.slice(1);
+    IconComponent = Icons[pascalCaseIconName as keyof typeof Icons];
+    if (IconComponent) {
+        return IconComponent;
+    }
+    
+    // Try all lowercase (less common for lucide-react but worth a shot for icons like 'github')
+    const lowerCaseIconName = iconName.toLowerCase();
+    IconComponent = Icons[lowerCaseIconName as keyof typeof Icons];
+    if (IconComponent) {
+        return IconComponent;
+    }
+
+    // Fallback if no match after trying common variations
+    console.warn(`[AppSettingsContext Provider] Icon not found for name: "${iconName}". Defaulting to ExternalLink.`);
+    return Icons.ExternalLink;
   };
   
   return (
@@ -72,6 +104,3 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ childr
     </AppSettingsContext.Provider>
   );
 };
-
-
-    
