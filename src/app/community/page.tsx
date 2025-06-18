@@ -8,11 +8,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import type { SocialMediaLink } from "@/lib/types";
+import React, { useState, useEffect } from "react"; // Import useState, useEffect
 
 export default function CommunityPage() {
   const { settings, getIconComponent } = useAppSettings();
   const socialLinks = settings?.social_media_links || [];
   const supportEmail = settings?.support_email;
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true); // This will run only on the client, after initial mount
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto text-center space-y-8">
@@ -59,7 +66,7 @@ export default function CommunityPage() {
                     </a>
                 </Button>
             )}
-            {socialLinks.map(link => {
+            {isClient && socialLinks.map(link => { // Conditionally render based on isClient
                 const IconComponent = getIconComponent(link.icon);
                 return (
                     <Button variant="outline" key={link.platform} asChild>
@@ -70,6 +77,13 @@ export default function CommunityPage() {
                     </Button>
                 );
             })}
+            {/* Placeholder for server-render or if isClient is false, to avoid content shift if possible, or render nothing */}
+            {/* {!isClient && socialLinks.length > 0 && (
+                // You could render skeletons or a generic message here if desired
+                // For now, it will render nothing for this part during SSR / initial client render,
+                // then populate when isClient becomes true.
+                null
+            )} */}
              {settings?.support_phone_number && (
                  <Button variant="outline" asChild>
                     <a href={`tel:${settings.support_phone_number}`}>
