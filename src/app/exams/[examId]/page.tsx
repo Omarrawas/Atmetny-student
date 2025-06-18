@@ -45,7 +45,7 @@ export default function ExamTakingPage() {
   
   const [processedQuestions, setProcessedQuestions] = useState<QuestionType[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({}); // Question ID (UUID) -> Selected Option ID (string from JSONB)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -53,7 +53,7 @@ export default function ExamTakingPage() {
   const [isTimerEnabled, setIsTimerEnabled] = useState(false);
   const [timeLeftInSeconds, setTimeLeftInSeconds] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
-  // const [initialDurationInSeconds, setInitialDurationInSeconds] = useState<number>(0); // Removed, not directly used after setting timeLeftInSeconds
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
   useEffect(() => {
     const getSessionUser = async () => {
@@ -73,17 +73,16 @@ export default function ExamTakingPage() {
         setAuthUser(session.user);
       } else {
         setAuthUser(null);
-        if (pathname?.startsWith('/exams/')) { // Only redirect if on an exam page
+        if (pathname?.startsWith('/exams/')) { 
              toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
              router.push('/auth');
         }
       }
     });
-    const pathname = window.location.pathname; // Get current pathname
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [router, toast]);
+  }, [router, toast, pathname]);
 
   useEffect(() => {
     if (examId) {
@@ -91,16 +90,16 @@ export default function ExamTakingPage() {
         setIsLoadingExam(true);
         setError(null);
         try {
-          const fetchedExam = await getExamById(examId); // This will now return null and log a warning
+          const fetchedExam = await getExamById(examId); 
           if (fetchedExam) {
             setExam(fetchedExam);
           } else {
-            setError("لم يتم العثور على الاختبار المطلوب. (أو الخدمة تحتاج للتحديث لـ Supabase)");
+            setError("لم يتم العثور على الاختبار المطلوب.");
             setExam(null); 
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch exam data:", e);
-          setError("فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          setError(e.message || "فشل تحميل بيانات الاختبار. يرجى المحاولة مرة أخرى.");
           setExam(null);
         } finally {
           setIsLoadingExam(false);
@@ -119,7 +118,7 @@ export default function ExamTakingPage() {
       toast({ title: "خطأ", description: "لم يتم تسجيل وقت بدء الاختبار.", variant: "destructive" });
       return;
     }
-    if (isSubmitting || !exam) return; // Added !exam check
+    if (isSubmitting || !exam) return;
 
     setIsSubmitting(true);
     setIsTimerRunning(false); 
@@ -127,9 +126,10 @@ export default function ExamTakingPage() {
       let correctAnswersCount = 0;
       const submittedAnswersData = processedQuestions.map(q => {
         const selectedOptionId = answers[q.id];
-        const isCorrect = selectedOptionId === q.correctOptionId;
+        // correctOptionId is the ID string from the JSONB options array
+        const isCorrect = selectedOptionId === q.correct_option_id;
         if (isCorrect) correctAnswersCount++;
-        return { questionId: q.id, selectedOptionId: selectedOptionId || "N/A", isCorrect };
+        return { questionId: q.id, selectedOptionId: selectedOptionId || null, isCorrect };
       });
 
       const score = processedQuestions.length > 0 ? (correctAnswersCount / processedQuestions.length) * 100 : 0;
@@ -167,19 +167,18 @@ export default function ExamTakingPage() {
       
       router.push(`/exams/${examId}/results?${resultsNavigationParams.toString()}`);
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to submit exam (Supabase context):", e);
-      toast({ title: "خطأ في التسليم", description: "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+      toast({ title: "خطأ في التسليم", description: e.message || "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
       setIsSubmitting(false); 
     }
   }, [authUser, startTime, exam, processedQuestions, answers, toast, router, examId, isSubmitting, searchParams]);
 
   useEffect(() => {
-    if (!exam || !exam.questions) { // exam.questions might be undefined if not fetched
+    if (!exam || !exam.questions) { 
       setIsProcessingSettings(false);
       if(exam && (!exam.questions || exam.questions.length === 0)) {
-         // setError("لا توجد أسئلة محملة لهذا الاختبار. (الخدمة تحتاج للتحديث لـ Supabase)");
-         setProcessedQuestions([]); // Ensure it's empty
+         setProcessedQuestions([]); 
       }
       return;
     }
@@ -191,7 +190,7 @@ export default function ExamTakingPage() {
     const timerEnabledParam = searchParams.get('timer') === 'true';
     const customDurationMinsParam = searchParams.get('durationMins');
 
-    let questions = [...(exam.questions || [])]; // Use exam.questions or empty array
+    let questions = [...(exam.questions || [])]; 
 
     if (difficultyParam && difficultyParam !== 'all') {
       questions = questions.filter(q => q.difficulty === difficultyParam);
@@ -228,12 +227,11 @@ export default function ExamTakingPage() {
         if (!isNaN(customMins) && customMins > 0) {
             durationInSeconds = customMins * 60;
         } else {
-            durationInSeconds = calculateDurationInSeconds(questions.length, exam.durationInMinutes);
+            durationInSeconds = calculateDurationInSeconds(questions.length, exam.duration);
         }
       } else {
-        durationInSeconds = calculateDurationInSeconds(questions.length, exam.durationInMinutes);
+        durationInSeconds = calculateDurationInSeconds(questions.length, exam.duration);
       }
-      // setInitialDurationInSeconds(durationInSeconds); // Removed
       setTimeLeftInSeconds(durationInSeconds);
       setIsTimerRunning(true);
     } else {
@@ -292,7 +290,7 @@ export default function ExamTakingPage() {
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
         <h2 className="text-2xl font-semibold mb-2">لم يتم العثور على الاختبار</h2>
-        <p className="text-lg text-muted-foreground mb-6">قد يكون قد تم حذفه أو أن الرابط غير صحيح. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+        <p className="text-lg text-muted-foreground mb-6">قد يكون قد تم حذفه أو أن الرابط غير صحيح.</p>
         <Button onClick={() => router.push('/exams')}>العودة إلى قائمة الاختبارات</Button>
       </div>
     );
@@ -324,12 +322,12 @@ export default function ExamTakingPage() {
         <AlertTriangle className="h-16 w-16 text-yellow-500 mb-4" />
         <h2 className="text-2xl font-semibold mb-2">لا توجد أسئلة</h2>
         <p className="text-lg text-muted-foreground mb-6">
-          {(exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) 
-            ? "لا توجد أسئلة تطابق الإعدادات الحالية. حاول تعديل إعدادات الاختبار. (أو الخدمة تحتاج للتحديث لـ Supabase)" 
-            : "عذراً، هذا الاختبار لا يحتوي على أسئلة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)"}
+          {(exam.questions && exam.questions.length > 0) 
+            ? "لا توجد أسئلة تطابق الإعدادات الحالية. حاول تعديل إعدادات الاختبار." 
+            : "عذراً، هذا الاختبار لا يحتوي على أسئلة حالياً."}
         </p>
-        <Button onClick={() => router.push((exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) ? `/exams/${examId}/setup` : '/exams')}>
-            {(exam.questions && exam.questions.length > 0) || (exam.questionIds && exam.questionIds.length > 0) ? "العودة إلى الإعدادات" : "العودة إلى قائمة الاختبارات"}
+        <Button onClick={() => router.push((exam.questions && exam.questions.length > 0) ? `/exams/${examId}/setup` : '/exams')}>
+            {(exam.questions && exam.questions.length > 0) ? "العودة إلى الإعدادات" : "العودة إلى قائمة الاختبارات"}
         </Button>
       </div>
     );
@@ -386,20 +384,22 @@ export default function ExamTakingPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-xl font-semibold mb-4">{currentQuestion.questionText}</h3>
-            <RadioGroup
-              dir="rtl"
-              value={answers[currentQuestion.id] || ""}
-              onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-              className="space-y-3"
-            >
-              {currentQuestion.options.map((option) => (
-                <div key={option.id} className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value={option.id} id={`${currentQuestion.id}-${option.id}`} />
-                  <Label htmlFor={`${currentQuestion.id}-${option.id}`} className="text-lg cursor-pointer">{option.text}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <h3 className="text-xl font-semibold mb-4">{currentQuestion.question_text}</h3>
+             {currentQuestion.options && currentQuestion.options.length > 0 && (
+              <RadioGroup
+                dir="rtl"
+                value={answers[currentQuestion.id] || ""}
+                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                className="space-y-3"
+              >
+                {currentQuestion.options.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2 space-x-reverse">
+                    <RadioGroupItem value={option.id} id={`${currentQuestion.id}-${option.id}`} />
+                    <Label htmlFor={`${currentQuestion.id}-${option.id}`} className="text-lg cursor-pointer">{option.text}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center">

@@ -2,8 +2,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { getExamById } from '@/lib/examService';
+import { useRouter } from 'next/navigation'; // Not strictly needed if not changing routes from here
+import { getExamById } from '@/lib/examService'; // To fetch the exam data
 import type { Exam, Question as QuestionType, QuestionOption } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ChevronLeft, ChevronRight, Loader2, AlertTriangle, CheckCircle, XCircle, Eye, Settings, Info, LayoutList, ListChecks, BarChartHorizontal } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -33,8 +32,7 @@ export default function ExamBrowseView({
   initialViewMode = 'single',
   hideChangeSettingsButton = false,
 }: ExamBrowseViewProps) {
-  const router = useRouter();
-  const { toast } = useToast();
+  const router = useRouter(); // For navigation if needed (e.g., back to setup)
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [isLoadingExam, setIsLoadingExam] = useState(true);
@@ -45,6 +43,7 @@ export default function ExamBrowseView({
   const [isProcessingSettings, setIsProcessingSettings] = useState(true);
   const [viewMode, setViewMode] = useState<'single' | 'list'>(initialViewMode);
 
+  // Use props directly for configuration
   const numQParamFromProps = initialNumQuestions;
   const orderParamFromProps = initialOrder;
   const difficultyParamFromProps = initialDifficulty;
@@ -58,14 +57,14 @@ export default function ExamBrowseView({
       'medium': 'متوسط',
       'hard': 'صعب'
     };
-    const difficultyDesc = difficultyTextMap[difficultyParamFromProps] || difficultyParamFromProps;
+    const difficultyDesc = difficultyTextMap[difficultyParamFromProps as keyof typeof difficultyTextMap] || difficultyParamFromProps;
+    
     let questionsDesc = `جميع الأسئلة (${processedQuestions.length})`;
-    if (numQParamFromProps && numQParamFromProps < (exam.questions?.length || 0)) {
+    if (numQParamFromProps && exam.questions && numQParamFromProps < exam.questions.length) {
         questionsDesc = `${numQParamFromProps} أسئلة محددة (من ${processedQuestions.length} مطابقة)`;
     } else if (numQParamFromProps) {
         questionsDesc = `${processedQuestions.length} أسئلة (مطلوب ${numQParamFromProps})`;
     }
-
 
     return `${orderText} - ${questionsDesc} - صعوبة: ${difficultyDesc}`;
   }, [orderParamFromProps, numQParamFromProps, difficultyParamFromProps, exam, processedQuestions.length]);
@@ -77,16 +76,17 @@ export default function ExamBrowseView({
         setIsLoadingExam(true);
         setError(null);
         try {
-          const fetchedExam = await getExamById(examId);
+          const fetchedExam = await getExamById(examId); // This now fetches questions too
           if (fetchedExam) {
             setExam(fetchedExam);
+            // Questions are now part of fetchedExam.questions
           } else {
             setError("لم يتم العثور على الاختبار المطلوب.");
             setExam(null);
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch exam data for browsing:", e);
-          setError("فشل تحميل بيانات الاختبار للتصفح. يرجى المحاولة مرة أخرى.");
+          setError(e.message || "فشل تحميل بيانات الاختبار للتصفح. يرجى المحاولة مرة أخرى.");
           setExam(null);
         } finally {
           setIsLoadingExam(false);
@@ -99,11 +99,14 @@ export default function ExamBrowseView({
   useEffect(() => {
     if (!exam || !exam.questions) {
       setIsProcessingSettings(false);
+      if (exam && (!exam.questions || exam.questions.length === 0)) {
+        setProcessedQuestions([]);
+      }
       return;
     }
     setIsProcessingSettings(true);
 
-    let questionsToProcess = [...exam.questions];
+    let questionsToProcess = [...exam.questions]; // Questions are already fetched with the exam
 
     if (difficultyParamFromProps && difficultyParamFromProps !== 'all') {
       questionsToProcess = questionsToProcess.filter(q => q.difficulty === difficultyParamFromProps);
@@ -215,7 +218,7 @@ export default function ExamBrowseView({
   };
 
   return (
-    <div className="space-y-6"> {/* Removed max-w-3xl mx-auto for embedding */}
+    <div className="space-y-6"> 
       <Card className="shadow-lg">
         <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-3">
@@ -274,12 +277,15 @@ export default function ExamBrowseView({
           <>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-1">{currentQuestion.questionText}</h3>
-                <p className="text-xs text-muted-foreground mb-4">الموضوع: {currentQuestion.topic || 'غير محدد'} - الصعوبة: {currentQuestion.difficulty || 'غير محدد'}</p>
+                <h3 className="text-lg font-semibold mb-1">{currentQuestion.question_text}</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  الصعوبة: {currentQuestion.difficulty || 'غير محدد'}
+                  {currentQuestion.subjectName && ` - المادة: ${currentQuestion.subjectName}`}
+                </p>
                 
                 <div className="space-y-3">
-                  {currentQuestion.options.map((option) => {
-                    const isCorrect = option.id === currentQuestion.correctOptionId;
+                  {currentQuestion.options && currentQuestion.options.map((option) => {
+                    const isCorrect = option.id === currentQuestion.correct_option_id;
                     return (
                       <div 
                         key={option.id} 
@@ -296,7 +302,7 @@ export default function ExamBrowseView({
                 </div>
               </div>
 
-              {currentQuestion.explanation && (
+              {currentQuestion.model_answer && (
                 <Accordion type="single" collapsible className="w-full mt-6">
                   <AccordionItem value="explanation">
                     <AccordionTrigger className="text-primary hover:text-primary/90 text-sm">
@@ -304,7 +310,7 @@ export default function ExamBrowseView({
                         عرض شرح الإجابة
                     </AccordionTrigger>
                     <AccordionContent className="prose dark:prose-invert prose-sm max-w-none pt-2">
-                      {currentQuestion.explanation}
+                      {currentQuestion.model_answer}
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -327,12 +333,15 @@ export default function ExamBrowseView({
           <CardContent className="space-y-4 pt-4">
             {processedQuestions.map((q, index) => (
               <Card key={q.id} className="p-3 shadow-sm">
-                <h3 className="text-base font-semibold mb-1">{index + 1}. {q.questionText}</h3>
-                <p className="text-xs text-muted-foreground mb-2">الموضوع: {q.topic || 'غير محدد'} - الصعوبة: {q.difficulty || 'غير محدد'}</p>
+                <h3 className="text-base font-semibold mb-1">{index + 1}. {q.question_text}</h3>
+                <p className="text-xs text-muted-foreground mb-2">
+                  الصعوبة: {q.difficulty || 'غير محدد'}
+                  {q.subjectName && ` - المادة: ${q.subjectName}`}
+                </p>
                 
                 <div className="space-y-1.5 mb-2">
-                  {q.options.map((option) => {
-                    const isCorrect = option.id === q.correctOptionId;
+                  {q.options && q.options.map((option) => {
+                    const isCorrect = option.id === q.correct_option_id;
                     return (
                       <div 
                         key={option.id} 
@@ -348,7 +357,7 @@ export default function ExamBrowseView({
                   })}
                 </div>
 
-                {q.explanation && (
+                {q.model_answer && (
                   <Accordion type="single" collapsible className="w-full text-xs">
                     <AccordionItem value={`explanation-${q.id}`}>
                       <AccordionTrigger className="text-primary hover:text-primary/90 py-1.5 text-xs">
@@ -356,7 +365,7 @@ export default function ExamBrowseView({
                           عرض شرح الإجابة
                       </AccordionTrigger>
                       <AccordionContent className="prose dark:prose-invert prose-xs max-w-none pt-1">
-                        {q.explanation}
+                        {q.model_answer}
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>

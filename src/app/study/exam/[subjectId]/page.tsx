@@ -5,22 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2, AlertTriangle, Settings, ListChecks, Hash, AlertOctagon, TimerIcon, Zap } from "lucide-react"; 
+import { ChevronLeft, ChevronRight, Send, AlertCircle, Loader2, AlertTriangle, Settings, Hash, AlertOctagon, TimerIcon, Zap } from "lucide-react"; 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react"; 
 import { Progress } from "@/components/ui/progress";
-import { allQuestions as mockQuestionsBank } from "@/lib/constants"; // Mock data for questions
-import { saveExamAttempt, getSubjectById } from "@/lib/examService"; // Supabase version
+import { saveExamAttempt, getSubjectById, getQuestionsBySubject } from "@/lib/examService"; // Supabase version
 import type { Question as QuestionType, Subject } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient"; // Supabase client
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; // Supabase user type
+import { supabase } from "@/lib/supabaseClient"; 
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js'; 
 
 const MAX_QUESTIONS_LIMIT = 50; 
+const DEFAULT_SECONDS_PER_QUESTION_PRACTICE = 120; // Longer for practice
 
 export default function SubjectExamPage() {
   const params = useParams();
@@ -31,13 +30,11 @@ export default function SubjectExamPage() {
   const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null); 
   const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
   const [isLoadingSubject, setIsLoadingSubject] = useState(true);
-  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   
   const [configMode, setConfigMode] = useState(true);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [numQuestions, setNumQuestions] = useState(10);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
-  const [timerEnabled, setTimerEnabled] = useState(true);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<QuestionType['difficulty'] | 'all'>('all');
+  const [timerEnabled, setTimerEnabled] = useState(false); // Default to no timer for practice
 
   const [configuredQuestions, setConfiguredQuestions] = useState<QuestionType[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -46,6 +43,8 @@ export default function SubjectExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [timeLeftInSeconds, setTimeLeftInSeconds] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
 
   useEffect(() => {
     const getSessionUser = async () => {
@@ -65,8 +64,10 @@ export default function SubjectExamPage() {
         setAuthUser(session.user);
       } else {
         setAuthUser(null);
-        toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
-        router.push('/auth');
+        if (window.location.pathname.startsWith('/study/exam/')) {
+             toast({ title: "خطأ", description: "يجب تسجيل الدخول لأداء الاختبار.", variant: "destructive" });
+             router.push('/auth');
+        }
       }
     });
     return () => {
@@ -81,22 +82,6 @@ export default function SubjectExamPage() {
         .then(subjectDetails => {
           if (subjectDetails) {
             setCurrentSubject(subjectDetails);
-            // For now, topics are still derived from mockQuestionsBank based on the UUID subjectId
-            const topicsForSubject = mockQuestionsBank
-              .filter(q => q.subjectId === subjectId && q.topic) // This linkage might break if mockQuestionsBank subjectIds are not UUIDs
-              .map(q => q.topic as string);
-            const uniqueTopics = Array.from(new Set(topicsForSubject));
-            setAvailableTopics(uniqueTopics);
-            // setSelectedTopics(uniqueTopics); // Default to all topics. Consider if this is desired.
-             if (uniqueTopics.length > 0) {
-              setSelectedTopics(uniqueTopics);
-            } else {
-              // If no topics found in mock data for this UUID, it implies a mismatch or data issue
-              // For now, allow proceeding with all questions of the subject (filtered later in handleStartExam)
-              setSelectedTopics([]); 
-              console.warn(`No specific topics found in mockQuestionsBank for subjectId (UUID): ${subjectId}. Exam will use all questions for this subject if available.`);
-            }
-
           } else {
             setError("لم يتم العثور على المادة المحددة.");
             toast({ title: "خطأ", description: "المادة المطلوبة غير موجودة.", variant: "destructive"});
@@ -118,25 +103,8 @@ export default function SubjectExamPage() {
     setError(null);
   }, [subjectId, toast]);
 
-  const handleTopicChange = (topic: string) => {
-    setSelectedTopics(prev => 
-      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-    );
-  };
 
-  const handleSelectAllTopics = (checked: boolean) => {
-    if (checked) {
-      setSelectedTopics(availableTopics);
-    } else {
-      setSelectedTopics([]);
-    }
-  };
-
-  const handleStartExam = () => {
-    if (selectedTopics.length === 0 && availableTopics.length > 0) { 
-      toast({ title: "خطأ في الإعدادات", description: "الرجاء اختيار درس واحد على الأقل.", variant: "destructive" });
-      return;
-    }
+  const handleStartExam = async () => {
     if (numQuestions <= 0 || numQuestions > MAX_QUESTIONS_LIMIT) {
       toast({ title: "خطأ في الإعدادات", description: `يجب أن يكون عدد الأسئلة بين 1 و ${MAX_QUESTIONS_LIMIT}.`, variant: "destructive" });
       return;
@@ -145,38 +113,62 @@ export default function SubjectExamPage() {
     setIsLoading(true);
     setError(null);
     
-    // Note: mockQuestionsBank.filter(q => q.subjectId === subjectId) will likely fail if mockQuestionsBank uses string IDs and subjectId is UUID.
-    // This part needs to be refactored to fetch questions from Supabase by subject_id (UUID) and topic.
-    // For this step, we'll assume mockQuestionsBank still contains questions linked by the OLD string IDs,
-    // or that you intend to update mockQuestionsBank to use UUIDs if this page is to continue using it.
-    // Ideally, questions are fetched from Supabase directly.
-    let filtered = mockQuestionsBank.filter(q => q.subjectId === subjectId); // This line is problematic with UUIDs
-    console.warn(`Filtering mockQuestionsBank with subjectId (UUID): ${subjectId}. This might yield no questions if mock data uses string IDs.`);
+    try {
+        let fetchedQuestions = await getQuestionsBySubject(subjectId, MAX_QUESTIONS_LIMIT); // Fetch more initially for filtering
 
+        if (selectedDifficulty !== 'all') {
+          fetchedQuestions = fetchedQuestions.filter(q => q.difficulty === selectedDifficulty);
+        }
+        
+        const shuffled = fetchedQuestions.sort(() => 0.5 - Math.random());
+        const questionsToDisplay = shuffled.slice(0, numQuestions);
 
-    if (selectedTopics.length > 0 && selectedTopics.length < availableTopics.length) { 
-      filtered = filtered.filter(q => q.topic && selectedTopics.includes(q.topic));
+        if (questionsToDisplay.length === 0) {
+          setError("لم يتم العثور على أسئلة تطابق معاييرك. الرجاء تعديل إعدادات الاختبار أو التأكد من توفر أسئلة لهذه المادة.");
+          setConfiguredQuestions([]);
+        } else {
+          setConfiguredQuestions(questionsToDisplay);
+          setStartTime(new Date());
+          setConfigMode(false);
+          if (timerEnabled && questionsToDisplay.length > 0) {
+            const duration = questionsToDisplay.length * DEFAULT_SECONDS_PER_QUESTION_PRACTICE;
+            setTimeLeftInSeconds(duration);
+            setIsTimerRunning(true);
+          } else {
+            setIsTimerRunning(false);
+            setTimeLeftInSeconds(0);
+          }
+        }
+    } catch (e: any) {
+        console.error("Error starting subject exam:", e);
+        setError(e.message || "فشل في بدء اختبار المادة.");
+        toast({title: "خطأ", description: e.message || "فشل بدء اختبار المادة.", variant: "destructive"});
+    } finally {
+        setIsLoading(false);
     }
-
-    if (selectedDifficulty !== 'all') {
-      filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
-    }
-    
-    const shuffled = filtered.sort(() => 0.5 - Math.random());
-    const questionsToDisplay = shuffled.slice(0, numQuestions);
-
-    if (questionsToDisplay.length === 0) {
-      setError("لم يتم العثور على أسئلة تطابق معاييرك. الرجاء تعديل إعدادات الاختبار أو التأكد من توفر أسئلة لهذه المادة/الأبحاث (قد تكون المشكلة بسبب استخدام معرفات UUID مع بيانات نموذجية قديمة).");
-      setConfiguredQuestions([]);
-    } else {
-      setConfiguredQuestions(questionsToDisplay);
-      setStartTime(new Date());
-      setConfigMode(false);
-    }
-    setCurrentQuestionIndex(0);
-    setAnswers({});
-    setIsLoading(false);
   };
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    if (isTimerRunning && timeLeftInSeconds > 0) {
+      intervalId = setInterval(() => {
+        setTimeLeftInSeconds(prevTime => prevTime - 1);
+      }, 1000);
+    } else if (isTimerRunning && timeLeftInSeconds <= 0) { 
+      setIsTimerRunning(false);
+      if (!isSubmitting) { // Ensure handleSubmit is not already in progress
+        toast({
+          title: "انتهى الوقت!",
+          description: "سيتم تسليم إجاباتك تلقائياً.",
+          variant: "destructive",
+        });
+        handleSubmit(); 
+      }
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isTimerRunning, timeLeftInSeconds, handleSubmit, toast, isSubmitting]);
 
 
   if (!authUser || isLoadingSubject) {
@@ -196,9 +188,9 @@ export default function SubjectExamPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Settings className="h-8 w-8 text-primary" />
-            إعدادات اختبار مادة {subjectDisplayName}
+            إعدادات اختبار تدريبي لمادة {subjectDisplayName}
           </CardTitle>
-          <CardDescription>اختر الدروس، عدد الأسئلة، مستوى الصعوبة، والمؤقت.</CardDescription>
+          <CardDescription>اختر عدد الأسئلة، مستوى الصعوبة، والمؤقت.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -207,34 +199,7 @@ export default function SubjectExamPage() {
               <p>{error}</p>
             </div>
           )}
-          {availableTopics.length > 0 ? (
-            <div className="space-y-3">
-              <Label className="text-lg font-semibold flex items-center gap-2"><ListChecks /> اختر الدروس (الأبحاث):</Label>
-              <div className="flex items-center space-x-2 space-x-reverse mb-2">
-                <Checkbox
-                  id="select-all-topics"
-                  checked={selectedTopics.length === availableTopics.length && availableTopics.length > 0}
-                  onCheckedChange={(checked) => handleSelectAllTopics(checked as boolean)}
-                />
-                <Label htmlFor="select-all-topics" className="cursor-pointer">اختيار كل الدروس</Label>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
-                {availableTopics.map(topic => (
-                  <div key={topic} className="flex items-center space-x-2 space-x-reverse">
-                    <Checkbox
-                      id={`topic-${topic.replace(/\s+/g, '-')}`}
-                      checked={selectedTopics.includes(topic)}
-                      onCheckedChange={() => handleTopicChange(topic)}
-                    />
-                    <Label htmlFor={`topic-${topic.replace(/\s+/g, '-')}`} className="cursor-pointer text-sm">{topic}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-             <p className="text-sm text-muted-foreground">لا توجد أبحاث محددة لهذه المادة في البيانات النموذجية. سيتم اختيار الأسئلة من كامل المادة إذا توفرت.</p>
-          )}
-
+          
           <div className="space-y-2">
             <Label htmlFor="num-questions" className="text-lg font-semibold flex items-center gap-2"><Hash /> عدد الأسئلة:</Label>
             <Input
@@ -268,10 +233,11 @@ export default function SubjectExamPage() {
             <Switch id="timer-enabled" checked={timerEnabled} onCheckedChange={setTimerEnabled} />
             <Label htmlFor="timer-enabled" className="text-lg font-semibold flex items-center gap-2"><TimerIcon /> تفعيل المؤقت</Label>
           </div>
+          {timerEnabled && <p className="text-xs text-muted-foreground ps-8">سيتم تخصيص دقيقتين لكل سؤال ({DEFAULT_SECONDS_PER_QUESTION_PRACTICE / 60} دقيقة).</p>}
         </CardContent>
         <CardFooter>
           <Button onClick={handleStartExam} disabled={isLoading || isLoadingSubject} className="w-full text-lg py-3">
-            {(isLoading || isLoadingSubject) ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : "ابدأ الاختبار"}
+            {(isLoading || isLoadingSubject) ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : "ابدأ الاختبار التدريبي"}
           </Button>
         </CardFooter>
       </Card>
@@ -303,12 +269,12 @@ export default function SubjectExamPage() {
       <div className="max-w-3xl mx-auto text-center space-y-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {subjectDisplayName}</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold">اختبار تدريبي في مادة {subjectDisplayName}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-4 py-10">
             <AlertCircle className="h-16 w-16 text-yellow-500" />
             <p className="text-xl text-muted-foreground">
-              عذراً، لا توجد أسئلة تطابق إعداداتك حالياً.
+              عذراً، لا توجد أسئلة تطابق إعداداتك حالياً لهذه المادة.
             </p>
             <Button onClick={() => { setConfigMode(true); setError(null); }}>العودة للإعدادات</Button>
           </CardContent>
@@ -356,34 +322,35 @@ export default function SubjectExamPage() {
     if(isSubmitting) return; 
 
     setIsSubmitting(true);
+    setIsTimerRunning(false);
     try {
       let correctAnswersCount = 0;
-      const submittedAnswers = configuredQuestions.map(q => {
+      const submittedAnswersData = configuredQuestions.map(q => {
         const selectedOptionId = answers[q.id];
-        const isCorrect = selectedOptionId === q.correctOptionId;
+        const isCorrect = selectedOptionId === q.correct_option_id;
         if (isCorrect) correctAnswersCount++;
-        return { questionId: q.id, selectedOptionId: selectedOptionId || "N/A", isCorrect };
+        return { questionId: q.id, selectedOptionId: selectedOptionId || null, isCorrect };
       });
 
-      const score = (correctAnswersCount / configuredQuestions.length) * 100;
+      const score = configuredQuestions.length > 0 ? (correctAnswersCount / configuredQuestions.length) * 100 : 0;
 
       await saveExamAttempt({ 
         userId: authUser.id, 
-        subjectId: subjectId, // subjectId is UUID here
+        subjectId: subjectId, 
         examType: 'subject_practice',
         score: parseFloat(score.toFixed(2)),
         correctAnswersCount,
         totalQuestionsAttempted: configuredQuestions.length,
-        answers: submittedAnswers,
+        answers: submittedAnswersData,
         startedAt: startTime,
         completedAt: new Date(),
       });
       
       toast({ title: "تم التسليم", description: "تم تسليم إجاباتك بنجاح." });
       router.push(`/study/exam/${subjectId}/results?score=${score.toFixed(0)}&correct=${correctAnswersCount}&total=${configuredQuestions.length}`);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to submit subject exam (Supabase context):", e);
-      toast({ title: "خطأ في التسليم", description: "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+      toast({ title: "خطأ في التسليم", description: e.message || "فشل تسليم إجاباتك. يرجى المحاولة مرة أخرى.", variant: "destructive" });
       setIsSubmitting(false); 
     }
   }, [authUser, startTime, configuredQuestions, answers, toast, router, subjectId, isSubmitting]); 
@@ -392,27 +359,43 @@ export default function SubjectExamPage() {
     <div className="space-y-8 max-w-3xl mx-auto">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl md:text-3xl font-bold">اختبار في مادة {subjectDisplayName}</CardTitle>
-          <CardDescription>السؤال {currentQuestionIndex + 1} من {configuredQuestions.length}</CardDescription>
+          <CardTitle className="text-2xl md:text-3xl font-bold">اختبار تدريبي في مادة {subjectDisplayName}</CardTitle>
+          <div className="flex justify-between items-center mt-1">
+             <CardDescription>السؤال {currentQuestionIndex + 1} من {configuredQuestions.length}</CardDescription>
+            {isTimerEnabled && isTimerRunning && (
+              <div className="flex items-center text-lg font-semibold text-primary">
+                <TimerIcon className="ms-2 h-5 w-5" />
+                <span>{formatTime(timeLeftInSeconds)}</span>
+              </div>
+            )}
+             {isTimerEnabled && !isTimerRunning && timeLeftInSeconds <= 0 && (
+                 <div className="flex items-center text-lg font-semibold text-destructive">
+                    <TimerIcon className="ms-2 h-5 w-5" />
+                    <span>انتهى الوقت</span>
+                </div>
+            )}
+          </div>
           <Progress value={progressPercentage} className="w-full mt-2" />
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-xl font-semibold mb-4">{currentQuestion.questionText}</h3> 
-            <p className="text-xs text-muted-foreground mb-2">الموضوع: {currentQuestion.topic || 'غير محدد'} - الصعوبة: {currentQuestion.difficulty || 'غير محدد'}</p>
-            <RadioGroup
-              dir="rtl"
-              value={answers[currentQuestion.id] || ""}
-              onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-              className="space-y-3"
-            >
-              {currentQuestion.options.map((option) => (
-                <div key={option.id} className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value={option.id} id={`${currentQuestion.id}-${option.id}`} />
-                  <Label htmlFor={`${currentQuestion.id}-${option.id}`} className="text-lg cursor-pointer">{option.text}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <h3 className="text-xl font-semibold mb-4">{currentQuestion.question_text}</h3> 
+            <p className="text-xs text-muted-foreground mb-2">الصعوبة: {currentQuestion.difficulty || 'غير محدد'}</p>
+            {currentQuestion.options && currentQuestion.options.length > 0 && (
+                <RadioGroup
+                dir="rtl"
+                value={answers[currentQuestion.id] || ""}
+                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                className="space-y-3"
+                >
+                {currentQuestion.options.map((option) => (
+                    <div key={option.id} className="flex items-center space-x-2 space-x-reverse">
+                    <RadioGroupItem value={option.id} id={`${currentQuestion.id}-${option.id}`} />
+                    <Label htmlFor={`${currentQuestion.id}-${option.id}`} className="text-lg cursor-pointer">{option.text}</Label>
+                    </div>
+                ))}
+                </RadioGroup>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center">
@@ -433,7 +416,9 @@ export default function SubjectExamPage() {
           )}
         </CardFooter>
       </Card>
-      <Button variant="outline" onClick={() => { setConfigMode(true); setError(null); }}>العودة إلى إعدادات الاختبار</Button>
+      <div className="text-center">
+        <Button variant="outline" onClick={() => { setConfigMode(true); setError(null); }}>العودة إلى إعدادات الاختبار</Button>
+      </div>
     </div>
   );
 }

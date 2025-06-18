@@ -17,7 +17,7 @@ export default function LessonExamsListPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { branch, subjectId, sectionId, lessonId } = params as { // subjectId and sectionId for back navigation or breadcrumbs
+  const { branch, subjectId, sectionId, lessonId } = params as { 
     branch: string;
     subjectId: string;
     sectionId: string;
@@ -45,8 +45,7 @@ export default function LessonExamsListPage() {
               if (filteredExams.length === 0 && examsData.length > 0) {
                 toast({ title: "تنبيه", description: "بعض الاختبارات المرتبطة بالدرس غير منشورة.", variant: "default"});
               } else if (examsData.length === 0 && lessonData.linked_exam_ids.length > 0) {
-                // This toast might be shown if getExamsByIds is not yet fully implemented for Supabase
-                 toast({ title: "تنبيه", description: `الاختبارات المرتبطة بدرس "${lessonData.title}" تحتاج للتحديث لـ Supabase.`, variant: "default"});
+                 toast({ title: "تنبيه", description: `لم يتم العثور على الاختبارات المرتبطة بدرس "${lessonData.title}".`, variant: "default"});
               }
             } else {
               setLinkedExams([]);
@@ -124,9 +123,9 @@ export default function LessonExamsListPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {linkedExams.map((exam) => (
                   <Card key={exam.id} className="flex flex-col overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                    {exam.image && ( <div className="relative h-40 w-full"> <Image src={exam.image} alt={exam.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" data-ai-hint={exam.imageHint || "exam cover"} /> </div> )}
+                    {exam.image && ( <div className="relative h-40 w-full"> <Image src={exam.image} alt={exam.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" data-ai-hint={exam.image_hint || "exam cover"} /> </div> )}
                     <CardHeader> <CardTitle className="text-lg">{exam.title}</CardTitle> <CardDescription>{exam.subjectName}</CardDescription> </CardHeader>
-                    <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground"> <div className="flex items-center"> <User className="ms-1 h-4 w-4" /> <span>الأستاذ: {exam.teacherName || 'غير محدد'}</span> </div> <div className="flex items-center"> <Clock className="ms-1 h-4 w-4" /> <span>المدة: {exam.durationInMinutes ? `${exam.durationInMinutes} دقيقة` : 'غير محدد'}</span> </div> <div className="flex items-center"> <FileText className="ms-1 h-4 w-4" /> <span>عدد الأسئلة: {exam.totalQuestions}</span> </div> </CardContent>
+                    <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground"> <div className="flex items-center"> <User className="ms-1 h-4 w-4" /> <span>الأستاذ: {exam.teacher_name || 'غير محدد'}</span> </div> <div className="flex items-center"> <Clock className="ms-1 h-4 w-4" /> <span>المدة: {exam.duration ? `${exam.duration} دقيقة` : 'غير محدد'}</span> </div> <div className="flex items-center"> <FileText className="ms-1 h-4 w-4" /> <span>عدد الأسئلة: {exam.totalQuestions ?? 'غير محدد'}</span> </div> </CardContent>
                     <CardFooter> <Button asChild className="w-full"> <Link href={`/exams/${exam.id}/setup`}> <Settings className="ms-2 h-4 w-4" /> إعداد وبدء الاختبار </Link> </Button> </CardFooter>
                   </Card>
                 ))}
@@ -135,7 +134,7 @@ export default function LessonExamsListPage() {
           )}
 
           {(linkedExams.length === 0 && !isLoading) && (
-             <p className="text-center text-muted-foreground py-4">لا توجد اختبارات مقترحة لهذا الدرس حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+             <p className="text-center text-muted-foreground py-4">لا توجد اختبارات مقترحة لهذا الدرس حالياً.</p>
           )}
 
           <Separator />

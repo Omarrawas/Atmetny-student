@@ -47,23 +47,23 @@ export default function ExamSetupPage() {
         setIsLoadingExam(true);
         setPageError(null);
         try {
-          const examData = await getExamById(examId); // This will now return null and log a warning
+          const examData = await getExamById(examId); 
           if (examData) {
             setExam(examData);
             const totalExamQuestions = examData.questions?.length || examData.totalQuestions || MAX_QUESTIONS_LIMIT_CONFIG;
             setNumQuestions(Math.max(1, Math.min(totalExamQuestions, MAX_QUESTIONS_LIMIT_CONFIG)));
             
-            if (examData.durationInMinutes) {
-                setCustomDurationMinutes(Math.max(MIN_CUSTOM_DURATION_MINUTES, Math.min(MAX_CUSTOM_DURATION_MINUTES, examData.durationInMinutes)));
+            if (examData.duration) { // Use exam.duration (from DB)
+                setCustomDurationMinutes(Math.max(MIN_CUSTOM_DURATION_MINUTES, Math.min(MAX_CUSTOM_DURATION_MINUTES, examData.duration)));
             } else {
                 setCustomDurationMinutes(DEFAULT_CUSTOM_DURATION_MINUTES);
             }
           } else {
-            setPageError(`لم نتمكن من العثور على تفاصيل الاختبار (المعرف: ${examId}). (أو الخدمة تحتاج للتحديث لـ Supabase)`);
+            setPageError(`لم نتمكن من العثور على تفاصيل الاختبار (المعرف: ${examId}).`);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching exam details for setup:", error);
-          setPageError("حدث خطأ أثناء تحميل تفاصيل الاختبار. حاول مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+          setPageError(error.message || "حدث خطأ أثناء تحميل تفاصيل الاختبار. حاول مرة أخرى.");
         } finally {
           setIsLoadingExam(false);
         }
@@ -129,7 +129,7 @@ export default function ExamSetupPage() {
      return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <p className="text-lg text-muted-foreground">لم يتم العثور على الاختبار. (أو الخدمة تحتاج للتحديث لـ Supabase)</p>
+        <p className="text-lg text-muted-foreground">لم يتم العثور على الاختبار.</p>
         <Button onClick={() => router.push('/exams')} variant="outline">
           العودة إلى قائمة الاختبارات
         </Button>
@@ -245,7 +245,7 @@ export default function ExamSetupPage() {
 
           <TabsContent value="browse" className="pt-0">
             <CardContent className="pt-6">
-              {exam && (
+              {exam && exam.questions && ( // Ensure exam and exam.questions are loaded
                 <ExamBrowseView 
                   examId={exam.id} 
                   initialOrder="sequential"

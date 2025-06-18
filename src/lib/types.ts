@@ -39,20 +39,20 @@ export interface UserProfile {
   id: string; // Changed from uid to id, matching Supabase convention (references auth.users.id)
   name: string;
   email: string;
-  avatarUrl?: string; // Supabase typically uses avatar_url
-  avatarHint?: string;
+  avatar_url?: string; // Supabase typically uses avatar_url
+  avatar_hint?: string;
   points: number;
   level: number;
-  progressToNextLevel: number;
+  progress_to_next_level: number;
   badges: Badge[];
   rewards: Reward[];
-  studentGoals?: string;
+  student_goals?: string;
   branch?: SubjectBranch;
   university?: string;
   major?: string;
-  createdAt: string; // Changed from Timestamp
-  updatedAt: string; // Changed from Timestamp
-  activeSubscription?: SubscriptionDetails | null;
+  created_at: string; // Changed from Timestamp
+  updated_at: string; // Changed from Timestamp
+  active_subscription?: SubscriptionDetails | null;
 }
 
 // Input type for saveUserProfile function
@@ -60,44 +60,57 @@ export type UserProfileWriteData = {
   id: string; // Changed from uid to id
   name?: string;
   email?: string; // Email might come from auth user, not form always
-  avatarUrl?: string;
-  avatarHint?: string;
+  avatar_url?: string;
+  avatar_hint?: string;
   points?: number;
   level?: number;
-  progressToNextLevel?: number;
+  progress_to_next_level?: number;
   badges?: Badge[];
   rewards?: Reward[];
-  studentGoals?: string;
+  student_goals?: string;
   branch?: SubjectBranch;
   university?: string;
   major?: string;
-  activeSubscription?: Omit<SubscriptionDetails, 'startDate' | 'endDate'> & { startDate: string | Date, endDate: string | Date } | null;
-  updatedAt?: string; // Forcing update of this field
-  createdAt?: string; // Only on creation
+  active_subscription?: Omit<SubscriptionDetails, 'startDate' | 'endDate'> & { startDate: string | Date, endDate: string | Date } | null;
+  updated_at?: string; // Forcing update of this field
+  created_at?: string; // Only on creation
 };
 
 
 export interface QuestionOption {
-  id: string; // UUID
+  id: string; // This ID should be unique within the options array for a question (e.g., "option_1", "option_a")
   text: string;
 }
 
+export type QuestionTypeEnum = 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | string;
+export type QuestionDifficultyEnum = 'easy' | 'medium' | 'hard' | string;
+
 export interface Question {
   id: string; // UUID
-  questionText: string;
-  options: QuestionOption[];
-  correctOptionId?: string | null; // UUID
-  subjectId: string; // UUID, Foreign key to public.subjects
-  subjectName: string; // Denormalized or joined
-  explanation?: string;
-  points?: number;
-  topic?: string; // Could be a foreign key to a 'topics' table later
-  difficulty?: 'easy' | 'medium' | 'hard' | 'all';
-  tags?: string[];
-  createdBy?: string; // UUID, Foreign key to public.users or public.profiles
+  question_type: QuestionTypeEnum;
+  question_text: string;
+  difficulty?: QuestionDifficultyEnum | null;
+  subject_id?: string | null; // UUID, Foreign key to public.subjects
+  lesson_id?: string | null; // UUID, Foreign key to public.lessons
+  options?: QuestionOption[] | null; // Parsed from JSONB
+  correct_option_id?: string | null; // ID of the correct option within the options JSON
+  correct_answers?: string[] | null; // For other question types like fill-in-the-blanks (array of correct strings)
+  model_answer?: string | null; // Detailed model answer or explanation
+  is_sane?: boolean | null;
+  sanity_explanation?: string | null;
+  is_locked?: boolean | null;
   created_at?: string;
   updated_at?: string;
+  tag_ids?: string[] | null; // Array of UUIDs if tags are in a separate table
+
+  // Fields that might be joined or denormalized in application code, not direct table columns usually
+  subjectName?: string; // Joined from subjects table
+  // `topic` field was removed as it's not in the new `questions` table schema.
+  // If topics are needed, they might come from `lesson.title` or by resolving `tag_ids`.
+  points?: number; // This is in exam_questions, not questions table itself
+  explanation?: string; // This was potentially ambiguous with model_answer. Sticking to model_answer from DB.
 }
+
 
 export interface Subject {
   id: string; // UUID from Supabase
@@ -118,7 +131,7 @@ export interface SubjectSection {
   title: string;
   type: string; // E.g., 'unit', 'chapter', 'theme' (NOT NULL in SQL)
   order?: number | null;
-  is_locked?: boolean | null;
+  is_locked?: boolean | null; // Default true in DB
   created_at?: string;
   updated_at?: string;
 }
@@ -145,11 +158,11 @@ export interface Lesson {
   teachers?: LessonTeacher[] | null; // From JSONB, parsed to array
   files?: LessonFile[] | null; // From JSONB, parsed to array
   order?: number | null;
-  teacher_id?: string | null; // Kept for potential direct teacher linking
+  teacher_id?: string | null; // Kept for potential direct teacher linking (UUID of a profile)
   teacher_name?: string | null; // Kept for potential direct teacher linking
-  linked_exam_ids?: string[] | null; // Array of UUIDs
-  is_locked?: boolean | null;
-  is_used?: boolean | null; // For tracking if a lesson (e.g., a trial lesson) has been "consumed"
+  linked_exam_ids?: string[] | null; // Array of UUIDs of exams
+  is_locked?: boolean | null; // Default false in DB
+  is_used?: boolean | null; 
   created_at: string;
   updated_at: string;
   used_at?: string | null;
@@ -158,34 +171,46 @@ export interface Lesson {
 
 
 export interface Exam {
-  id: string; // Will be UUID
+  id: string; // UUID
   title: string;
-  subject_id: string; // Foreign key to public.subjects.id (UUID)
-  subjectName: string; // Denormalized or joined
-  teacherId?: string;
-  teacherName?: string;
-  durationInMinutes?: number;
-  totalQuestions?: number;
-  image?: string;
-  imageHint?: string;
-  description?: string;
-  published: boolean;
-  created_at?: string;
-  updated_at?: string;
-  questionIds?: string[]; // Array of UUIDs
-  questions?: Question[]; // Can be populated by joining/fetching separately
+  description?: string | null;
+  subject_id: string; // UUID, Foreign key to public.subjects.id
+  published?: boolean | null; // Default false
+  image?: string | null;
+  image_hint?: string | null;
+  teacher_name?: string | null;
+  teacher_id?: string | null; // UUID, Foreign key to public.profiles.id
+  duration?: number | null; // Integer, duration in minutes
+  created_at?: string | null;
+  updated_at?: string | null;
+
+  // Populated in application logic, not direct table columns
+  subjectName?: string; // Joined from subjects table
+  totalQuestions?: number; // Calculated from exam_questions or can be denormalized
+  questions?: Question[]; // Populated by fetching related questions based on exam_questions
+  durationInMinutes?: number; // Compatibility if old type used this; prefer `duration`
 }
+
+export interface ExamQuestion { // For the exam_questions join table
+  exam_id: string; // UUID
+  question_id: string; // UUID
+  order_number?: number | null;
+  points?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 
 export type FirebaseUser = User; // Placeholder, ideally replace with SupabaseUser if different structure needed
 
 export interface AiAnalysisResult {
   id?: string; // Will be UUID
   userId: string; // Foreign key to public.profiles.id (UUID)
-  userExamAttemptId?: string; // Foreign key to user_exam_attempts.id (UUID)
+  userExamAttemptId?: string | null; // Foreign key to user_exam_attempts.id (UUID)
   inputExamResultsText: string;
-  inputStudentGoalsText?: string;
+  inputStudentGoalsText?: string | null;
   recommendations: string;
-  followUpQuestions?: string;
+  followUpQuestions?: string | null;
   analyzedAt: string;
 }
 

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { teachers as teacherOptions } from "@/lib/constants"; 
+// import { teachers as teacherOptions } from "@/lib/constants"; // Teacher filtering can be added back if teacher_id is reliable
 import { getPublicExams, getSubjects } from "@/lib/examService";
 import type { Exam, Subject } from "@/lib/types";
 import { Filter, FileText, Clock, User, Loader2, AlertCircle, Settings } from "lucide-react";
@@ -18,23 +18,23 @@ export default function ExamsPage() {
   const [isLoadingExams, setIsLoadingExams] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [subjectsList, setSubjectsList] = useState<Subject[]>([]); // Renamed from firestoreSubjects for clarity
+  const [subjectsList, setSubjectsList] = useState<Subject[]>([]); 
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const { toast } = useToast();
 
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedTeacher, setSelectedTeacher] = useState<string>("");
+  // const [selectedTeacher, setSelectedTeacher] = useState<string>(""); // Teacher filter temporarily removed
 
-  const [activeFilters, setActiveFilters] = useState<{ subjectId?: string; teacherId?: string }>({});
+  const [activeFilters, setActiveFilters] = useState<{ subjectId?: string; /* teacherId?: string */ }>( {});
 
   useEffect(() => {
     const fetchSubjectOptions = async () => {
       setIsLoadingSubjects(true);
       try {
-        const fetchedSubjects = await getSubjects(); // This will now return [] and log a warning
+        const fetchedSubjects = await getSubjects(); 
         setSubjectsList(fetchedSubjects);
         if (fetchedSubjects.length === 0) {
-            toast({ title: "تنبيه", description: "قائمة المواد تحتاج للتحديث لـ Supabase.", variant: "default" });
+            // toast({ title: "تنبيه", description: "قائمة المواد فارغة.", variant: "default" });
         }
       } catch (e) {
         console.error("Failed to fetch subject options:", e);
@@ -51,15 +51,14 @@ export default function ExamsPage() {
       setIsLoadingExams(true);
       setError(null);
       try {
-        const fetchedExams = await getPublicExams(activeFilters); // This will now return [] and log a warning
+        const fetchedExams = await getPublicExams(activeFilters); 
         setExams(fetchedExams);
          if (fetchedExams.length === 0 && Object.keys(activeFilters).length === 0) {
-            // Toast only if no filters are applied and no exams are fetched
-            // toast({ title: "تنبيه", description: "قائمة الاختبارات العامة تحتاج للتحديث لـ Supabase.", variant: "default" });
+            // toast({ title: "تنبيه", description: "لا توجد اختبارات عامة متاحة حالياً.", variant: "default" });
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to fetch exams:", e);
-        setError("فشل تحميل قائمة الاختبارات. يرجى المحاولة مرة أخرى. (الخدمة تحتاج للتحديث لـ Supabase)");
+        setError(e.message || "فشل تحميل قائمة الاختبارات. يرجى المحاولة مرة أخرى.");
       } finally {
         setIsLoadingExams(false);
       }
@@ -68,13 +67,13 @@ export default function ExamsPage() {
   }, [activeFilters, toast]);
 
   const handleApplyFilter = () => {
-    const newActiveFilters: { subjectId?: string; teacherId?: string } = {};
+    const newActiveFilters: { subjectId?: string; /* teacherId?: string */ } = {};
     if (selectedSubject && selectedSubject !== 'all' && selectedSubject !== '') {
       newActiveFilters.subjectId = selectedSubject;
     }
-    if (selectedTeacher && selectedTeacher !== 'all' && selectedTeacher !== '') {
-      newActiveFilters.teacherId = selectedTeacher;
-    }
+    // if (selectedTeacher && selectedTeacher !== 'all' && selectedTeacher !== '') {
+    //   newActiveFilters.teacherId = selectedTeacher;
+    // }
     setActiveFilters(newActiveFilters);
   };
 
@@ -86,9 +85,9 @@ export default function ExamsPage() {
             <Filter className="h-8 w-8 text-primary" />
             <span>تصفية الاختبارات العامة</span>
           </CardTitle>
-          <CardDescription>ابحث عن الاختبارات العامة بناءً على المادة أو الأستاذ.</CardDescription>
+          <CardDescription>ابحث عن الاختبارات العامة بناءً على المادة.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="subject-filter" className="block text-sm font-medium text-foreground mb-1">المادة</label>
             <Select 
@@ -98,7 +97,7 @@ export default function ExamsPage() {
               disabled={isLoadingSubjects || subjectsList.length === 0}
             >
               <SelectTrigger id="subject-filter" className="w-full">
-                <SelectValue placeholder={isLoadingSubjects ? "جاري تحميل المواد..." : (subjectsList.length === 0 ? "لا مواد (تحتاج تحديث)" : "اختر المادة")} />
+                <SelectValue placeholder={isLoadingSubjects ? "جاري تحميل المواد..." : (subjectsList.length === 0 ? "لا مواد متاحة" : "اختر المادة")} />
               </SelectTrigger>
               <SelectContent>
                 {!isLoadingSubjects && subjectsList.length > 0 && (
@@ -112,7 +111,7 @@ export default function ExamsPage() {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          {/* <div>
             <label htmlFor="teacher-filter" className="block text-sm font-medium text-foreground mb-1">الأستاذ</label>
             <Select dir="rtl" onValueChange={setSelectedTeacher} value={selectedTeacher}>
               <SelectTrigger id="teacher-filter" className="w-full">
@@ -125,8 +124,8 @@ export default function ExamsPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="md:col-start-3 md:self-end">
+          </div> */}
+          <div className="md:col-start-2 md:self-end">
             <Button className="w-full" onClick={handleApplyFilter} disabled={isLoadingSubjects || isLoadingExams}>
               {isLoadingExams && !isLoadingSubjects ? <Loader2 className="ms-2 h-4 w-4 animate-spin" /> : <Filter className="ms-2 h-4 w-4" />}
               تطبيق الفلتر
@@ -153,7 +152,7 @@ export default function ExamsPage() {
           <p className="text-center text-muted-foreground mt-8 text-lg">
             {Object.values(activeFilters).some(val => val !== undefined)
               ? "لا توجد اختبارات تطابق معايير الفلترة الحالية."
-              : "لا توجد اختبارات عامة متاحة حالياً. (أو الخدمة تحتاج للتحديث لـ Supabase)"}
+              : "لا توجد اختبارات عامة متاحة حالياً."}
           </p>
         )}
         {!isLoadingExams && !error && exams.length > 0 && (
@@ -167,7 +166,7 @@ export default function ExamsPage() {
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover"
-                    data-ai-hint={exam.imageHint || "education exam"}
+                    data-ai-hint={exam.image_hint || "education exam"}
                   />
                 </div>
                 <CardHeader>
@@ -177,15 +176,15 @@ export default function ExamsPage() {
                 <CardContent className="flex-grow space-y-2">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <User className="ms-1 h-4 w-4" />
-                    <span>الأستاذ: {exam.teacherName || 'غير محدد'}</span>
+                    <span>الأستاذ: {exam.teacher_name || 'غير محدد'}</span>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Clock className="ms-1 h-4 w-4" />
-                    <span>المدة: {exam.durationInMinutes ? `${exam.durationInMinutes} دقيقة` : 'غير محدد'}</span>
+                    <span>المدة: {exam.duration ? `${exam.duration} دقيقة` : 'غير محدد'}</span>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <FileText className="ms-1 h-4 w-4" />
-                    <span>عدد الأسئلة: {exam.totalQuestions}</span>
+                    <span>عدد الأسئلة: {exam.totalQuestions ?? 'غير محدد'}</span>
                   </div>
                 </CardContent>
                 <CardFooter>

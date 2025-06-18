@@ -2,63 +2,298 @@
 'use client';
 
 import { supabase } from '@/lib/supabaseClient';
-import type { Exam, Question, QuestionOption, AiAnalysisResult, Subject, SubjectSection, Lesson, LessonTeacher, LessonFile } from './types';
+import type { Exam, Question, QuestionOption, AiAnalysisResult, Subject, SubjectSection, Lesson, LessonTeacher, LessonFile, ExamQuestion } from './types';
 import { getUserProfile, saveUserProfile } from './userProfileService';
 
 /**
  * Fetches all published exams, with optional filtering by subjectId and teacherId.
- * TODO: Implement this function to fetch public exams from Supabase.
  */
 export const getPublicExams = async (filters?: { subjectId?: string; teacherId?: string }): Promise<Exam[]> => {
-  console.warn("getPublicExams needs to be implemented for Supabase. Returning empty array. Filters received:", filters);
-  return [];
+  try {
+    let query = supabase
+      .from('exams')
+      .select(`
+        id,
+        title,
+        description,
+        subject_id,
+        published,
+        image,
+        image_hint,
+        teacher_name,
+        teacher_id,
+        duration,
+        created_at,
+        updated_at,
+        subjects (name)
+      `)
+      .eq('published', true);
+
+    if (filters?.subjectId) {
+      query = query.eq('subject_id', filters.subjectId);
+    }
+    if (filters?.teacherId) {
+      query = query.eq('teacher_id', filters.teacherId);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching public exams from Supabase: ", error);
+      throw error;
+    }
+    
+    const exams = (data || []).map(exam => ({
+      ...exam,
+      subjectName: exam.subjects?.name || 'غير محدد',
+      durationInMinutes: exam.duration, // Map DB 'duration' to 'durationInMinutes' for type consistency
+      // totalQuestions will need to be fetched separately or calculated if not denormalized
+      // For now, we can fetch it per exam
+    }));
+
+    // Optionally, fetch totalQuestions for each exam
+    for (const exam of exams) {
+        const { count, error: countError } = await supabase
+            .from('exam_questions')
+            .select('question_id', { count: 'exact', head: true })
+            .eq('exam_id', exam.id);
+        if (countError) {
+            console.warn(`Could not fetch question count for exam ${exam.id}:`, countError.message);
+            exam.totalQuestions = 0;
+        } else {
+            exam.totalQuestions = count ?? 0;
+        }
+    }
+    return exams as Exam[];
+
+  } catch (error) {
+    console.error("Error in getPublicExams (Supabase): ", error);
+    throw error;
+  }
 };
 
 /**
- * Fetches multiple questions by their IDs from the central 'questions' collection.
- * TODO: Implement this function to fetch questions from Supabase.
+ * Fetches multiple questions by their IDs from the 'questions' table.
  */
 export const getQuestionsByIds = async (questionIds: string[]): Promise<Question[]> => {
-  console.warn("getQuestionsByIds needs to be implemented for Supabase. Returning empty array. IDs received:", questionIds);
   if (!questionIds || questionIds.length === 0) {
     return [];
   }
-  return [];
+  try {
+    const { data, error } = await supabase
+      .from('questions')
+      .select(`
+        id,
+        question_type,
+        question_text,
+        difficulty,
+        subject_id,
+        lesson_id,
+        options,
+        correct_option_id,
+        correct_answers,
+        model_answer,
+        is_sane,
+        sanity_explanation,
+        is_locked,
+        created_at,
+        updated_at,
+        tag_ids,
+        subjects (name) 
+      `)
+      .in('id', questionIds);
+
+    if (error) {
+      console.error("Error fetching questions by IDs from Supabase: ", error);
+      throw error;
+    }
+    return (data || []).map(q => ({
+        ...q,
+        subjectName: q.subjects?.name, // Correctly access nested subject name
+        options: q.options as QuestionOption[] || [], // Ensure options is an array
+        explanation: q.model_answer // Map model_answer to explanation for compatibility if needed
+    })) as Question[];
+  } catch (error) {
+    console.error("Error in getQuestionsByIds (Supabase): ", error);
+    throw error;
+  }
 };
 
 /**
- * Fetches a single exam by its ID, and resolves its questions using `questionIds`.
- * TODO: Implement this function to fetch an exam and its questions from Supabase.
+ * Fetches a single exam by its ID, and resolves its questions.
  */
 export const getExamById = async (examId: string): Promise<Exam | null> => {
-  console.warn(`getExamById (${examId}) needs to be implemented for Supabase. Returning null.`);
-  return null;
+  try {
+    const { data: examData, error: examError } = await supabase
+      .from('exams')
+      .select(`
+        id,
+        title,
+        description,
+        subject_id,
+        published,
+        image,
+        image_hint,
+        teacher_name,
+        teacher_id,
+        duration,
+        created_at,
+        updated_at,
+        subjects (name)
+      `)
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (examError) {
+      console.error(`Error fetching exam ${examId} from Supabase: `, examError);
+      throw examError;
+    }
+    if (!examData) {
+      return null;
+    }
+
+    const { data: examQuestionsLinks, error: linksError } = await supabase
+      .from('exam_questions')
+      .select('question_id, order_number, points')
+      .eq('exam_id', examId)
+      .order('order_number', { ascending: true, nullsFirst: false });
+
+    if (linksError) {
+      console.error(`Error fetching question links for exam ${examId}: `, linksError);
+      throw linksError;
+    }
+
+    const questionIds = (examQuestionsLinks || []).map(link => link.question_id);
+    let fetchedQuestions: Question[] = [];
+    if (questionIds.length > 0) {
+      fetchedQuestions = await getQuestionsByIds(questionIds);
+      // Map points and order from exam_questions to the fetched questions
+      fetchedQuestions = fetchedQuestions.map(q => {
+        const link = examQuestionsLinks?.find(l => l.question_id === q.id);
+        return { 
+          ...q, 
+          points: link?.points ?? 1, 
+          // order_number: link?.order_number // If you add order_number to Question type
+        };
+      }).sort((a: any, b: any) => (a.order_number ?? Infinity) - (b.order_number ?? Infinity)); // Sort if order_number is used
+    }
+    
+    return {
+      ...examData,
+      subjectName: examData.subjects?.name || 'غير محدد',
+      questions: fetchedQuestions,
+      totalQuestions: fetchedQuestions.length,
+      durationInMinutes: examData.duration // Map to legacy type field
+    } as Exam;
+
+  } catch (error) {
+    console.error(`Error in getExamById (${examId}) (Supabase): `, error);
+    throw error;
+  }
 };
+
 
 /**
  * Fetches multiple exams by their IDs.
- * TODO: Implement this function to fetch exams by IDs from Supabase.
  */
 export const getExamsByIds = async (examIds: string[]): Promise<Exam[]> => {
-  console.warn("getExamsByIds needs to be implemented for Supabase. Returning empty array. IDs:", examIds);
   if (!examIds || examIds.length === 0) {
     return [];
   }
-  return [];
+  try {
+    const { data, error } = await supabase
+      .from('exams')
+      .select(`
+        id,
+        title,
+        description,
+        subject_id,
+        published,
+        image,
+        image_hint,
+        teacher_name,
+        teacher_id,
+        duration,
+        created_at,
+        updated_at,
+        subjects (name)
+      `)
+      .in('id', examIds)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching exams by IDs from Supabase: ", error);
+      throw error;
+    }
+    
+    const exams = (data || []).map(exam => ({
+      ...exam,
+      subjectName: exam.subjects?.name || 'غير محدد',
+      durationInMinutes: exam.duration,
+    }));
+
+    for (const exam of exams) {
+        const { count, error: countError } = await supabase
+            .from('exam_questions')
+            .select('question_id', { count: 'exact', head: true })
+            .eq('exam_id', exam.id);
+        if (countError) {
+            exam.totalQuestions = 0;
+        } else {
+            exam.totalQuestions = count ?? 0;
+        }
+    }
+    return exams as Exam[];
+
+  } catch (error) {
+    console.error("Error in getExamsByIds (Supabase): ", error);
+    throw error;
+  }
 };
 
+
 /**
- * Fetches questions for a specific subject.
- * TODO: Implement this function to fetch questions by subject from Supabase.
+ * Fetches questions for a specific subject (for practice mode).
  */
 export const getQuestionsBySubject = async (subjectId: string, questionLimit: number = 20): Promise<Question[]> => {
-  console.warn(`getQuestionsBySubject (${subjectId}) needs to be implemented for Supabase. Returning empty array.`);
-  return [];
+   try {
+    const { data, error } = await supabase
+      .from('questions')
+      .select(`
+        id,
+        question_type,
+        question_text,
+        difficulty,
+        subject_id,
+        lesson_id,
+        options,
+        correct_option_id,
+        correct_answers,
+        model_answer,
+        subjects (name)
+      `) 
+      .eq('subject_id', subjectId)
+      // .eq('is_locked', false) // RLS should handle this
+      .limit(questionLimit); 
+
+    if (error) {
+      console.error(`Error fetching questions for subject ${subjectId} from Supabase: `, error);
+      throw error;
+    }
+    return (data || []).map(q => ({
+        ...q,
+        subjectName: q.subjects?.name || 'غير محدد',
+        options: q.options as QuestionOption[] || [],
+        explanation: q.model_answer
+    })) as Question[];
+  } catch (error) {
+    console.error("Error in getQuestionsBySubject (Supabase): ", error);
+    throw error;
+  }
 };
 
-/**
- * Saves an exam attempt and updates user points (Using Supabase).
- */
 export const saveExamAttempt = async (attemptData: {
   userId: string;
   examId?: string; // UUID
@@ -67,7 +302,7 @@ export const saveExamAttempt = async (attemptData: {
   score: number;
   correctAnswersCount: number;
   totalQuestionsAttempted: number;
-  answers: Array<{ questionId: string; selectedOptionId: string; isCorrect: boolean }>; // questionId is UUID
+  answers: Array<{ questionId: string; selectedOptionId: string | null; isCorrect: boolean }>; // questionId is UUID, selectedOptionId from JSONB
   startedAt: Date;
   completedAt: Date;
 }): Promise<string> => {
@@ -79,6 +314,7 @@ export const saveExamAttempt = async (attemptData: {
       .insert({
         user_id: userId,
         ...restOfAttemptData,
+        answers: restOfAttemptData.answers, 
         started_at: startedAt.toISOString(),
         completed_at: completedAt.toISOString(),
         created_at: new Date().toISOString(),
@@ -100,7 +336,7 @@ export const saveExamAttempt = async (attemptData: {
       await saveUserProfile({
         id: userId, 
         points: newTotalPoints,
-        updatedAt: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }); 
       console.log(`User ${userId} earned ${pointsEarned} points. New total: ${newTotalPoints} (Supabase)`);
     } else {
@@ -114,9 +350,6 @@ export const saveExamAttempt = async (attemptData: {
   }
 };
 
-/**
- * Saves AI analysis results to Supabase.
- */
 export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' | 'analyzedAt'>): Promise<string> => {
   try {
     const dataToSave = {
@@ -126,6 +359,7 @@ export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' |
       recommendations: analysisData.recommendations,
       follow_up_questions: analysisData.followUpQuestions,
       analyzed_at: new Date().toISOString(), 
+      user_exam_attempt_id: analysisData.userExamAttemptId,
     };
 
     const { data: insertedAnalysis, error } = await supabase
@@ -145,9 +379,6 @@ export const saveAiAnalysis = async (analysisData: Omit<AiAnalysisResult, 'id' |
   }
 };
 
-/**
- * Fetches all subjects from Supabase.
- */
 export const getSubjects = async (): Promise<Subject[]> => {
   try {
     const { data, error } = await supabase
@@ -167,9 +398,6 @@ export const getSubjects = async (): Promise<Subject[]> => {
   }
 };
 
-/**
- * Fetches a single subject by its UUID from Supabase.
- */
 export const getSubjectById = async (subjectId: string): Promise<Subject | null> => {
   try {
     const { data, error } = await supabase
@@ -189,9 +417,6 @@ export const getSubjectById = async (subjectId: string): Promise<Subject | null>
   }
 };
 
-/**
- * Fetches all sections for a given subject from Supabase.
- */
 export const getSubjectSections = async (subjectId: string): Promise<SubjectSection[]> => {
   console.log(`[examService] Attempting to fetch sections for subject_id: ${subjectId}`);
   try {
@@ -223,25 +448,20 @@ export const getSubjectSections = async (subjectId: string): Promise<SubjectSect
   }
 };
 
-
-/**
- * Fetches a single section by its ID within a subject from Supabase.
- */
-export const getSectionById = async (subjectId: string, sectionId: string): Promise<SubjectSection | null> => {
+export const getSectionById = async (sectionId: string): Promise<SubjectSection | null> => {
    try {
-    if (!subjectId || !sectionId) {
-      console.warn("getSectionById called with missing subjectId or sectionId. Returning null.");
+    if (!sectionId) {
+      console.warn("getSectionById called with missing sectionId. Returning null.");
       return null;
     }
     const { data, error } = await supabase
       .from('subject_sections')
       .select('id, subject_id, title, type, order, is_locked, created_at, updated_at')
       .eq('id', sectionId)
-      .eq('subject_id', subjectId) 
       .maybeSingle();
 
     if (error) {
-      console.error(`Error fetching section ${sectionId} for subject ${subjectId} from Supabase: `, error);
+      console.error(`Error fetching section ${sectionId} from Supabase: `, error);
       throw error;
     }
     return data ? data as SubjectSection : null;
@@ -251,12 +471,8 @@ export const getSectionById = async (subjectId: string, sectionId: string): Prom
   }
 };
 
-
-/**
- * Fetches all lessons for a given section within a subject from Supabase.
- */
-export const getSectionLessons = async (subjectId: string, sectionId: string): Promise<Lesson[]> => {
-  console.log(`[examService] Attempting to fetch lessons for section_id: ${sectionId} (subject_id: ${subjectId})`);
+export const getSectionLessons = async (sectionId: string): Promise<Lesson[]> => {
+  console.log(`[examService] Attempting to fetch lessons for section_id: ${sectionId}`);
   try {
     if (!sectionId) {
       console.warn("[examService] getSectionLessons called with no sectionId. Returning empty array.");
@@ -291,9 +507,6 @@ export const getSectionLessons = async (subjectId: string, sectionId: string): P
   }
 };
 
-/**
- * Fetches a single lesson by its ID from Supabase.
- */
 export const getLessonById = async (lessonId: string): Promise<Lesson | null> => {
   console.log(`[examService] Attempting to fetch lesson by id: ${lessonId}`);
   try {
@@ -307,7 +520,7 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
       .eq('id', lessonId)
       .maybeSingle();
 
-    if (error && status !== 406) { // 406: "Requested range not satisfiable" - expected if no row found with maybeSingle()
+    if (error && status !== 406) { 
       console.error(`[examService] Supabase error fetching lesson ${lessonId}. Status: ${status}.`);
       console.error(`[examService] Error Message: ${error.message}`);
       throw new Error(`Supabase error (Code: ${error.code || 'UNKNOWN'}, Status: ${status}): ${error.message || 'Failed to fetch lesson.'}`);
@@ -323,10 +536,11 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
       ...data,
       teachers: (data.teachers || []) as LessonTeacher[],
       files: (data.files || []) as LessonFile[],
-      linked_exam_ids: (data.linked_exam_ids || []) as string[],
+      linked_exam_ids: (data.linked_exam_ids || []) as string[], // Ensure this is treated as string[]
     } as Lesson;
   } catch (e: any) {
     console.error(`[examService] Catch block in getLessonById for lesson ${lessonId}:`, e.message || e);
     throw new Error(e.message || `An unexpected error occurred while fetching lesson ${lessonId}.`);
   }
 };
+
