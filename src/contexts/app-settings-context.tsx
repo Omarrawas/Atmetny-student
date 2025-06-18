@@ -27,6 +27,7 @@ const defaultSettings: AppSettings = {
   ],
   terms_of_service_url: null,
   privacy_policy_url: null,
+  homepage_promo_url: null, // Added default for new field
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -72,3 +73,5 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ childr
   );
 };
 
+
+    

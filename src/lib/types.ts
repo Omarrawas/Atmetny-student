@@ -330,6 +330,7 @@ export interface AppSettings {
   social_media_links?: SocialMediaLink[] | null; // Parsed from JSONB
   terms_of_service_url?: string | null;
   privacy_policy_url?: string | null;
+  homepage_promo_url?: string | null; // New field for the promo link
   created_at?: string;
   updated_at?: string;
 }
@@ -338,3 +339,6 @@ export interface AppSettings {
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
+
+
+    

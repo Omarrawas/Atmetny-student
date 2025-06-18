@@ -11,6 +11,7 @@ import { useAppSettings } from "@/contexts/app-settings-context";
 export default function HomePage() {
   const { settings } = useAppSettings();
   const appName = settings?.app_name || "Atmetny";
+  const promoUrl = settings?.homepage_promo_url;
 
   return (
     <div className="space-y-8">
@@ -135,8 +136,17 @@ export default function HomePage() {
       </section>
       
       <section className="text-center">
-         <Image src="https://placehold.co/800x400.png" alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md" data-ai-hint="students studying" />
+        {promoUrl ? (
+          <Link href={promoUrl} target="_blank" rel="noopener noreferrer" aria-label="عرض ترويجي">
+            <Image src="https://placehold.co/800x400.png" alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md hover:opacity-90 transition-opacity" data-ai-hint="students studying education" />
+          </Link>
+        ) : (
+          <Image src="https://placehold.co/800x400.png" alt="طلاب يدرسون" width={800} height={400} className="rounded-lg mx-auto shadow-md" data-ai-hint="students studying education" />
+        )}
       </section>
     </div>
   );
 }
+
+
+    
