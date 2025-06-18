@@ -88,19 +88,6 @@ export default async function SubscribePage() {
           ))}
         </div>
       )}
-
-      {/* You might want to make this "trial" section dynamic too, or remove if not applicable */}
-      <Card className="bg-accent/20 text-center">
-        <CardContent className="pt-6">
-          <h3 className="text-xl font-semibold mb-2 text-accent-foreground">فترة تجريبية أو خطة مجانية!</h3>
-          <p className="text-muted-foreground mb-4">
-            تفقد الخطة المجانية لتجربة ميزاتنا الأساسية.
-          </p>
-          <Button variant="outline" size="lg">
-            {plans.find(p => p.price === 0)?.cta_text || 'ابدأ الآن'}
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
