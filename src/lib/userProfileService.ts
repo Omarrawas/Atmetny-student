@@ -133,7 +133,12 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
          console.log(`No user profile found in Supabase for ID: ${id}. Returning null.`);
          return null;
       }
-      console.error("Supabase error fetching user profile:", error);
+      // Updated error logging
+      console.error(
+        `Supabase error fetching user profile for ID: ${id}. ` +
+        `Status: ${status}, Code: ${error.code}, Message: ${error.message}, ` +
+        `Details: ${error.details}, Hint: ${error.hint}. Full error object:`, error
+      );
       throw error;
     }
 
@@ -186,3 +191,4 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
   }
 };
     
+
