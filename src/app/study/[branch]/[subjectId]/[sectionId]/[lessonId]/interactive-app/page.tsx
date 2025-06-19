@@ -7,7 +7,7 @@ import { getLessonById } from '@/lib/examService';
 import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Loader2, AlertTriangle, PuzzlePiece, ToyBrick } from 'lucide-react';
+import { ChevronRight, Loader2, AlertTriangle, Puzzle, ToyBrick } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -94,7 +94,7 @@ export default function LessonInteractiveAppPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3 mb-2">
-            <PuzzlePiece className="h-8 w-8 text-primary" />
+            <Puzzle className="h-8 w-8 text-primary" />
             <CardTitle className="text-3xl font-bold">تطبيق تفاعلي لدرس: {lesson.title}</CardTitle>
           </div>
           <CardDescription>
@@ -129,4 +129,3 @@ export default function LessonInteractiveAppPage() {
     </div>
   );
 }
-

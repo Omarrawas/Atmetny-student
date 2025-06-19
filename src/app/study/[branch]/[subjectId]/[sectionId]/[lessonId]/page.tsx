@@ -7,7 +7,7 @@ import { getLessonById } from '@/lib/examService';
 import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, ListChecks, PuzzlePiece } from 'lucide-react';
+import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, ListChecks, Puzzle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { Label } from "@/components/ui/label";
@@ -70,8 +70,8 @@ export default function LessonPage() {
               setSelectedVideoUrl(null);
             }
           } else {
-            setError('لم يتم العثور على الدرس بالمعرف: ' + lessonId + '.');
-            toast({ title: "خطأ", description: 'تفاصيل الدرس "' + lessonId + '" غير موجودة أو تعذر تحميلها.', variant: "destructive" });
+            setError("لم يتم العثور على الدرس بالمعرف: " + lessonId + ".");
+            toast({ title: "خطأ", description: "تفاصيل الدرس \"" + lessonId + "\" غير موجودة أو تعذر تحميلها.", variant: "destructive" });
           }
         } catch (e: any) {
           console.error("Failed to fetch lesson data:", e);
@@ -209,7 +209,7 @@ export default function LessonPage() {
               <Link href={lessonNotesPath}> <Notebook className="ms-2 h-4 w-4" /> ملاحظات </Link>
             </Button>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href={interactiveAppPath}> <PuzzlePiece className="ms-2 h-4 w-4" /> تطبيقات تفاعلية </Link>
+              <Link href={interactiveAppPath}> <Puzzle className="ms-2 h-4 w-4" /> تطبيقات تفاعلية </Link>
             </Button>
           </div>
         </CardContent>
@@ -221,5 +221,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-
