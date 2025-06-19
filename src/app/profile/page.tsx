@@ -29,7 +29,8 @@ const getIcon = (iconName?: LucideIconName): React.ElementType => {
 const formatDate = (isoDateString: string | undefined): string => {
   if (!isoDateString) return 'غير محدد';
   try {
-    return new Date(isoDateString).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+    // Use 'gregory' calendar for Gregorian dates with ar-SA locale for Arabic month names
+    return new Date(isoDateString).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric', calendar: 'gregory' });
   } catch (e) {
     console.error("Error formatting date:", e, "Input was:", isoDateString);
     return "تاريخ غير صالح";
