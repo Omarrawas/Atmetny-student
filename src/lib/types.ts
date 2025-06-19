@@ -53,6 +53,7 @@ export interface UserProfile {
   created_at: string; // Changed from Timestamp
   updated_at: string; // Changed from Timestamp
   active_subscription?: SubscriptionDetails | null;
+  // role?: 'student' | 'teacher' | 'admin'; // Consider adding if your SQL trigger relies on it
 }
 
 // Input type for saveUserProfile function
@@ -74,6 +75,7 @@ export type UserProfileWriteData = {
   active_subscription?: Omit<SubscriptionDetails, 'startDate' | 'endDate'> & { startDate: string | Date, endDate: string | Date } | null;
   updated_at?: string; // Forcing update of this field
   created_at?: string; // Only on creation
+  // role?: 'student' | 'teacher' | 'admin'; // Consider adding if your SQL trigger relies on it
 };
 
 
@@ -163,7 +165,7 @@ export interface Lesson {
   teacher_name?: string | null; // Kept for potential direct teacher linking
   linked_exam_ids?: string[] | null; // Array of UUIDs of exams
   is_locked?: boolean | null; // Default false in DB
-  is_used?: boolean | null; 
+  is_used?: boolean | null;
   created_at: string;
   updated_at: string;
   used_at?: string | null;
@@ -336,10 +338,29 @@ export interface AppSettings {
   updated_at?: string;
 }
 
+export type UserNotificationType =
+  | 'new_announcement'
+  | 'exam_reminder'
+  | 'new_lesson_available'
+  | 'general_info'
+  | string; // Allow for other custom types
+
+export interface UserNotification {
+  id: string; // UUID
+  user_id: string; // UUID, Foreign Key to auth.users.id
+  type: UserNotificationType;
+  title: string;
+  message: string;
+  link_path?: string | null;
+  related_entity_id?: string | null; // UUID
+  related_entity_type?: string | null;
+  is_read: boolean;
+  created_at: string; // timestamptz
+  updated_at: string; // timestamptz
+}
+
 
 // Supabase specific types if needed, e.g. for User
 export type SupabaseAuthUser = User; // Placeholder, use Supabase's actual User type if different
                                     // import { User as SupabaseUser } from '@supabase/supabase-js';
-
-
     
