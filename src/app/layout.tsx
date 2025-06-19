@@ -23,13 +23,15 @@ const geistMono = Geist_Mono({
 // Generate metadata dynamically
 export async function generateMetadata(): Promise<Metadata> {
   const appSettings = await getAppSettings();
-  const appName = appSettings?.app_name || 'Atmetny | أتمتني'; // Default app name
+  const appNameOrDefault = appSettings?.app_name || 'Atmetny';
+  const siteDescription = `استكشف ${appNameOrDefault}، منصتك التعليمية الرائدة لطلاب البكالوريا في سوريا. نقدم اختبارات شاملة، مواد دراسية محدثة، تحليل أداء ذكي، ومجتمعاً تفاعلياً لمساعدتك على تحقيق التفوق.`;
+
   return {
     title: {
-      default: appName,
-      template: `%s | ${appName}`, // For page-specific titles
+      default: appNameOrDefault,
+      template: `%s | ${appNameOrDefault}`, // For page-specific titles
     },
-    description: appSettings?.app_name ? `منصة ${appSettings.app_name} التعليمية الشاملة لطلاب الثالث الثانوي في سوريا` : 'منصة تعليمية شاملة لطلاب الثالث الثانوي في سوريا',
+    description: siteDescription,
     // Add other metadata like icons if app_logo_url is available and suitable for favicon
     // icons: {
     //   icon: appSettings?.app_logo_url || '/favicon.ico', // Example
