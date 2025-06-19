@@ -20,14 +20,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { mainNavItems } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, Moon, Sun, ArrowRight, UserCircle, ExternalLink } from 'lucide-react';
+import { LogOut, Moon, Sun, ArrowRight, UserCircle, ExternalLink, Bell } from 'lucide-react'; // Added Bell
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from '@/components/ui/badge'; // Added Badge
 import { useTheme } from 'next-themes';
 import { supabase } from '@/lib/supabaseClient';
 import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppSettings } from '@/contexts/app-settings-context';
 import Image from 'next/image';
+import { getUnreadUserNotificationsCount } from '@/lib/notificationService'; // Added notification service
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -41,8 +43,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [customLogoLoadError, setCustomLogoLoadError] = useState(false);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNotificationCount, setIsLoadingNotificationCount] = useState(false);
+
   const currentAppName = appSettings?.app_name || 'Atmetny';
-  const currentAppLogoUrl = appSettings?.app_logo_url; // This will be null if not set in DB and context default is null
+  const currentAppLogoUrl = appSettings?.app_logo_url;
   const currentAppLogoHint = appSettings?.app_logo_hint;
 
   useEffect(() => {
@@ -69,19 +74,41 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Reset logo error state if the URL changes (e.g., admin updates it in settings)
+    // Reset logo error state if the URL changes
     setCustomLogoLoadError(false); 
     if (currentAppLogoUrl && currentAppLogoUrl.trim() !== "") {
       console.log(`[AppLayout] Attempting to load configured logo from URL: ${currentAppLogoUrl}`);
       if (!currentAppLogoUrl.startsWith('/') && !currentAppLogoUrl.startsWith('data:')) {
          console.warn(`[AppLayout] The logo URL "${currentAppLogoUrl}" is external. Ensure its hostname is whitelisted in next.config.ts's images.remotePatterns.`);
       }
-    } else if (currentAppLogoUrl === "") { // Explicitly empty string from settings
+    } else if (currentAppLogoUrl === "") { 
       console.warn("[AppLayout] app_logo_url from settings is an empty string. Fallback SVG will be used.");
-    } else { // currentAppLogoUrl is null or undefined (no logo configured in settings)
+    } else { 
       console.log("[AppLayout] No app_logo_url configured in settings. Fallback SVG will be used.");
     }
   }, [currentAppLogoUrl]);
+
+
+  useEffect(() => {
+    if (authUser && authUser.id) {
+      setIsLoadingNotificationCount(true);
+      const fetchCount = async () => {
+        try {
+          const count = await getUnreadUserNotificationsCount(authUser.id);
+          setUnreadCount(count);
+        } catch (error) {
+          console.error("AppLayout: Failed to fetch unread notifications count", error);
+          setUnreadCount(0); // Default to 0 on error
+        } finally {
+          setIsLoadingNotificationCount(false);
+        }
+      };
+      fetchCount();
+      // Consider adding a poller or real-time subscription for updates if needed
+    } else {
+      setUnreadCount(0); // Reset count if no user or user logs out
+    }
+  }, [authUser]);
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -108,7 +135,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const avatarHint = 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
-  // Determine if we should attempt to show the custom logo from settings
   const showConfiguredLogo = currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError;
 
   return (
@@ -118,7 +144,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
             {showConfiguredLogo ? (
               <Image
-                src={currentAppLogoUrl} // At this point, currentAppLogoUrl is a non-empty string from settings
+                src={currentAppLogoUrl}
                 alt={`${currentAppName} Logo`}
                 width={32}
                 height={32}
@@ -130,7 +156,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 }}
               />
             ) : (
-              // Inline SVG fallback (used if no logo URL in settings, or if configured logo fails to load)
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-sidebar-primary">
                 <path d="M12 .75a8.25 8.25 0 00-6.065 2.663A8.25 8.25 0 003.75 12c0 3.97 2.807 7.283 6.495 8.015A8.25 8.25 0 0012 21.75a8.25 8.25 0 008.25-8.25c0-4.019-2.863-7.34-6.635-8.092A8.255 8.255 0 0012 .75zM8.25 12a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0z" />
                 <path d="M8.625 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM15.375 9.375a.375.375 0 11-.75 0 .375.375 0 01.75 0zM11.25 12.375a.375.375 0 01.375-.375h.75a.375.375 0 01.375.375V15a.375.375 0 01-.375.375h-.75a.375.375 0 01-.375-.375V12.375z" />
@@ -228,6 +253,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {/* Current Page Title Can Go Here */}
           </div>
           <div className="flex items-center gap-2">
+            {authUser && (
+              <Button asChild variant="ghost" size="icon" aria-label="الإشعارات">
+                <Link href="/notifications" className="relative" onClick={handleLinkClick}>
+                  <Bell className="h-[1.2rem] w-[1.2rem]" />
+                  {unreadCount > 0 && !isLoadingNotificationCount && (
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-[1rem] p-0.5 flex items-center justify-center text-xs rounded-full">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Badge>
+                  )}
+                  <span className="sr-only">الإشعارات</span>
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="icon" aria-label="Toggle Theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -246,5 +284,4 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </>
   );
 }
-
     
