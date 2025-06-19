@@ -11,10 +11,11 @@ import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTria
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { Label } from "@/components/ui/label";
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
+// ReactMarkdown and its plugins are removed as lesson.content will now be in an iframe
+// import ReactMarkdown from 'react-markdown';
+// import remarkMath from 'remark-math';
+// import rehypeKatex from 'rehype-katex';
+// import rehypeRaw from 'rehype-raw'; // No longer needed for lesson.content if it's in an iframe
 import 'katex/dist/katex.min.css'; 
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +55,7 @@ export default function LessonPage() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (lessonId) { // Only lessonId is needed for getLessonById now
+    if (lessonId) { 
       const fetchLessonData = async () => {
         setIsLoading(true);
         setError(null);
@@ -64,7 +65,7 @@ export default function LessonPage() {
             setLesson(lessonData);
             if (lessonData.teachers && lessonData.teachers.length > 0 && lessonData.teachers[0].youtubeUrl) {
               setSelectedVideoUrl(lessonData.teachers[0].youtubeUrl);
-            } else if (lessonData.video_url) { // Match DB column name
+            } else if (lessonData.video_url) { 
               setSelectedVideoUrl(lessonData.video_url);
             } else {
               setSelectedVideoUrl(null);
@@ -180,18 +181,21 @@ export default function LessonPage() {
           </CardContent>
         )}
         
-        {lesson.content && (
+        {lesson.content && lesson.content.trim() !== '' && (
           <>
             <Separator className="my-0" />
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-xl font-semibold text-primary">محتوى الدرس:</h3>
-              <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkMath]} 
-                  rehypePlugins={[rehypeKatex, rehypeRaw]}
-                >
-                  {String(lesson.content)}
-                </ReactMarkdown>
+              <div dir="rtl" className="max-w-none">
+                 <iframe
+                    srcDoc={lesson.content}
+                    title={`محتوى الدرس التفاعلي: ${lesson.title}`}
+                    width="100%"
+                    height="600px" 
+                    frameBorder="0"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                    className="rounded-md border border-input bg-background"
+                  />
               </div>
             </CardContent>
           </>
@@ -221,3 +225,4 @@ export default function LessonPage() {
     </div>
   );
 }
+
