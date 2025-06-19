@@ -24,7 +24,12 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const appSettings = await getAppSettings();
   const appNameOrDefault = appSettings?.app_name || 'Atmetny';
-  const siteDescription = `استكشف ${appNameOrDefault}، منصتك التعليمية الرائدة لطلاب البكالوريا في سوريا. نقدم اختبارات شاملة، مواد دراسية محدثة، تحليل أداء ذكي، ومجتمعاً تفاعلياً لمساعدتك على تحقيق التفوق.`;
+  
+  const defaultSiteDescription = `استكشف ${appNameOrDefault}، منصتك التعليمية الرائدة لطلاب البكالوريا في سوريا. نقدم اختبارات شاملة، مواد دراسية محدثة، تحليل أداء ذكي، ومجتمعاً تفاعلياً لمساعدتك على تحقيق التفوق.`;
+  
+  const siteDescription = appSettings?.homepage_description && appSettings.homepage_description.trim() !== ''
+    ? appSettings.homepage_description
+    : defaultSiteDescription;
 
   return {
     title: {

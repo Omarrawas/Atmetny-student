@@ -172,7 +172,7 @@ export const getAppSettings = async (): Promise<AppSettings | null> => {
     
     const { data, error, status } = await supabaseAdmin
       .from('app_settings')
-      .select('id, app_name, app_logo_url, app_logo_hint, support_phone_number, support_email, social_media_links, terms_of_service_url, privacy_policy_url, homepage_promo_url, created_at, updated_at')
+      .select('id, app_name, app_logo_url, app_logo_hint, support_phone_number, support_email, social_media_links, terms_of_service_url, privacy_policy_url, homepage_promo_url, homepage_description, created_at, updated_at')
       .eq('id', settingsRowId) 
       .maybeSingle(); 
 
