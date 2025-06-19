@@ -154,6 +154,7 @@ export interface Lesson {
   title: string;
   content?: string | null;
   notes?: string | null;
+  interactive_app_content?: string | null; // New field for interactive HTML/CSS/JS content
   video_url?: string | null;
   teachers?: LessonTeacher[] | null; // From JSONB, parsed to array
   files?: LessonFile[] | null; // From JSONB, parsed to array

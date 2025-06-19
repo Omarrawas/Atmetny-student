@@ -7,14 +7,14 @@ import { getLessonById } from '@/lib/examService';
 import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, ListChecks } from 'lucide-react';
+import { ChevronRight, Youtube, FileText, Notebook, Download, Loader2, AlertTriangle, User, BookOpen, ListChecks, PuzzlePiece } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { Label } from "@/components/ui/label";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw'; // Import rehype-raw
+import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css'; 
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
@@ -126,6 +126,7 @@ export default function LessonPage() {
 
   const lessonExamsListPath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}/lesson-exams-list`;
   const lessonNotesPath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}/notes`;
+  const interactiveAppPath = `/study/${branch}/${subjectId}/${sectionId}/${lessonId}/interactive-app`;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -187,7 +188,7 @@ export default function LessonPage() {
               <div dir="rtl" className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none dark:prose-invert">
                 <ReactMarkdown 
                   remarkPlugins={[remarkMath]} 
-                  rehypePlugins={[rehypeKatex, rehypeRaw]} // Added rehypeRaw here
+                  rehypePlugins={[rehypeKatex, rehypeRaw]}
                 >
                   {String(lesson.content)}
                 </ReactMarkdown>
@@ -207,6 +208,9 @@ export default function LessonPage() {
             <Button asChild variant="outline" className="w-full sm:w-auto">
               <Link href={lessonNotesPath}> <Notebook className="ms-2 h-4 w-4" /> ملاحظات </Link>
             </Button>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href={interactiveAppPath}> <PuzzlePiece className="ms-2 h-4 w-4" /> تطبيقات تفاعلية </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -217,4 +221,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
 

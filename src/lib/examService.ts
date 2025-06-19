@@ -723,7 +723,7 @@ export const getSectionLessons = async (sectionId: string): Promise<Lesson[]> =>
     console.log(`[examService] Querying Supabase 'lessons' for section_id: ${sectionId}`);
     const { data, error, status } = await supabase
       .from('lessons')
-      .select('id, section_id, subject_id, title, content, notes, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
+      .select('id, section_id, subject_id, title, content, notes, interactive_app_content, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
       .eq('section_id', sectionId)
       .order('order', { ascending: true, nullsFirst: false })
       .order('title', { ascending: true });
@@ -778,7 +778,7 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
     }
     const { data, error, status } = await supabase
       .from('lessons')
-      .select('id, section_id, subject_id, title, content, notes, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
+      .select('id, section_id, subject_id, title, content, notes, interactive_app_content, video_url, teachers, files, "order", teacher_id, teacher_name, linked_exam_ids, is_locked, is_used, created_at, updated_at, used_at, used_by_user_id')
       .eq('id', lessonId)
       .maybeSingle();
 
@@ -825,3 +825,4 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
   }
 };
     
+
