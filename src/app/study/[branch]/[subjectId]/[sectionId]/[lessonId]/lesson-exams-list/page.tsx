@@ -14,15 +14,15 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 
 export default function LessonExamsListPage() {
-  const params = useParams();
+  const routeParams = useParams(); // Changed variable name to avoid conflict if 'params' is used below
   const router = useRouter();
   const { toast } = useToast();
-  const { branch, subjectId, sectionId, lessonId } = params as { 
-    branch: string;
-    subjectId: string;
-    sectionId: string;
-    lessonId: string;
-  };
+
+  // Access params individually
+  const branch = routeParams.branch as string;
+  const subjectId = routeParams.subjectId as string;
+  const sectionId = routeParams.sectionId as string;
+  const lessonId = routeParams.lessonId as string;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [linkedExams, setLinkedExams] = useState<Exam[]>([]);
