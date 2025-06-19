@@ -8,12 +8,6 @@ import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, Loader2, AlertTriangle, Puzzle, ToyBrick } from 'lucide-react';
-// ReactMarkdown and its plugins are no longer needed here if only using dangerouslySetInnerHTML
-// import ReactMarkdown from 'react-markdown';
-// import remarkMath from 'remark-math';
-// import rehypeKatex from 'rehype-katex';
-// import rehypeRaw from 'rehype-raw'; // Not needed if using dangerouslySetInnerHTML directly
-// import 'katex/dist/katex.min.css'; // Only if math is still rendered some other way
 import { useToast } from "@/hooks/use-toast";
 
 export default function LessonInteractiveAppPage() {
@@ -104,10 +98,14 @@ export default function LessonInteractiveAppPage() {
         </CardHeader>
         <CardContent>
           {lesson.interactive_app_content && lesson.interactive_app_content.trim() !== '' ? (
-            <div 
-              dir="ltr" 
-              className="w-full overflow-auto"
-              dangerouslySetInnerHTML={{ __html: lesson.interactive_app_content }}
+            <iframe
+              srcDoc={lesson.interactive_app_content}
+              title={`تطبيق تفاعلي: ${lesson.title}`}
+              width="100%"
+              height="600px" // You might want to make this dynamic or configurable
+              frameBorder="0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              className="rounded-md border border-input bg-background"
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
