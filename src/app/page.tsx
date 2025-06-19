@@ -3,16 +3,77 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Brain, FileText, Gift, Sparkles, Star, Users, BookOpen, Newspaper, Megaphone } from "lucide-react";
+import { Award, Brain, FileText, Gift, Sparkles, Star, Users, BookOpen, Newspaper, Megaphone, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAppSettings } from "@/contexts/app-settings-context";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
+import type { UserProfile, Badge as UserBadgeType, Reward as UserRewardType } from '@/lib/types';
+import { getUserProfile } from '@/lib/userProfileService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function HomePage() {
   const { settings } = useAppSettings();
   const appName = settings?.app_name || "Atmetny";
-  const promoUrl = settings?.homepage_promo_url;
-  const newImageUrl = "https://images.unsplash.com/photo-1747081952506-8dbfbabd7067?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOXx8JUQ4JUE3JUQ5JTg0JUQ4JUI1JUQ5JTg4JUQ4JUIxJUQ4JUE5JTIwJUQ5JTg0JUQ4JUE3JUQ4JUFBJUQ4JUI5JUQ4JUIxJUQ4JUI2JTIwJUQ4JUE3JUQ5JThBJTIwJUQ4JUI0JUQ5JThBJUQ4JUExJTIwJUQ4JUIzJUQ5JTg4JUQ5JTg5JTIwJUQ4JUE3JUQ5JTg0JUQ4JUIxJUQ4JUE3JUQ4JUE4JUQ4JUI3JTIwfGVufDB8fHx8MTc1MDI3ODM1MHww&ixlib=rb-4.1.0&q=80&w=1080";
+
+  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    const fetchUserAndProfile = async () => {
+      setIsLoadingProfile(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthUser(session?.user ?? null);
+
+      if (session?.user) {
+        try {
+          const profile = await getUserProfile(session.user.id);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error("Error fetching user profile for homepage:", error);
+          setUserProfile(null); // Ensure profile is null on error
+        }
+      } else {
+        setUserProfile(null); // No user, so no profile
+      }
+      setIsLoadingProfile(false);
+    };
+
+    fetchUserAndProfile();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setIsLoadingProfile(true);
+      const currentUser = session?.user ?? null;
+      setAuthUser(currentUser);
+      if (currentUser) {
+        try {
+          const profile = await getUserProfile(currentUser.id);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error("Error fetching profile on auth change for homepage:", error);
+          setUserProfile(null);
+        }
+      } else {
+        setUserProfile(null);
+      }
+      setIsLoadingProfile(false);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const displayPoints = userProfile?.points ?? 0;
+  const latestBadgeName = userProfile?.badges && userProfile.badges.length > 0 
+    ? userProfile.badges[0].name 
+    : "لا شارات بعد";
+  const latestRewardName = userProfile?.rewards && userProfile.rewards.length > 0
+    ? userProfile.rewards[0].name
+    : "لا مكافآت بعد";
 
   return (
     <div className="space-y-8">
@@ -100,40 +161,115 @@ export default function HomePage() {
 
       <section>
         <h2 className="text-2xl font-semibold mb-4 text-center">إنجازاتك وجوائزك</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="bg-accent/20">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <Star className="h-8 w-8 text-accent-foreground" />
-              <div>
-                <p className="text-lg font-semibold">نقاطك الحالية</p>
-                <p className="text-2xl font-bold text-accent-foreground">1250 نقطة</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-accent/20">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <Award className="h-8 w-8 text-accent-foreground" />
-              <div>
-                <p className="text-lg font-semibold">أحدث شارة</p>
-                <p className="text-xl font-bold text-accent-foreground">محترف الفيزياء</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-accent/20">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <Gift className="h-8 w-8 text-accent-foreground" />
-              <div>
-                <p className="text-lg font-semibold">المكافآت</p>
-                <p className="text-xl font-bold text-accent-foreground">خصم 10%</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-         <div className="mt-4 text-center">
-            <Button variant="link" asChild>
-              <Link href="/profile">عرض كل الإنجازات</Link>
-            </Button>
+        {isLoadingProfile ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card className="bg-accent/20">
+              <CardContent className="pt-6 flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                  <Skeleton className="h-5 w-32 mb-1" />
+                  <Skeleton className="h-7 w-24" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-accent/20">
+              <CardContent className="pt-6 flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                  <Skeleton className="h-5 w-28 mb-1" />
+                  <Skeleton className="h-6 w-36" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-accent/20">
+              <CardContent className="pt-6 flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                  <Skeleton className="h-5 w-24 mb-1" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        ) : authUser && userProfile ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Star className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">نقاطك الحالية</p>
+                    <p className="text-2xl font-bold text-accent-foreground">{displayPoints.toLocaleString('ar-SA')} نقطة</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Award className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">أحدث شارة</p>
+                    <p className="text-xl font-bold text-accent-foreground">{latestBadgeName}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Gift className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">المكافآت</p>
+                    <p className="text-xl font-bold text-accent-foreground">{latestRewardName}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-4 text-center">
+              <Button variant="link" asChild>
+                <Link href="/profile">عرض كل الإنجازات</Link>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+             <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Star className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">نقاطك الحالية</p>
+                    <p className="text-2xl font-bold text-accent-foreground">0 نقطة</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Award className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">أحدث شارة</p>
+                    <p className="text-xl font-bold text-accent-foreground">ابدأ التعلم!</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-accent/20">
+                <CardContent className="pt-6 flex items-center gap-4">
+                  <Gift className="h-8 w-8 text-accent-foreground" />
+                  <div>
+                    <p className="text-lg font-semibold">المكافآت</p>
+                    <p className="text-xl font-bold text-accent-foreground">لا مكافآت بعد</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+             <div className="mt-4 text-center">
+                <p className="text-sm text-muted-foreground mb-2">سجل الدخول لعرض إنجازاتك وتتبع تقدمك.</p>
+                <Button asChild>
+                  <Link href="/auth">
+                    <LogIn className="ms-2 h-4 w-4"/>
+                    تسجيل الدخول
+                  </Link>
+                </Button>
+              </div>
+          </>
+        )}
       </section>
       
     </div>
