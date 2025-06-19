@@ -8,11 +8,12 @@ import type { Lesson } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, Loader2, AlertTriangle, Puzzle, ToyBrick } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw'; // To render HTML content safely
-import 'katex/dist/katex.min.css';
+// ReactMarkdown and its plugins are no longer needed here if only using dangerouslySetInnerHTML
+// import ReactMarkdown from 'react-markdown';
+// import remarkMath from 'remark-math';
+// import rehypeKatex from 'rehype-katex';
+// import rehypeRaw from 'rehype-raw'; // Not needed if using dangerouslySetInnerHTML directly
+// import 'katex/dist/katex.min.css'; // Only if math is still rendered some other way
 import { useToast } from "@/hooks/use-toast";
 
 export default function LessonInteractiveAppPage() {
@@ -103,14 +104,11 @@ export default function LessonInteractiveAppPage() {
         </CardHeader>
         <CardContent>
           {lesson.interactive_app_content && lesson.interactive_app_content.trim() !== '' ? (
-            <div dir="ltr" className="w-full overflow-auto"> {/* Ensure LTR for code execution context, adjust as needed */}
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex, rehypeRaw]} // rehypeRaw is crucial for HTML/JS
-              >
-                {lesson.interactive_app_content}
-              </ReactMarkdown>
-            </div>
+            <div 
+              dir="ltr" 
+              className="w-full overflow-auto"
+              dangerouslySetInnerHTML={{ __html: lesson.interactive_app_content }}
+            />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <ToyBrick className="h-10 w-10 mx-auto mb-2" />
