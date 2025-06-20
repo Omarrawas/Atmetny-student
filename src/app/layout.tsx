@@ -25,7 +25,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const appSettings = await getAppSettings();
   const appNameOrDefault = appSettings?.app_name || 'Atmetny';
   
-  const defaultSiteDescription = `استكشف ${appNameOrDefault}، منصتك التعليمية الرائدة لطلاب البكالوريا في سوريا. نقدم اختبارات شاملة، مواد دراسية محدثة، تحليل أداء ذكي، ومجتمعاً تفاعلياً لمساعدتك على تحقيق التفوق.`;
+  const defaultSiteDescription = `✨ اجعل النجاح عادة!
+منصتك التعليمية الشاملة للدراسة الذكية والاستعداد للاختبارات المؤتمتة في سوريا.
+📚 ابدأ الآن وكن من صُنّاع التفوق.`;
   
   // Use homepage_description from settings if available and not empty, otherwise use the default.
   const siteDescription = appSettings?.homepage_description && appSettings.homepage_description.trim() !== ''
