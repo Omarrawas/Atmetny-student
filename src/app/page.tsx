@@ -90,8 +90,8 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/30"></div>
         <div className="relative z-10">
           <h1 className={cn(
-            "text-4xl md:text-5xl font-bold text-primary-foreground mb-4",
-            settings?.app_name ? "text-gradient-primary" : "" // Apply gradient if app name exists
+            "text-4xl md:text-5xl font-bold mb-4",
+            "text-gradient-primary" // Always apply primary text gradient for homepage title
           )}>
             مرحباً بك في {appName}!
           </h1>

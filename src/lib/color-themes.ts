@@ -318,6 +318,58 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
   {
+    name: "أخضر متدرج",
+    id: "gradient-green",
+    colors: {
+      light: {
+        background: "165 60% 98%", // Very light minty off-white
+        primary: "155 65% 40%",    // Vibrant green
+        accent: "175 70% 50%",     // Bright teal/cyan
+        secondary: "165 60% 45%",   // Bluish green for gradients
+        card: "0 0% 100%",          // White cards
+        border: "160 30% 88%",      // Light minty gray border
+        muted: "160 40% 93%",       // Light minty gray muted
+        sidebarBackground: "170 65% 96%", // Light mint/cyan sidebar
+        sidebarForeground: "160 35% 25%", // Dark green/teal text in sidebar
+        sidebarPrimary: "155 65% 40%",    // Primary green for active sidebar items
+        sidebarPrimaryForeground: "0 0% 100%", // White text on active sidebar
+        sidebarAccent: "170 60% 92%",    // Hover for sidebar items
+        sidebarAccentForeground: "160 35% 20%", // Text on hover for sidebar
+        sidebarBorder: "170 50% 90%",      
+        sidebarRing: "155 65% 45%",
+        appBackgroundGradient: "hsl(165, 60%, 98%)", // Solid light background
+        sidebarBackgroundGradient: "hsl(170, 65%, 96%)", // Solid light sidebar
+        primaryTextGradient: "linear-gradient(to right, hsl(155, 65%, 35%), hsl(165, 60%, 40%))",
+        accentTextGradient: "linear-gradient(to right, hsl(175, 70%, 45%), hsl(185, 65%, 50%))",
+        secondaryTextGradient: "linear-gradient(to right, hsl(165, 60%, 40%), hsl(170, 55%, 45%))",
+        foregroundTextGradient: "linear-gradient(to right, hsl(160, 40%, 20%), hsl(170, 35%, 25%))",
+      },
+      dark: {
+        background: "170 20% 8%",  // Very dark desaturated teal
+        primary: "155 70% 48%",    // Bright vibrant green
+        accent: "175 75% 55%",     // Bright cyan/teal
+        secondary: "165 65% 52%",   // Bluish bright green for gradients
+        card: "170 18% 11%",       // Dark teal card
+        border: "170 15% 18%",      // Dark border
+        muted: "170 15% 22%",       // Dark muted
+        sidebarBackground: "175 22% 9%",  // Dark teal sidebar
+        sidebarForeground: "160 50% 90%", // Light minty text in sidebar
+        sidebarPrimary: "155 70% 48%",    // Bright green for active sidebar
+        sidebarPrimaryForeground: "0 0% 100%", // White text on active sidebar
+        sidebarAccent: "175 20% 14%",    // Hover for sidebar
+        sidebarAccentForeground: "160 50% 95%", // Text on hover
+        sidebarBorder: "175 18% 7%",      
+        sidebarRing: "155 70% 52%",
+        appBackgroundGradient: "hsl(170, 20%, 8%)", // Solid dark background
+        sidebarBackgroundGradient: "hsl(175, 22%, 9%)", // Solid dark sidebar
+        primaryTextGradient: "linear-gradient(to right, hsl(155, 70%, 45%), hsl(165, 65%, 50%))",
+        accentTextGradient: "linear-gradient(to right, hsl(175, 75%, 50%), hsl(185, 70%, 55%))",
+        secondaryTextGradient: "linear-gradient(to right, hsl(165, 65%, 50%), hsl(170, 60%, 55%))",
+        foregroundTextGradient: "linear-gradient(to right, hsl(160, 50%, 85%), hsl(170, 45%, 90%))",
+      },
+    },
+  },
+  {
     name: "أزرق افتراضي (نظام)",
     id: "default-system-blue",
     colors: {
