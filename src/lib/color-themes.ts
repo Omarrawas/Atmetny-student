@@ -204,6 +204,48 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
   {
+    name: "بنفسجي ملكي",
+    id: "royal-purple",
+    colors: {
+      light: {
+        background: "270 100% 97%", // Very light lavender
+        primary: "330 85% 60%",    // Vibrant Pink/Magenta (for primary actions)
+        accent: "180 75% 70%",     // Softer Cyan (for accents)
+        secondary: "270 80% 93%",   // Light muted lavender
+        card: "270 100% 98%",       // Almost white lavender
+        border: "270 60% 88%",      // Light greyish purple
+        muted: "270 80% 93%",       // Greyish purple
+        // Sidebar for light Royal Purple
+        sidebarBackground: "270 60% 95%", // Lighter purple sidebar
+        sidebarForeground: "270 40% 25%", // Darker text
+        sidebarPrimary: "330 85% 60%",    // Pink primary for active/hover
+        sidebarPrimaryForeground: "0 0% 100%", // White text on pink
+        sidebarAccent: "270 60% 90%",    // Lighter hover
+        sidebarAccentForeground: "270 40% 20%", // Darker text on hover
+        sidebarBorder: "270 50% 88%",      // Subtle border
+        sidebarRing: "330 85% 65%",       // Pink ring
+      },
+      dark: {
+        background: "270 30% 10%", // Very dark purple (almost black)
+        primary: "330 80% 65%",    // Vibrant Pink/Magenta (for buttons, active sidebar)
+        accent: "180 70% 55%",     // Bright Cyan/Turquoise (for other buttons, accents)
+        secondary: "270 25% 18%",   // Muted dark purple (for gradients with primary)
+        card: "270 30% 13%",       // Dark purple card, slightly lighter than bg
+        border: "270 25% 22%",      // Subtle border
+        muted: "270 25% 18%",       // Muted text/elements
+        // Sidebar for dark Royal Purple
+        sidebarBackground: "270 30% 8%",  // Even darker purple for sidebar
+        sidebarForeground: "270 100% 90%",// Light text
+        sidebarPrimary: "330 80% 65%",    // Pink primary for active item
+        sidebarPrimaryForeground: "0 0% 100%", // White text on active
+        sidebarAccent: "270 30% 15%",    // Hover for sidebar items
+        sidebarAccentForeground: "270 100% 90%", // Light text on hover
+        sidebarBorder: "270 30% 18%",      // Border for sidebar
+        sidebarRing: "330 80% 65%",       // Pink ring for focus
+      },
+    },
+  },
+  {
     name: "أزرق افتراضي (نظام)",
     id: "default-system-blue",
     colors: {
@@ -280,46 +322,6 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccentForeground: "120 60% 90%",
         sidebarBorder: "120 25% 18%",
         sidebarRing: "90 50% 65%",
-      },
-    },
-  },
-  {
-    name: "بنفسجي ملكي",
-    id: "royal-purple",
-    colors: {
-      light: {
-        background: "270 100% 97%",
-        primary: "270 50% 60%",
-        accent: "300 70% 80%",
-        secondary: "270 80% 93%",
-        card: "270 100% 98%",
-        border: "270 60% 88%",
-        muted: "270 80% 93%",
-        sidebarBackground: "270 50% 50%",
-        sidebarForeground: "0 0% 100%",
-        sidebarPrimary: "300 70% 80%",
-        sidebarPrimaryForeground: "300 70% 30%",
-        sidebarAccent: "270 50% 65%",
-        sidebarAccentForeground: "0 0% 100%",
-        sidebarBorder: "270 50% 45%",
-        sidebarRing: "300 70% 80%",
-      },
-      dark: {
-        background: "270 30% 10%",
-        primary: "270 50% 70%",
-        accent: "300 70% 70%",
-        secondary: "270 25% 18%",
-        card: "270 30% 13%",
-        border: "270 25% 22%",
-        muted: "270 25% 18%",
-        sidebarBackground: "270 30% 8%",
-        sidebarForeground: "270 100% 90%",
-        sidebarPrimary: "300 70% 70%",
-        sidebarPrimaryForeground: "300 70% 25%",
-        sidebarAccent: "270 30% 15%",
-        sidebarAccentForeground: "270 100% 90%",
-        sidebarBorder: "270 30% 18%",
-        sidebarRing: "300 70% 70%",
       },
     },
   },
