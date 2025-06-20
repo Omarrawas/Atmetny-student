@@ -188,43 +188,52 @@ export const predefinedThemes: ColorTheme[] = [
         appBackgroundGradient: "linear-gradient(to bottom right, hsl(250, 60%, 98%), hsl(275, 60%, 95%))",
         sidebarBackgroundGradient: "linear-gradient(to bottom, hsl(275, 60%, 95%), hsl(275, 40%, 90%))",
         cardBackgroundGradient: "linear-gradient(to bottom right, hsl(0, 0%, 100%), hsl(270, 40%, 98%))",
-        primaryTextGradient: "linear-gradient(to right, hsl(275, 80%, 55%), hsl(300, 70%, 60%))",
-        accentTextGradient: "linear-gradient(to right, hsl(300, 70%, 58%), hsl(275, 60%, 68%))",
-        secondaryTextGradient: "linear-gradient(to right, hsl(275, 40%, 35%), hsl(275, 30%, 40%))",
-        foregroundTextGradient: "linear-gradient(to right, hsl(275, 30%, 30%), hsl(275, 30%, 35%))",
+  
+        primaryTextGradient: "linear-gradient(to right, hsl(275, 85%, 45%), hsl(300, 80%, 50%))",
+        accentTextGradient: "linear-gradient(to right, hsl(300, 80%, 52%), hsl(275, 75%, 58%))",
+        secondaryTextGradient: "linear-gradient(to right, hsl(275, 50%, 40%), hsl(275, 45%, 45%))",
+        foregroundTextGradient: "linear-gradient(to right, hsl(275, 50%, 30%), hsl(275, 50%, 35%))",
+  
         userGradientAccentStart: "hsl(275, 70%, 55%)",
         userGradientAccentEnd: "hsl(300, 70%, 60%)",
         userGradientRedStart: "hsl(0, 80%, 60%)",
         userGradientRedEnd: "hsl(350, 80%, 65%)"
-      },
-      dark: { 
-        background: "250 10% 10%", 
-        primary: "275 75% 65%",    
-        accent: "300 80% 70%",     
-        secondary: "250 10% 25%",   
-        card: "250 10% 15%",       
-        border: "250 10% 20%",      
-        muted: "250 10% 20%",       
-        sidebarBackground: "250 12% 12%", 
-        sidebarForeground: "250 15% 95%", 
-        sidebarPrimary: "275 75% 65%",    
-        sidebarPrimaryForeground: "0 0% 100%", 
-        sidebarAccent: "250 10% 20%",    
-        sidebarAccentForeground: "250 15% 95%", 
-        sidebarBorder: "250 10% 10%",      
-        sidebarRing: "275 75% 70%",
-        appBackgroundGradient: "linear-gradient(to bottom right, hsl(250, 20%, 8%), hsl(275, 20%, 12%))",
-        sidebarBackgroundGradient: "linear-gradient(to bottom, hsl(250, 15%, 10%), hsl(275, 15%, 14%))",
-        cardBackgroundGradient: "linear-gradient(to bottom right, hsl(250, 15%, 12%), hsl(250, 10%, 18%))",
-        primaryTextGradient: "linear-gradient(to right, hsl(275, 80%, 65%), hsl(300, 80%, 70%))",
-        accentTextGradient: "linear-gradient(to right, hsl(300, 80%, 68%), hsl(275, 70%, 75%))",
-        secondaryTextGradient: "linear-gradient(to right, hsl(250, 20%, 85%), hsl(250, 15%, 75%))",
-        foregroundTextGradient: "linear-gradient(to right, hsl(250, 25%, 92%), hsl(0, 0%, 100%))",
-        userGradientAccentStart: "hsl(275, 75%, 65%)",
-        userGradientAccentEnd: "hsl(300, 80%, 70%)",
-        userGradientRedStart: "hsl(0, 70%, 60%)",
-        userGradientRedEnd: "hsl(350, 70%, 65%)"
-      }
+  },
+  dark: {
+    background: "250 10% 10%", 
+    primary: "275 75% 65%",    
+    accent: "300 80% 70%",     
+    secondary: "250 10% 25%",   
+    card: "250 10% 15%",       
+    border: "250 10% 20%",      
+    muted: "250 10% 20%",       
+    sidebarBackground: "250 12% 12%", 
+    sidebarForeground: "250 15% 95%", 
+    sidebarPrimary: "275 75% 65%",    
+    sidebarPrimaryForeground: "0 0% 100%", 
+    sidebarAccent: "250 10% 20%",    
+    sidebarAccentForeground: "250 15% 95%", 
+    sidebarBorder: "250 10% 10%",      
+    sidebarRing: "275 75% 70%",
+  
+    // ✨ تحسينات مرئية
+    appBackgroundGradient: "linear-gradient(to bottom right, hsl(250, 20%, 9%), hsl(275, 25%, 13%))",
+    sidebarBackgroundGradient: "linear-gradient(to bottom, hsl(250, 15%, 11%), hsl(275, 20%, 14%))",
+    cardBackgroundGradient: "linear-gradient(to bottom right, hsl(250, 15%, 13%), hsl(250, 10%, 18%))",
+  
+    // ✅ تحسين وضوح النصوص المتدرجة
+    primaryTextGradient: "linear-gradient(to right, hsl(275, 85%, 70%), hsl(300, 85%, 72%))",
+    accentTextGradient: "linear-gradient(to right, hsl(300, 85%, 70%), hsl(275, 75%, 78%))",
+    secondaryTextGradient: "linear-gradient(to right, hsl(250, 30%, 85%), hsl(250, 20%, 75%))",
+    foregroundTextGradient: "linear-gradient(to right, hsl(250, 30%, 92%), hsl(0, 0%, 100%))",
+  
+    // 🎨 درجات المستخدم
+    userGradientAccentStart: "hsl(275, 75%, 65%)",
+    userGradientAccentEnd: "hsl(300, 80%, 70%)",
+    userGradientRedStart: "hsl(0, 70%, 60%)",
+    userGradientRedEnd: "hsl(350, 70%, 65%)"
+  }
+  
     }
   },
   {
@@ -395,8 +404,8 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarForeground: "30 90% 88%",
         sidebarPrimary: "25 85% 68%",
         sidebarPrimaryForeground: "0 0% 100%",
-        sidebarAccent: "45 100% 60%",
-        sidebarAccentForeground: "45 70% 15%",
+        sidebarAccent: "30 80% 35%",
+        sidebarAccentForeground: "0 0% 100%",
         sidebarBorder: "25 20% 18%",
         sidebarRing: "25 85% 70%",
         appBackgroundGradient: "linear-gradient(to bottom right, hsl(25, 25%, 9%), hsl(30, 30%, 11%), hsl(35, 35%, 13%))",
