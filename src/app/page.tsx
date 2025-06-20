@@ -75,6 +75,14 @@ export default function HomePage() {
     ? userProfile.rewards[0].name
     : "لا مكافآت بعد";
 
+  const defaultHomepageDescription = `✨ اجعل النجاح عادة!
+منصتك التعليمية الشاملة للدراسة الذكية والاستعداد للاختبارات المؤتمتة في سوريا.
+📚 ابدأ الآن وكن من صُنّاع التفوق.`;
+
+  const homepageText = settings?.homepage_description && settings.homepage_description.trim() !== ''
+    ? settings.homepage_description
+    : defaultHomepageDescription;
+
   return (
     <div className="space-y-8">
       <header className="relative rounded-lg overflow-hidden p-8 md:p-12 min-h-[350px] flex flex-col justify-center items-center text-center bg-gradient-to-br from-primary to-secondary shadow-lg">
@@ -83,8 +91,8 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
             مرحباً بك في {appName}!
           </h1>
-          <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-8">
-            منصتك المثالية للاستعداد لامتحانات الصف الثالث الثانوي في سوريا. ابدأ رحلتك نحو النجاح اليوم.
+          <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-8 whitespace-pre-line">
+            {homepageText}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg">
