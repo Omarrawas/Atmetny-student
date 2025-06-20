@@ -44,7 +44,47 @@ export interface ColorTheme {
 
 export const predefinedThemes: ColorTheme[] = [
   {
-    name: "أزرق افتراضي (نظام)",
+    name: "بنفسجي ليلي",
+    id: "night-purple",
+    colors: {
+      light: { // Conceptual light version for "Night Purple"
+        background: "250 20% 98%", // Very Light Lavender White
+        primary: "275 70% 55%",    // Vibrant Purple (adjusted for light bg)
+        accent: "300 70% 60%",     // Pinkish-Purple accent
+        secondary: "275 60% 90%",   // Very Light Purple
+        card: "0 0% 100%",          // White
+        border: "250 15% 88%",      // Light Lavender Border
+        muted: "250 15% 94%",       // Light Lavender Grey
+        sidebarBackground: "275 50% 96%", // Very Light Purple/Lavender
+        sidebarForeground: "275 50% 25%", // Dark Purple text
+        sidebarPrimary: "275 70% 55%",    // Primary color for active items
+        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
+        sidebarAccent: "275 50% 92%",    // Slightly darker light purple for hover
+        sidebarAccentForeground: "275 50% 20%", // Darker purple for text on hover
+        sidebarBorder: "275 40% 90%",      // Light border
+        sidebarRing: "275 70% 60%",       // Ring color
+      },
+      dark: { // Colors derived from the provided image
+        background: "250 10% 10%", // Dark Indigo/Deep Purple-Blue
+        primary: "275 75% 65%",    // Vibrant Purple/Magenta
+        accent: "300 80% 70%",     // Bright Pinkish-Purple as an accent
+        secondary: "250 10% 25%",   // Muted Dark Indigo for secondary elements
+        card: "250 10% 15%",       // Slightly Lighter Dark Indigo
+        border: "250 10% 20%",      // Subtle border
+        muted: "250 10% 20%",       // Muted color
+        sidebarBackground: "250 12% 12%", // Distinct dark indigo for sidebar
+        sidebarForeground: "250 15% 95%", // White/Light Lavender text
+        sidebarPrimary: "275 75% 65%",    // Primary color for active items
+        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
+        sidebarAccent: "250 10% 20%",    // Slightly lighter dark indigo for hover
+        sidebarAccentForeground: "250 15% 95%", // Text on hover
+        sidebarBorder: "250 10% 10%",      // Darker border for sidebar
+        sidebarRing: "275 75% 70%",       // Ring color
+      },
+    },
+  },
+  {
+    name: "أزرق افتراضي (نظام)", // This was the previous default
     id: "default-system-blue",
     colors: {
       light: {
@@ -164,7 +204,7 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
   {
-    name: "بنفسجي ملكي",
+    name: "بنفسجي ملكي", // This was the ID the user previously had potentially selected from settings
     id: "royal-purple",
     colors: {
       light: {
@@ -204,3 +244,4 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
 ];
+
