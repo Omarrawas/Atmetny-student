@@ -146,55 +146,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className={cn("hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1", isAtmetyTechTheme && "card-gradient-background modern-shadow")}>
-          <CardHeader className="items-center">
-            <Users className={cn("h-10 w-10 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-start)]" : "text-primary")} />
-            <CardTitle className={cn(isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>مجتمع تفاعلي</CardTitle>
-            <CardDescription className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>تواصل مع الطلاب والمعلمين.</CardDescription>
-          </CardHeader>
-          <CardContent className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>
-            <p>شارك في النقاشات، اطرح الأسئلة، وتبادل المعرفة مع زملائك ومعلميك.</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className={cn("w-full", isAtmetyTechTheme && "gradient-bg-primary-button gradient-bg-primary-button-hover modern-shadow-light")}>
-              <Link href="/community">انضم إلى المجتمع</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className={cn("hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1", isAtmetyTechTheme && "card-gradient-background modern-shadow")}>
-          <CardHeader className="items-center">
-            <Sparkles className={cn("h-10 w-10 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-start)]" : "text-primary")} />
-            <CardTitle className={cn(isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>تحليل الأداء الذكي</CardTitle>
-            <CardDescription className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>احصل على رؤى مخصصة لتحسين أدائك.</CardDescription>
-          </CardHeader>
-          <CardContent className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>
-            <p>استخدم الذكاء الاصطناعي لتحليل نتائج اختباراتك وتحديد نقاط القوة والضعف.</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className={cn("w-full", isAtmetyTechTheme && "gradient-bg-primary-button gradient-bg-primary-button-hover modern-shadow-light")}>
-              <Link href="/ai-analysis">ابدأ التحليل الآن</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className={cn("hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1", isAtmetyTechTheme && "card-gradient-background modern-shadow")}>
-          <CardHeader className="items-center">
-            <FileText className={cn("h-10 w-10 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-start)]" : "text-primary")} />
-            <CardTitle className={cn(isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>الاختبارات التدريبية</CardTitle>
-            <CardDescription className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>اكتشف مجموعة واسعة من الاختبارات المخصصة.</CardDescription>
-          </CardHeader>
-          <CardContent className={cn(isAtmetyTechTheme && "text-[var(--user-text-secondary)]")}>
-            <p>تدرب على أسئلة متنوعة من إعداد أفضل المدرسين في مختلف المواد الدراسية.</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className={cn("w-full", isAtmetyTechTheme && "gradient-bg-primary-button gradient-bg-primary-button-hover modern-shadow-light")}>
-              <Link href="/exams">تصفح الاختبارات</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </section>
+      {/* Section with Community, AI Analysis, and Training Exams cards has been removed */}
 
       <section className="mt-12">
         <h2 className={cn("text-3xl font-bold mb-8 text-center", isAtmetyTechTheme ? "gradient-text" : "text-foreground")}>إنجازاتك وجوائزك</h2>
