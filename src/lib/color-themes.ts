@@ -20,6 +20,10 @@ export interface ColorTheme {
       sidebarAccentForeground: string;
       sidebarBorder: string;
       sidebarRing: string;
+      // Optional gradient properties
+      appBackgroundGradient?: string;
+      sidebarBackgroundGradient?: string;
+      primaryGradient?: string;
     };
     dark: {
       background: string;
@@ -38,6 +42,10 @@ export interface ColorTheme {
       sidebarAccentForeground: string;
       sidebarBorder: string;
       sidebarRing: string;
+      // Optional gradient properties
+      appBackgroundGradient?: string;
+      sidebarBackgroundGradient?: string;
+      primaryGradient?: string;
     };
   };
 }
@@ -208,40 +216,82 @@ export const predefinedThemes: ColorTheme[] = [
     id: "royal-purple",
     colors: {
       light: {
-        background: "270 100% 97%", // Very light lavender
-        primary: "330 85% 60%",    // Vibrant Pink/Magenta (for primary actions)
-        accent: "180 75% 70%",     // Softer Cyan (for accents)
-        secondary: "270 80% 93%",   // Light muted lavender
-        card: "270 100% 98%",       // Almost white lavender
-        border: "270 60% 88%",      // Light greyish purple
-        muted: "270 80% 93%",       // Greyish purple
-        // Sidebar for light Royal Purple
-        sidebarBackground: "270 60% 95%", // Lighter purple sidebar
-        sidebarForeground: "270 40% 25%", // Darker text
-        sidebarPrimary: "330 85% 60%",    // Pink primary for active/hover
-        sidebarPrimaryForeground: "0 0% 100%", // White text on pink
-        sidebarAccent: "270 60% 90%",    // Lighter hover
-        sidebarAccentForeground: "270 40% 20%", // Darker text on hover
-        sidebarBorder: "270 50% 88%",      // Subtle border
-        sidebarRing: "330 85% 65%",       // Pink ring
+        background: "270 100% 97%", 
+        primary: "330 85% 60%",    
+        accent: "180 75% 70%",     
+        secondary: "270 80% 93%",   
+        card: "270 100% 98%",       
+        border: "270 60% 88%",      
+        muted: "270 80% 93%",       
+        sidebarBackground: "270 60% 95%", 
+        sidebarForeground: "270 40% 25%", 
+        sidebarPrimary: "330 85% 60%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "270 60% 90%",    
+        sidebarAccentForeground: "270 40% 20%", 
+        sidebarBorder: "270 50% 88%",      
+        sidebarRing: "330 85% 65%",       
       },
       dark: {
-        background: "270 30% 10%", // Very dark purple (almost black)
-        primary: "330 80% 65%",    // Vibrant Pink/Magenta (for buttons, active sidebar)
-        accent: "180 70% 55%",     // Bright Cyan/Turquoise (for other buttons, accents)
-        secondary: "270 25% 18%",   // Muted dark purple (for gradients with primary)
-        card: "270 30% 13%",       // Dark purple card, slightly lighter than bg
-        border: "270 25% 22%",      // Subtle border
-        muted: "270 25% 18%",       // Muted text/elements
-        // Sidebar for dark Royal Purple
-        sidebarBackground: "270 30% 8%",  // Even darker purple for sidebar
-        sidebarForeground: "270 100% 90%",// Light text
-        sidebarPrimary: "330 80% 65%",    // Pink primary for active item
-        sidebarPrimaryForeground: "0 0% 100%", // White text on active
-        sidebarAccent: "270 30% 15%",    // Hover for sidebar items
-        sidebarAccentForeground: "270 100% 90%", // Light text on hover
-        sidebarBorder: "270 30% 18%",      // Border for sidebar
-        sidebarRing: "330 80% 65%",       // Pink ring for focus
+        background: "270 30% 10%", 
+        primary: "330 80% 65%",    
+        accent: "180 70% 55%",     
+        secondary: "270 25% 18%",   
+        card: "270 30% 13%",       
+        border: "270 25% 22%",      
+        muted: "270 25% 18%",       
+        sidebarBackground: "270 30% 8%",  
+        sidebarForeground: "270 100% 90%",
+        sidebarPrimary: "330 80% 65%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "270 30% 15%",    
+        sidebarAccentForeground: "270 100% 90%", 
+        sidebarBorder: "270 30% 18%",      
+        sidebarRing: "330 80% 65%",       
+      },
+    },
+  },
+  {
+    name: "شروق ديناميكي",
+    id: "dynamic-sunrise",
+    colors: {
+      light: {
+        background: "45 100% 98%", // Very light, almost white yellow
+        primary: "35 90% 60%",    // Vibrant Orange
+        accent: "50 95% 55%",     // Bright Yellow
+        secondary: "20 80% 88%",   // Soft Peach for gradients
+        card: "0 0% 100%",          // White cards
+        border: "30 50% 85%",      // Light warm grey border
+        muted: "30 50% 90%",       // Muted warm grey
+        sidebarBackground: "30 85% 95%", // Light peach sidebar
+        sidebarForeground: "25 50% 30%", // Darker warm text
+        sidebarPrimary: "35 90% 60%",    // Orange for active items
+        sidebarPrimaryForeground: "0 0% 100%", // White text on orange
+        sidebarAccent: "30 80% 90%",    // Lighter peach hover
+        sidebarAccentForeground: "25 50% 25%", // Darker warm text on hover
+        sidebarBorder: "30 70% 88%",      // Warm border
+        sidebarRing: "35 90% 65%",       // Orange ring
+        appBackgroundGradient: "linear-gradient(135deg, hsl(50, 100%, 90%), hsl(30, 100%, 88%))", // Light Yellow to Pale Orange
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(35, 95%, 92%), hsl(25, 90%, 90%))", // Subtle warm gradient
+      },
+      dark: {
+        background: "25 30% 8%",  // Very dark warm brown
+        primary: "30 90% 65%",    // Vibrant Orange
+        accent: "45 100% 60%",     // Bright Yellow
+        secondary: "20 40% 15%",   // Darker warm brown for gradients
+        card: "25 30% 12%",       // Dark warm brown card
+        border: "25 20% 20%",      // Subtle warm border
+        muted: "25 20% 15%",       // Muted dark brown
+        sidebarBackground: "20 35% 6%",  // Even darker warm brown for sidebar
+        sidebarForeground: "30 80% 85%", // Light warm text
+        sidebarPrimary: "30 90% 65%",    // Orange for active items
+        sidebarPrimaryForeground: "0 0% 100%", // White text
+        sidebarAccent: "20 30% 10%",    // Hover for sidebar items
+        sidebarAccentForeground: "30 80% 90%", // Light warm text on hover
+        sidebarBorder: "20 30% 12%",      // Dark warm border
+        sidebarRing: "30 90% 70%",       // Orange ring
+        appBackgroundGradient: "linear-gradient(135deg, hsl(25, 40%, 10%), hsl(200, 30%, 8%))", // Dark Warm Brown to Very Dark Desaturated Blue
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(25, 30%, 9%), hsl(20, 25%, 7%))", // Subtle dark warm gradient
       },
     },
   },
@@ -326,6 +376,4 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
 ];
-
-
     

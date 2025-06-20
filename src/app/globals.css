@@ -48,6 +48,11 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 207 80% 50%;
     --sidebar-ring: 45 100% 85%;
+
+    /* Variables for actual backgrounds (can be gradients or solid HSLs) */
+    --app-bg-actual: hsl(var(--background));
+    --sidebar-bg-actual: hsl(var(--sidebar-background));
+    /* --primary-gradient-actual: hsl(var(--primary)); */ /* Example, if needed */
   }
 
   .dark {
@@ -95,6 +100,11 @@
     --sidebar-accent-foreground: 250 15% 95%;
     --sidebar-border: 250 10% 10%;      /* Darker border */
     --sidebar-ring: 275 75% 70%;       /* Ring color */
+
+    /* Ensure these are also defined for dark mode, even if they just fall back to solid initially */
+    --app-bg-actual: hsl(var(--background));
+    --sidebar-bg-actual: hsl(var(--sidebar-background));
+    /* --primary-gradient-actual: hsl(var(--primary)); */
   }
 }
 
@@ -103,9 +113,17 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Use the actual background variable that might be a gradient or solid */
+    background: var(--app-bg-actual);
+    @apply text-foreground;
     /* The Geist font should handle Arabic characters well.
        Ensure to use lang="ar" and dir="rtl" in HTML for proper rendering. */
+  }
+
+  /* Target the actual sidebar element that gets the background color */
+  /* This selector comes from the data-sidebar attribute in src/components/ui/sidebar.tsx */
+  [data-sidebar="sidebar"] {
+    background: var(--sidebar-bg-actual);
   }
 }
 

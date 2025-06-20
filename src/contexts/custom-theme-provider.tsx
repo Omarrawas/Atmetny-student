@@ -11,7 +11,7 @@ interface CustomThemeContextType {
   selectedThemeId: string;
   selectTheme: (themeId: string) => void;
   themes: ColorTheme[];
-  getActiveThemeColors: () => ColorTheme['colors']['light'] | null; // Return type simplified for example
+  getActiveThemeColors: () => ColorTheme['colors']['light'] | ColorTheme['colors']['dark'] | null;
 }
 
 const CustomThemeContext = createContext<CustomThemeContextType | undefined>(undefined);
@@ -54,6 +54,8 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     const colorsToApply = resolvedMode === 'dark' ? currentThemeDefinition.colors.dark : currentThemeDefinition.colors.light;
 
     const root = document.documentElement;
+    
+    // Set solid HSL colors first
     root.style.setProperty('--background', colorsToApply.background);
     root.style.setProperty('--primary', colorsToApply.primary);
     root.style.setProperty('--accent', colorsToApply.accent);
@@ -62,7 +64,6 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     root.style.setProperty('--border', colorsToApply.border);
     root.style.setProperty('--muted', colorsToApply.muted);
 
-    // Apply sidebar colors
     root.style.setProperty('--sidebar-background', colorsToApply.sidebarBackground);
     root.style.setProperty('--sidebar-foreground', colorsToApply.sidebarForeground);
     root.style.setProperty('--sidebar-primary', colorsToApply.sidebarPrimary);
@@ -71,6 +72,18 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     root.style.setProperty('--sidebar-accent-foreground', colorsToApply.sidebarAccentForeground);
     root.style.setProperty('--sidebar-border', colorsToApply.sidebarBorder);
     root.style.setProperty('--sidebar-ring', colorsToApply.sidebarRing);
+
+    // Set actual background properties, using gradient if available, otherwise solid HSL
+    const appBgActual = colorsToApply.appBackgroundGradient || `hsl(${colorsToApply.background})`;
+    root.style.setProperty('--app-bg-actual', appBgActual);
+
+    const sidebarBgActual = colorsToApply.sidebarBackgroundGradient || `hsl(${colorsToApply.sidebarBackground})`;
+    root.style.setProperty('--sidebar-bg-actual', sidebarBgActual);
+
+    // Example for primary gradient (if you want to use it on specific elements)
+    // const primaryGradientActual = colorsToApply.primaryGradient || `hsl(${colorsToApply.primary})`;
+    // root.style.setProperty('--primary-gradient-actual', primaryGradientActual);
+
 
   }, [isMounted, selectedThemeId, getResolvedMode]);
 
@@ -89,7 +102,7 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const getActiveThemeColors = useCallback((): ColorTheme['colors']['light'] | null => {
+  const getActiveThemeColors = useCallback((): ColorTheme['colors']['light'] | ColorTheme['colors']['dark'] | null => {
     if (!isMounted) return null;
     const resolvedMode = getResolvedMode();
     if (!resolvedMode) return null;
