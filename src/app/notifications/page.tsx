@@ -4,12 +4,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
+import type { User as SupabaseAuthUser, RealtimeChannel } from '@supabase/supabase-js';
 import {
   getUserNotifications,
   markUserNotificationAsRead,
   markAllUserNotificationsAsRead,
-  getUnreadUserNotificationsCount, // For potential refresh
+  getUnreadUserNotificationsCount,
 } from '@/lib/notificationService';
 import type { UserNotification, UserNotificationType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ const getIconForNotificationType = (type: UserNotificationType): React.ElementTy
     case 'exam_reminder':
       return BellRing;
     case 'new_lesson_available':
-      return Newspaper; // Or BookOpen, etc.
+      return Newspaper;
     case 'general_info':
     default:
       return Info;
@@ -53,7 +53,6 @@ const getIconForNotificationType = (type: UserNotificationType): React.ElementTy
 };
 
 const getVariantForNotificationType = (type: UserNotificationType): "default" | "destructive" => {
-    // Example: make 'error' type notifications destructive
     if (type === 'error_notification_type_example') return "destructive";
     return "default";
 };
@@ -66,19 +65,18 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const [unreadCount, setUnreadCount] = useState(0); // For displaying count on this page
 
-  // State for unread count to potentially refresh UI badge, though layout handles primary badge
-  const [unreadCount, setUnreadCount] = useState(0);
-
-
-  const fetchNotifications = useCallback(async (userId: string) => {
+  const fetchNotificationsData = useCallback(async (userId: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedNotifications = await getUserNotifications(userId, { limit: 50 }); // Fetch latest 50
+      const [fetchedNotifications, count] = await Promise.all([
+        getUserNotifications(userId, { limit: 50 }),
+        getUnreadUserNotificationsCount(userId)
+      ]);
       setNotifications(fetchedNotifications);
-      const count = await getUnreadUserNotificationsCount(userId);
-      setUnreadCount(count); // Update local unread count
+      setUnreadCount(count);
     } catch (e: any) {
       console.error('Failed to fetch notifications:', e);
       setError('فشل تحميل الإشعارات. يرجى المحاولة مرة أخرى.');
@@ -89,48 +87,91 @@ export default function NotificationsPage() {
   }, [toast]);
 
   useEffect(() => {
-    const getSessionUser = async () => {
+    let notificationsChannel: RealtimeChannel | null = null;
+
+    const setupAuthAndSubscriptions = async () => {
+      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user ?? null;
       setAuthUser(user);
+
       if (user) {
-        fetchNotifications(user.id);
+        await fetchNotificationsData(user.id);
+
+        notificationsChannel = supabase
+          .channel(`user-notifications-list-${user.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${user.id}` },
+            async (payload) => {
+              console.log('[NotificationsPage] Real-time event:', payload);
+              // Re-fetch for simplicity, can be optimized with granular updates
+              await fetchNotificationsData(user.id);
+            }
+          )
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              console.log(`[NotificationsPage] Subscribed to notification list changes for user ${user.id}.`);
+            }
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              console.error(`[NotificationsPage] Subscription issue for notification list (user ${user.id}): ${status}`, err);
+            }
+          });
       } else {
         setIsLoading(false);
-        // router.push('/auth'); // Redirect if not logged in
+        setNotifications([]);
+        setUnreadCount(0);
       }
     };
-    getSessionUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      const user = session?.user ?? null;
-      setAuthUser(user);
-      if (user) {
-        fetchNotifications(user.id);
+    setupAuthAndSubscriptions();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user ?? null;
+      setAuthUser(currentUser);
+
+      if (notificationsChannel) {
+        await supabase.removeChannel(notificationsChannel);
+        notificationsChannel = null;
+      }
+
+      if (currentUser) {
+        await fetchNotificationsData(currentUser.id); // Fetch on auth change
+        notificationsChannel = supabase // Re-subscribe
+          .channel(`user-notifications-list-${currentUser.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${currentUser.id}` },
+            async (payload) => {
+              await fetchNotificationsData(currentUser.id);
+            }
+          )
+          .subscribe();
       } else {
         setNotifications([]);
         setUnreadCount(0);
-        // router.push('/auth');
+        setIsLoading(false);
       }
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
+      if (notificationsChannel) {
+        supabase.removeChannel(notificationsChannel).catch(console.error);
+      }
     };
-  }, [fetchNotifications, router]);
+  }, [fetchNotificationsData]);
 
 
   const handleMarkAsRead = async (notification: UserNotification) => {
     if (!authUser || notification.is_read) return;
     try {
       await markUserNotificationAsRead(notification.id);
-      setNotifications(prev =>
-        prev.map(n => (n.id === notification.id ? { ...n, is_read: true } : n))
-      );
-      // Optionally refresh unread count in header if a global state/context is used
-      const count = await getUnreadUserNotificationsCount(authUser.id);
-      setUnreadCount(count);
-      // router.refresh(); // could also force a server component refresh if applicable
+      // Real-time update should handle re-fetch or local state update via subscription.
+      // For immediate feedback, can update locally too, but might conflict with RT.
+      // setNotifications(prev => prev.map(n => (n.id === notification.id ? { ...n, is_read: true } : n)));
+      // const newCount = await getUnreadUserNotificationsCount(authUser.id);
+      // setUnreadCount(newCount);
 
       if (notification.link_path) {
         router.push(notification.link_path);
@@ -146,9 +187,7 @@ export default function NotificationsPage() {
     if (!authUser || notifications.every(n => n.is_read)) return;
     try {
       await markAllUserNotificationsAsRead(authUser.id);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
-      // router.refresh();
+      // Real-time update should handle re-fetch.
       toast({ title: 'تم بنجاح', description: 'تم تحديد جميع الإشعارات كمقروءة.' });
     } catch (e) {
       console.error('Failed to mark all notifications as read:', e);
@@ -182,7 +221,7 @@ export default function NotificationsPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
         <p className="text-lg text-destructive mb-4">{error}</p>
-        <Button onClick={() => authUser && fetchNotifications(authUser.id)} variant="outline">
+        <Button onClick={() => authUser && fetchNotificationsData(authUser.id)} variant="outline">
           إعادة المحاولة
         </Button>
       </div>
@@ -255,7 +294,7 @@ export default function NotificationsPage() {
                                             href={notification.link_path}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()} // Prevent parent button click
+                                            onClick={(e) => e.stopPropagation()} 
                                             className="text-xs inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                                         >
                                             <ExternalLink className="h-3 w-3"/> فتح الرابط
@@ -281,5 +320,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
-
     

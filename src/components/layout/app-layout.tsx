@@ -20,16 +20,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { mainNavItems } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, Moon, Sun, ArrowRight, UserCircle, ExternalLink, Bell } from 'lucide-react'; // Added Bell
+import { LogOut, Moon, Sun, ArrowRight, UserCircle, ExternalLink, Bell } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from '@/components/ui/badge'; // Added Badge
+import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/lib/supabaseClient';
-import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js';
+import type { User as SupabaseAuthUser, Session as SupabaseSession, RealtimeChannel } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppSettings } from '@/contexts/app-settings-context';
 import Image from 'next/image';
-import { getUnreadUserNotificationsCount } from '@/lib/notificationService'; // Added notification service
+import { getUnreadUserNotificationsCount } from '@/lib/notificationService';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -74,7 +74,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Reset logo error state if the URL changes
     setCustomLogoLoadError(false); 
     if (currentAppLogoUrl && currentAppLogoUrl.trim() !== "") {
       console.log(`[AppLayout] Attempting to load configured logo from URL: ${currentAppLogoUrl}`);
@@ -88,26 +87,56 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [currentAppLogoUrl]);
 
-
   useEffect(() => {
-    if (authUser && authUser.id) {
+    let notificationsChannel: RealtimeChannel | null = null;
+
+    const fetchCount = async (userId: string) => {
       setIsLoadingNotificationCount(true);
-      const fetchCount = async () => {
-        try {
-          const count = await getUnreadUserNotificationsCount(authUser.id);
-          setUnreadCount(count);
-        } catch (error) {
-          console.error("AppLayout: Failed to fetch unread notifications count", error);
-          setUnreadCount(0); // Default to 0 on error
-        } finally {
-          setIsLoadingNotificationCount(false);
-        }
-      };
-      fetchCount();
-      // Consider adding a poller or real-time subscription for updates if needed
+      try {
+        const count = await getUnreadUserNotificationsCount(userId);
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("AppLayout: Failed to fetch unread notifications count", error);
+        setUnreadCount(0);
+      } finally {
+        setIsLoadingNotificationCount(false);
+      }
+    };
+
+    if (authUser && authUser.id) {
+      fetchCount(authUser.id);
+
+      notificationsChannel = supabase
+        .channel(`user-notifications-count-${authUser.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${authUser.id}` },
+          (payload) => {
+            console.log('[AppLayout] Real-time user_notifications change received for count update:', payload);
+            fetchCount(authUser.id); // Re-fetch count on any relevant change
+          }
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`[AppLayout] Subscribed to notification changes for user ${authUser.id} for count update.`);
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.error(`[AppLayout] Subscription issue for notifications count (user ${authUser.id}): ${status}`, err);
+          }
+        });
     } else {
-      setUnreadCount(0); // Reset count if no user or user logs out
+      setUnreadCount(0); // Reset count if no user
     }
+
+    return () => {
+      if (notificationsChannel) {
+        supabase.removeChannel(notificationsChannel).then(status => {
+           console.log(`[AppLayout] Unsubscribed from notification count changes (user ${authUser?.id}). Status: ${status}`);
+        }).catch(error => {
+           console.error(`[AppLayout] Error unsubscribing from notification count changes:`, error);
+        });
+      }
+    };
   }, [authUser]);
 
   const handleLinkClick = () => {
@@ -150,6 +179,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 height={32}
                 className="rounded-sm"
                 data-ai-hint={currentAppLogoHint || 'application logo'}
+                unoptimized={currentAppLogoUrl.startsWith('data:')}
                 onError={(e) => {
                   console.error(`[AppLayout] Error loading configured logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src, e);
                   setCustomLogoLoadError(true);
@@ -257,7 +287,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Button asChild variant="ghost" size="icon" aria-label="الإشعارات">
                 <Link href="/notifications" className="relative" onClick={handleLinkClick}>
                   <Bell className="h-[1.2rem] w-[1.2rem]" />
-                  {unreadCount > 0 && !isLoadingNotificationCount && (
+                  {isLoadingNotificationCount && unreadCount === 0 ? (
+                    <Skeleton className="absolute -top-1 -right-1 h-4 w-4 rounded-full" />
+                  ) : unreadCount > 0 && (
                     <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-[1rem] p-0.5 flex items-center justify-center text-xs rounded-full">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </Badge>
