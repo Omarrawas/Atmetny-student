@@ -79,10 +79,19 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
 
     const sidebarBgActual = colorsToApply.sidebarBackgroundGradient || `hsl(${colorsToApply.sidebarBackground})`;
     root.style.setProperty('--sidebar-bg-actual', sidebarBgActual);
+    
+    // Set text gradient variables
+    const primaryTextGradientActual = colorsToApply.primaryTextGradient || `hsl(var(--primary-foreground))`; // Fallback needed
+    root.style.setProperty('--primary-text-gradient-actual', primaryTextGradientActual);
 
-    // Example for primary gradient (if you want to use it on specific elements)
-    // const primaryGradientActual = colorsToApply.primaryGradient || `hsl(${colorsToApply.primary})`;
-    // root.style.setProperty('--primary-gradient-actual', primaryGradientActual);
+    const accentTextGradientActual = colorsToApply.accentTextGradient || `hsl(var(--accent-foreground))`; // Fallback needed
+    root.style.setProperty('--accent-text-gradient-actual', accentTextGradientActual);
+
+    const secondaryTextGradientActual = colorsToApply.secondaryTextGradient || `hsl(var(--secondary-foreground))`;
+    root.style.setProperty('--secondary-text-gradient-actual', secondaryTextGradientActual);
+    
+    const foregroundTextGradientActual = colorsToApply.foregroundTextGradient || `hsl(var(--foreground))`;
+    root.style.setProperty('--foreground-text-gradient-actual', foregroundTextGradientActual);
 
 
   }, [isMounted, selectedThemeId, getResolvedMode]);

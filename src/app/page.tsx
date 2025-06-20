@@ -13,6 +13,7 @@ import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import type { UserProfile, Badge as UserBadgeType, Reward as UserRewardType } from '@/lib/types';
 import { getUserProfile } from '@/lib/userProfileService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from "@/lib/utils"; // Import cn for conditional classes
 
 export default function HomePage() {
   const { settings } = useAppSettings();
@@ -88,7 +89,10 @@ export default function HomePage() {
       <header className="relative rounded-lg overflow-hidden p-8 md:p-12 min-h-[350px] flex flex-col justify-center items-center text-center bg-gradient-to-br from-primary to-secondary shadow-lg">
         <div className="absolute inset-0 bg-black/30"></div>
         <div className="relative z-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
+          <h1 className={cn(
+            "text-4xl md:text-5xl font-bold text-primary-foreground mb-4",
+            settings?.app_name ? "text-gradient-primary" : "" // Apply gradient if app name exists
+          )}>
             مرحباً بك في {appName}!
           </h1>
           <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-8 whitespace-pre-line">

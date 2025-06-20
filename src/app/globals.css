@@ -53,6 +53,12 @@
     --app-bg-actual: hsl(var(--background));
     --sidebar-bg-actual: hsl(var(--sidebar-background));
     /* --primary-gradient-actual: hsl(var(--primary)); */ /* Example, if needed */
+
+    /* Text gradient variables - with fallbacks to solid HSL colors */
+    --primary-text-gradient-actual: hsl(var(--primary-foreground));
+    --accent-text-gradient-actual: hsl(var(--accent-foreground));
+    --secondary-text-gradient-actual: hsl(var(--secondary-foreground));
+    --foreground-text-gradient-actual: hsl(var(--foreground));
   }
 
   .dark {
@@ -105,6 +111,12 @@
     --app-bg-actual: hsl(var(--background));
     --sidebar-bg-actual: hsl(var(--sidebar-background));
     /* --primary-gradient-actual: hsl(var(--primary)); */
+
+    /* Text gradient variables - with fallbacks to solid HSL colors */
+    --primary-text-gradient-actual: hsl(var(--primary-foreground));
+    --accent-text-gradient-actual: hsl(var(--accent-foreground));
+    --secondary-text-gradient-actual: hsl(var(--secondary-foreground));
+    --foreground-text-gradient-actual: hsl(var(--foreground));
   }
 }
 
@@ -126,6 +138,38 @@
     background: var(--sidebar-bg-actual);
   }
 }
+
+@layer components {
+  .text-gradient-primary {
+    background-image: var(--primary-text-gradient-actual, linear-gradient(to right, hsl(var(--primary)) 50%, hsl(var(--primary-foreground)) 50%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback for non-supporting browsers */
+  }
+  .text-gradient-accent {
+    background-image: var(--accent-text-gradient-actual, linear-gradient(to right, hsl(var(--accent)) 50%, hsl(var(--accent-foreground)) 50%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback for non-supporting browsers */
+  }
+  .text-gradient-secondary {
+    background-image: var(--secondary-text-gradient-actual, linear-gradient(to right, hsl(var(--secondary)) 50%, hsl(var(--secondary-foreground)) 50%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback for non-supporting browsers */
+  }
+  .text-gradient-foreground {
+    background-image: var(--foreground-text-gradient-actual, linear-gradient(to right, hsl(var(--foreground)) 50%, hsl(var(--muted-foreground)) 50%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent; /* Fallback for non-supporting browsers */
+  }
+}
+
 
 /* KaTeX RTL Fix for Equations */
 /* Ensures that the content within KaTeX rendered math is LTR */

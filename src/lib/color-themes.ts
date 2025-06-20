@@ -23,7 +23,12 @@ export interface ColorTheme {
       // Optional gradient properties
       appBackgroundGradient?: string;
       sidebarBackgroundGradient?: string;
-      primaryGradient?: string;
+      primaryGradient?: string; // For general element backgrounds
+      // Optional text gradient properties
+      primaryTextGradient?: string;
+      accentTextGradient?: string;
+      secondaryTextGradient?: string;
+      foregroundTextGradient?: string;
     };
     dark: {
       background: string;
@@ -45,7 +50,12 @@ export interface ColorTheme {
       // Optional gradient properties
       appBackgroundGradient?: string;
       sidebarBackgroundGradient?: string;
-      primaryGradient?: string;
+      primaryGradient?: string; // For general element backgrounds
+      // Optional text gradient properties
+      primaryTextGradient?: string;
+      accentTextGradient?: string;
+      secondaryTextGradient?: string;
+      foregroundTextGradient?: string;
     };
   };
 }
@@ -70,7 +80,9 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccent: "275 50% 92%",    
         sidebarAccentForeground: "275 50% 20%", 
         sidebarBorder: "275 40% 90%",      
-        sidebarRing: "275 70% 60%",       
+        sidebarRing: "275 70% 60%",
+        primaryTextGradient: "linear-gradient(to right, hsl(275, 70%, 50%), hsl(300, 70%, 55%))",
+        accentTextGradient: "linear-gradient(to right, hsl(300, 70%, 55%), hsl(275, 60%, 65%))",       
       },
       dark: { 
         background: "250 10% 10%", 
@@ -87,7 +99,9 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccent: "250 10% 20%",    
         sidebarAccentForeground: "250 15% 95%", 
         sidebarBorder: "250 10% 10%",      
-        sidebarRing: "275 75% 70%",       
+        sidebarRing: "275 75% 70%",
+        primaryTextGradient: "linear-gradient(to right, hsl(275, 75%, 60%), hsl(300, 80%, 65%))",
+        accentTextGradient: "linear-gradient(to right, hsl(300, 80%, 65%), hsl(275, 70%, 75%))",     
       },
     },
   },
@@ -230,7 +244,9 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccent: "270 60% 90%",    
         sidebarAccentForeground: "270 40% 20%", 
         sidebarBorder: "270 50% 88%",      
-        sidebarRing: "330 85% 65%",       
+        sidebarRing: "330 85% 65%",
+        primaryTextGradient: "linear-gradient(135deg, hsl(330, 85%, 55%), hsl(300, 80%, 60%))",
+        accentTextGradient: "linear-gradient(135deg, hsl(180, 75%, 65%), hsl(210, 80%, 70%))",       
       },
       dark: {
         background: "270 30% 10%", 
@@ -247,7 +263,9 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccent: "270 30% 15%",    
         sidebarAccentForeground: "270 100% 90%", 
         sidebarBorder: "270 30% 18%",      
-        sidebarRing: "330 80% 65%",       
+        sidebarRing: "330 80% 65%",
+        primaryTextGradient: "linear-gradient(135deg, hsl(330, 80%, 60%), hsl(300, 75%, 65%))",
+        accentTextGradient: "linear-gradient(135deg, hsl(180, 70%, 50%), hsl(210, 75%, 55%))",
       },
     },
   },
@@ -256,42 +274,46 @@ export const predefinedThemes: ColorTheme[] = [
     id: "dynamic-sunrise",
     colors: {
       light: {
-        background: "45 100% 98%", // Very light, almost white yellow
-        primary: "35 90% 60%",    // Vibrant Orange
-        accent: "50 95% 55%",     // Bright Yellow
-        secondary: "20 80% 88%",   // Soft Peach for gradients
-        card: "0 0% 100%",          // White cards
-        border: "30 50% 85%",      // Light warm grey border
-        muted: "30 50% 90%",       // Muted warm grey
-        sidebarBackground: "30 85% 95%", // Light peach sidebar
-        sidebarForeground: "25 50% 30%", // Darker warm text
-        sidebarPrimary: "35 90% 60%",    // Orange for active items
-        sidebarPrimaryForeground: "0 0% 100%", // White text on orange
-        sidebarAccent: "30 80% 90%",    // Lighter peach hover
-        sidebarAccentForeground: "25 50% 25%", // Darker warm text on hover
-        sidebarBorder: "30 70% 88%",      // Warm border
-        sidebarRing: "35 90% 65%",       // Orange ring
-        appBackgroundGradient: "linear-gradient(135deg, hsl(50, 100%, 90%), hsl(30, 100%, 88%))", // Light Yellow to Pale Orange
-        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(35, 95%, 92%), hsl(25, 90%, 90%))", // Subtle warm gradient
+        background: "45 100% 98%", 
+        primary: "35 90% 60%",    
+        accent: "50 95% 55%",     
+        secondary: "20 80% 88%",   
+        card: "0 0% 100%",          
+        border: "30 50% 85%",      
+        muted: "30 50% 90%",       
+        sidebarBackground: "30 85% 95%", 
+        sidebarForeground: "25 50% 30%", 
+        sidebarPrimary: "35 90% 60%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "30 80% 90%",    
+        sidebarAccentForeground: "25 50% 25%", 
+        sidebarBorder: "30 70% 88%",      
+        sidebarRing: "35 90% 65%",       
+        appBackgroundGradient: "linear-gradient(135deg, hsl(50, 100%, 90%), hsl(30, 100%, 88%))", 
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(35, 95%, 92%), hsl(25, 90%, 90%))", 
+        primaryTextGradient: "linear-gradient(135deg, hsl(35, 90%, 55%), hsl(20, 85%, 50%))",
+        accentTextGradient: "linear-gradient(135deg, hsl(50, 95%, 50%), hsl(35, 90%, 60%))",
       },
       dark: {
-        background: "25 30% 8%",  // Very dark warm brown
-        primary: "30 90% 65%",    // Vibrant Orange
-        accent: "45 100% 60%",     // Bright Yellow
-        secondary: "20 40% 15%",   // Darker warm brown for gradients
-        card: "25 30% 12%",       // Dark warm brown card
-        border: "25 20% 20%",      // Subtle warm border
-        muted: "25 20% 15%",       // Muted dark brown
-        sidebarBackground: "20 35% 6%",  // Even darker warm brown for sidebar
-        sidebarForeground: "30 80% 85%", // Light warm text
-        sidebarPrimary: "30 90% 65%",    // Orange for active items
-        sidebarPrimaryForeground: "0 0% 100%", // White text
-        sidebarAccent: "20 30% 10%",    // Hover for sidebar items
-        sidebarAccentForeground: "30 80% 90%", // Light warm text on hover
-        sidebarBorder: "20 30% 12%",      // Dark warm border
-        sidebarRing: "30 90% 70%",       // Orange ring
-        appBackgroundGradient: "linear-gradient(135deg, hsl(25, 40%, 10%), hsl(200, 30%, 8%))", // Dark Warm Brown to Very Dark Desaturated Blue
-        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(25, 30%, 9%), hsl(20, 25%, 7%))", // Subtle dark warm gradient
+        background: "25 30% 8%",  
+        primary: "30 90% 65%",    
+        accent: "45 100% 60%",     
+        secondary: "20 40% 15%",   
+        card: "25 30% 12%",       
+        border: "25 20% 20%",      
+        muted: "25 20% 15%",       
+        sidebarBackground: "20 35% 6%",  
+        sidebarForeground: "30 80% 85%", 
+        sidebarPrimary: "30 90% 65%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "20 30% 10%",    
+        sidebarAccentForeground: "30 80% 90%", 
+        sidebarBorder: "20 30% 12%",      
+        sidebarRing: "30 90% 70%",       
+        appBackgroundGradient: "linear-gradient(135deg, hsl(25, 40%, 10%), hsl(200, 30%, 8%))", 
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(25, 30%, 9%), hsl(20, 25%, 7%))",
+        primaryTextGradient: "linear-gradient(135deg, hsl(30, 90%, 60%), hsl(15, 85%, 55%))",
+        accentTextGradient: "linear-gradient(135deg, hsl(45, 100%, 55%), hsl(30, 90%, 65%))",
       },
     },
   },
