@@ -6,10 +6,11 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ThemeProvider } from '@/components/theme-provider';
-import { CustomThemeProvider } from '@/contexts/custom-theme-provider'; // Import CustomThemeProvider
+import { CustomThemeProvider } from '@/contexts/custom-theme-provider';
 import Head from 'next/head';
 import { getAppSettings } from '@/lib/serverExamService';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
+import { AuthAndProfileProvider } from '@/contexts/auth-profile-context'; // Import AuthAndProfileProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -66,15 +67,17 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CustomThemeProvider> {/* CustomThemeProvider wraps AppSettingsProvider */}
+          <AuthAndProfileProvider> {/* MOVED HERE to wrap all consumers */}
             <AppSettingsProvider fetchedSettings={appSettings}>
-              <SidebarProvider defaultOpen={true}>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-              </SidebarProvider>
+              <CustomThemeProvider>
+                  <SidebarProvider defaultOpen={true}>
+                    <AppLayout> {/* AppLayout now consumes the context from above */}
+                      {children}
+                    </AppLayout>
+                  </SidebarProvider>
+              </CustomThemeProvider>
             </AppSettingsProvider>
-          </CustomThemeProvider>
+          </AuthAndProfileProvider>
           <Toaster />
         </ThemeProvider>
       </body>

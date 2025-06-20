@@ -34,6 +34,10 @@ export interface SubscriptionDetails {
 
 export type SubjectBranch = 'scientific' | 'literary' | 'common' | 'undetermined';
 
+export interface UserSettings {
+  selectedThemeId?: string;
+  sidebarOpen?: boolean; // true for expanded, false for collapsed
+}
 
 export interface UserProfile {
   id: string; // Changed from uid to id, matching Supabase convention (references auth.users.id)
@@ -53,6 +57,7 @@ export interface UserProfile {
   created_at: string; // Changed from Timestamp
   updated_at: string; // Changed from Timestamp
   active_subscription?: SubscriptionDetails | null;
+  user_settings?: UserSettings | null; // New field for user-specific settings
   // role?: 'student' | 'teacher' | 'admin'; // Consider adding if your SQL trigger relies on it
 }
 
@@ -73,6 +78,7 @@ export type UserProfileWriteData = {
   university?: string;
   major?: string;
   active_subscription?: Omit<SubscriptionDetails, 'startDate' | 'endDate'> & { startDate: string | Date, endDate: string | Date } | null;
+  user_settings?: UserSettings | null; // New field for user-specific settings
   updated_at?: string; // Forcing update of this field
   created_at?: string; // Only on creation
   // role?: 'student' | 'teacher' | 'admin'; // Consider adding if your SQL trigger relies on it

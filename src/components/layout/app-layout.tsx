@@ -25,24 +25,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/lib/supabaseClient';
-import type { User as SupabaseAuthUser, Session as SupabaseSession, RealtimeChannel } from '@supabase/supabase-js';
+import type { User as SupabaseAuthUser, Session as SupabaseSession } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppSettings } from '@/contexts/app-settings-context';
 import Image from 'next/image';
 import { getUnreadUserNotificationsCount } from '@/lib/notificationService';
+import { useAuthAndProfile } from '@/contexts/auth-profile-context'; // Import Hook
 
+// AppLayout now directly uses the logic from AppLayoutInner and consumes AuthAndProfileContext.
+// AuthAndProfileProvider is now provided by RootLayout.
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { state, isMobile, setOpenMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar(); // useSidebar consumes AuthAndProfileContext
   const { theme, setTheme } = useTheme();
   const { settings: appSettings } = useAppSettings();
+  const { authUser, userProfile, isLoadingAuthProfile } = useAuthAndProfile(); // Consumes AuthAndProfileContext
 
-  const [authUser, setAuthUser] = useState<SupabaseAuthUser | null>(null);
-  const [session, setSession] = useState<SupabaseSession | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [customLogoLoadError, setCustomLogoLoadError] = useState(false);
-
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotificationCount, setIsLoadingNotificationCount] = useState(false);
 
@@ -51,45 +51,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const currentAppLogoHint = appSettings?.app_logo_hint;
 
   useEffect(() => {
-    setIsLoadingUser(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setAuthUser(session?.user ?? null);
-      setIsLoadingUser(false);
-    }).catch(error => {
-      console.error("Error getting initial Supabase session:", error);
-      setIsLoadingUser(false);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setAuthUser(currentUser);
-      setIsLoadingUser(false);
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    setCustomLogoLoadError(false); 
+    setCustomLogoLoadError(false);
     if (currentAppLogoUrl && currentAppLogoUrl.trim() !== "") {
-      console.log(`[AppLayout] Attempting to load configured logo from URL: ${currentAppLogoUrl}`);
+      // console.log(`[AppLayout] Attempting to load configured logo from URL: ${currentAppLogoUrl}`);
       if (!currentAppLogoUrl.startsWith('/') && !currentAppLogoUrl.startsWith('data:')) {
-         console.warn(`[AppLayout] The logo URL "${currentAppLogoUrl}" is external. Ensure its hostname is whitelisted in next.config.ts's images.remotePatterns.`);
+        //  console.warn(`[AppLayout] The logo URL "${currentAppLogoUrl}" is external. Ensure its hostname is whitelisted in next.config.ts's images.remotePatterns.`);
       }
-    } else if (currentAppLogoUrl === "") { 
-      console.warn("[AppLayout] app_logo_url from settings is an empty string. Fallback SVG will be used.");
-    } else { 
-      console.log("[AppLayout] No app_logo_url configured in settings. Fallback SVG will be used.");
+    } else if (currentAppLogoUrl === "") {
+      // console.warn("[AppLayout] app_logo_url from settings is an empty string. Fallback SVG will be used.");
+    } else {
+      // console.log("[AppLayout] No app_logo_url configured in settings. Fallback SVG will be used.");
     }
   }, [currentAppLogoUrl]);
 
   useEffect(() => {
-    // let notificationsChannel: RealtimeChannel | null = null;
-
     const fetchCount = async (userId: string) => {
       setIsLoadingNotificationCount(true);
       try {
@@ -105,39 +80,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
     if (authUser && authUser.id) {
       fetchCount(authUser.id);
-
-      // notificationsChannel = supabase
-      //   .channel(`user-notifications-count-${authUser.id}`)
-      //   .on(
-      //     'postgres_changes',
-      //     { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${authUser.id}` },
-      //     (payload) => {
-      //       console.log('[AppLayout] Real-time user_notifications change received for count update:', payload);
-      //       fetchCount(authUser.id); // Re-fetch count on any relevant change
-      //     }
-      //   )
-      //   .subscribe((status, err) => {
-      //     if (status === 'SUBSCRIBED') {
-      //       console.log(`[AppLayout] Notification count subscription for user ${authUser.id} is: ${status}.`);
-      //     } else if (status === 'CHANNEL_ERROR') {
-      //       console.error(`[AppLayout] Notification count subscription for user ${authUser.id} encountered CHANNEL_ERROR. Status: ${status}. Error:`, err || 'No specific error object provided.');
-      //     } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
-      //       console.warn(`[AppLayout] Notification count subscription for user ${authUser.id} changed status: ${status}. Details:`, err || 'No additional error details provided.');
-      //     }
-      //   });
+      // Real-time subscription for notification count is disabled
     } else {
-      setUnreadCount(0); // Reset count if no user
+      setUnreadCount(0);
     }
-
-    // return () => {
-    //   if (notificationsChannel) {
-    //     supabase.removeChannel(notificationsChannel).then(status => {
-    //        console.log(`[AppLayout] Unsubscribed from notification count changes (user ${authUser?.id}). Status: ${status}`);
-    //     }).catch(error => {
-    //        console.error(`[AppLayout] Error unsubscribing from notification count changes:`, error);
-    //     });
-    //   }
-    // };
   }, [authUser]);
 
   const handleLinkClick = () => {
@@ -159,10 +105,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  const displayName = authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || "مستخدم";
-  const displayEmail = authUser?.email || "";
-  const avatarUrl = authUser?.user_metadata?.avatar_url;
-  const avatarHint = 'person avatar';
+  const displayName = userProfile?.name || authUser?.email?.split('@')[0] || "مستخدم";
+  const displayEmail = userProfile?.email || authUser?.email || "";
+  const avatarUrl = userProfile?.avatar_url || authUser?.user_metadata?.avatar_url;
+  const avatarHint = userProfile?.avatar_hint || 'person avatar';
   const avatarFallback = (displayName.length > 1 ? displayName.substring(0, 2) : displayName.charAt(0) || 'U').toUpperCase();
 
   const showConfiguredLogo = currentAppLogoUrl && currentAppLogoUrl.trim() !== "" && !customLogoLoadError;
@@ -174,13 +120,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2" onClick={handleLinkClick}>
             {showConfiguredLogo ? (
               <Image
-                src={currentAppLogoUrl}
+                src={currentAppLogoUrl!} // Assert non-null as showConfiguredLogo checks it
                 alt={`${currentAppName} Logo`}
                 width={32}
                 height={32}
                 className="rounded-sm"
                 data-ai-hint={currentAppLogoHint || 'application logo'}
-                unoptimized={currentAppLogoUrl.startsWith('data:')}
+                unoptimized={currentAppLogoUrl?.startsWith('data:')}
                 onError={(e) => {
                   console.error(`[AppLayout] Error loading configured logo image from ${currentAppLogoUrl}:`, (e.target as HTMLImageElement).src, e);
                   setCustomLogoLoadError(true);
@@ -219,7 +165,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </ScrollArea>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-sidebar-border">
-          {isLoadingUser ? (
+          {isLoadingAuthProfile ? (
             <div className="flex items-center gap-3 mb-3 p-2">
               <Skeleton className="h-10 w-10 rounded-full" />
               {state === 'expanded' && (
@@ -233,7 +179,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/profile" passHref onClick={handleLinkClick}>
               <div className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-sidebar-accent/20 p-2 rounded-md transition-colors">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint={avatarHint} />
+                  <AvatarImage src={avatarUrl || undefined} alt={displayName} data-ai-hint={avatarHint} />
                   <AvatarFallback>{avatarFallback}</AvatarFallback>
                 </Avatar>
                 {state === 'expanded' && (
@@ -317,4 +263,3 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </>
   );
 }
-    

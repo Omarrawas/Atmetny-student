@@ -2,7 +2,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabaseClient';
-import type { UserProfile, SubscriptionDetails, UserProfileWriteData, Badge, Reward } from './types';
+import type { UserProfile, SubscriptionDetails, UserProfileWriteData, Badge, Reward, UserSettings } from './types';
 
 export const saveUserProfile = async (data: UserProfileWriteData): Promise<void> => {
   if (!data.id) {
@@ -19,7 +19,6 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
   if (data.name !== undefined) payloadForSupabase.name = data.name;
   if (data.email !== undefined) payloadForSupabase.email = data.email;
   
-  // Correctly handle 'avatar_url' (snake_case) from UserProfileWriteData
   if (Object.prototype.hasOwnProperty.call(data, 'avatar_url')) {
     payloadForSupabase.avatar_url = data.avatar_url === '' ? null : data.avatar_url;
   }
@@ -46,10 +45,14 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
       };
     }
   }
+
+  if (Object.prototype.hasOwnProperty.call(data, 'user_settings')) {
+    payloadForSupabase.user_settings = data.user_settings; // Supabase client handles JS object to JSONB
+  }
   
   const { data: existingProfile, error: fetchError } = await supabase
     .from('profiles')
-    .select('id, created_at') 
+    .select('id, created_at, user_settings') // Select user_settings to merge if exists
     .eq('id', data.id)
     .maybeSingle();
 
@@ -76,6 +79,22 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
     if (!Object.prototype.hasOwnProperty.call(data, 'active_subscription')) {
         payloadForSupabase.active_subscription = null;
     }
+    if (!Object.prototype.hasOwnProperty.call(data, 'user_settings')) {
+      payloadForSupabase.user_settings = {}; // Default to empty object for new profiles
+    }
+  } else {
+    // Merge existing user_settings with new ones if any
+    if (payloadForSupabase.user_settings && existingProfile.user_settings) {
+      payloadForSupabase.user_settings = { ...existingProfile.user_settings, ...payloadForSupabase.user_settings };
+    } else if (payloadForSupabase.user_settings === undefined && existingProfile.user_settings) {
+      // If new settings are not provided, keep existing
+      payloadForSupabase.user_settings = existingProfile.user_settings;
+    } else if (payloadForSupabase.user_settings && !existingProfile.user_settings){
+      // This case is fine, new settings will be applied
+    } else {
+       // Both undefined or new is undefined and existing is null, ensure it's at least an empty object
+       payloadForSupabase.user_settings = payloadForSupabase.user_settings || {};
+    }
   }
 
 
@@ -92,18 +111,14 @@ export const saveUserProfile = async (data: UserProfileWriteData): Promise<void>
     }
     console.log(`User profile for ID ${data.id} upserted/updated in Supabase 'profiles' table:`, upsertedData);
 
-    // After successfully updating the profiles table, if avatar_url was changed,
-    // update it in the auth.users.user_metadata as well.
-    // Check if 'avatar_url' was explicitly provided in the input data.
     if (Object.prototype.hasOwnProperty.call(data, 'avatar_url')) {
-      const newAvatarForAuth = data.avatar_url === '' ? null : data.avatar_url; // Use null if cleared, otherwise the new URL
+      const newAvatarForAuth = data.avatar_url === '' ? null : data.avatar_url; 
       const { data: updatedUser, error: updateUserError } = await supabase.auth.updateUser({
-        data: { avatar_url: newAvatarForAuth } // Supabase Auth expects avatar_url in user_metadata.data
+        data: { avatar_url: newAvatarForAuth } 
       });
 
       if (updateUserError) {
         console.error("Supabase error updating user_metadata (avatar_url) in auth:", updateUserError);
-        // Do not throw here, as the primary profile save was successful. Log the error.
       } else {
         console.log("User metadata (avatar_url) successfully updated in Supabase Auth for user ID:", updatedUser?.user?.id);
       }
@@ -124,7 +139,7 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
   try {
     const { data, error, status } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, avatar_hint, points, level, progress_to_next_level, badges, rewards, student_goals, branch, university, major, created_at, updated_at, active_subscription')
+      .select('id, name, email, avatar_url, avatar_hint, points, level, progress_to_next_level, badges, rewards, student_goals, branch, university, major, created_at, updated_at, active_subscription, user_settings')
       .eq('id', id)
       .single(); 
 
@@ -133,7 +148,6 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
          console.log(`No user profile found in Supabase for ID: ${id}. Returning null.`);
          return null;
       }
-      // Updated error logging
       console.error(
         `Supabase error fetching user profile for ID: ${id}. ` +
         `Status: ${status}, Code: ${error.code}, Message: ${error.message}, ` +
@@ -176,6 +190,7 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
           startDate: typeof data.active_subscription.startDate === 'string' ? data.active_subscription.startDate : new Date(data.active_subscription.startDate).toISOString(),
           endDate: typeof data.active_subscription.endDate === 'string' ? data.active_subscription.endDate : new Date(data.active_subscription.endDate).toISOString(),
         } : null,
+        user_settings: data.user_settings ? data.user_settings as UserSettings : null, // Cast user_settings
       } as UserProfile;
     } else {
       console.log(`No user profile data returned from Supabase for ID: ${id}, though no error was thrown.`);
@@ -191,4 +206,3 @@ export const getUserProfile = async (id: string): Promise<UserProfile | null> =>
   }
 };
     
-
