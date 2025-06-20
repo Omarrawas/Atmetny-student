@@ -322,50 +322,102 @@ export const predefinedThemes: ColorTheme[] = [
     id: "gradient-green",
     colors: {
       light: {
-        background: "165 60% 98%", // Very light minty off-white
-        primary: "155 65% 40%",    // Vibrant green
-        accent: "175 70% 50%",     // Bright teal/cyan
-        secondary: "165 60% 45%",   // Bluish green for gradients
-        card: "0 0% 100%",          // White cards
-        border: "160 30% 88%",      // Light minty gray border
-        muted: "160 40% 93%",       // Light minty gray muted
-        sidebarBackground: "170 65% 96%", // Light mint/cyan sidebar
-        sidebarForeground: "160 35% 25%", // Dark green/teal text in sidebar
-        sidebarPrimary: "155 65% 40%",    // Primary green for active sidebar items
-        sidebarPrimaryForeground: "0 0% 100%", // White text on active sidebar
-        sidebarAccent: "170 60% 92%",    // Hover for sidebar items
-        sidebarAccentForeground: "160 35% 20%", // Text on hover for sidebar
+        background: "165 60% 98%", 
+        primary: "155 65% 40%",    
+        accent: "175 70% 50%",     
+        secondary: "165 60% 45%",   
+        card: "0 0% 100%",          
+        border: "160 30% 88%",      
+        muted: "160 40% 93%",       
+        sidebarBackground: "170 65% 96%", 
+        sidebarForeground: "160 35% 25%", 
+        sidebarPrimary: "155 65% 40%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "170 60% 92%",    
+        sidebarAccentForeground: "160 35% 20%", 
         sidebarBorder: "170 50% 90%",      
         sidebarRing: "155 65% 45%",
-        appBackgroundGradient: "hsl(165, 60%, 98%)", // Solid light background
-        sidebarBackgroundGradient: "hsl(170, 65%, 96%)", // Solid light sidebar
+        appBackgroundGradient: "hsl(165, 60%, 98%)", 
+        sidebarBackgroundGradient: "hsl(170, 65%, 96%)", 
         primaryTextGradient: "linear-gradient(to right, hsl(155, 65%, 35%), hsl(165, 60%, 40%))",
         accentTextGradient: "linear-gradient(to right, hsl(175, 70%, 45%), hsl(185, 65%, 50%))",
         secondaryTextGradient: "linear-gradient(to right, hsl(165, 60%, 40%), hsl(170, 55%, 45%))",
         foregroundTextGradient: "linear-gradient(to right, hsl(160, 40%, 20%), hsl(170, 35%, 25%))",
       },
       dark: {
-        background: "170 20% 8%",  // Very dark desaturated teal
-        primary: "155 70% 48%",    // Bright vibrant green
-        accent: "175 75% 55%",     // Bright cyan/teal
-        secondary: "165 65% 52%",   // Bluish bright green for gradients
-        card: "170 18% 11%",       // Dark teal card
-        border: "170 15% 18%",      // Dark border
-        muted: "170 15% 22%",       // Dark muted
-        sidebarBackground: "175 22% 9%",  // Dark teal sidebar
-        sidebarForeground: "160 50% 90%", // Light minty text in sidebar
-        sidebarPrimary: "155 70% 48%",    // Bright green for active sidebar
-        sidebarPrimaryForeground: "0 0% 100%", // White text on active sidebar
-        sidebarAccent: "175 20% 14%",    // Hover for sidebar
-        sidebarAccentForeground: "160 50% 95%", // Text on hover
+        background: "170 20% 8%",  
+        primary: "155 70% 48%",    
+        accent: "175 75% 55%",     
+        secondary: "165 65% 52%",   
+        card: "170 18% 11%",       
+        border: "170 15% 18%",      
+        muted: "170 15% 22%",       
+        sidebarBackground: "175 22% 9%",  
+        sidebarForeground: "160 50% 90%", 
+        sidebarPrimary: "155 70% 48%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "175 20% 14%",    
+        sidebarAccentForeground: "160 50% 95%", 
         sidebarBorder: "175 18% 7%",      
         sidebarRing: "155 70% 52%",
-        appBackgroundGradient: "hsl(170, 20%, 8%)", // Solid dark background
-        sidebarBackgroundGradient: "hsl(175, 22%, 9%)", // Solid dark sidebar
+        appBackgroundGradient: "hsl(170, 20%, 8%)", 
+        sidebarBackgroundGradient: "hsl(175, 22%, 9%)", 
         primaryTextGradient: "linear-gradient(to right, hsl(155, 70%, 45%), hsl(165, 65%, 50%))",
         accentTextGradient: "linear-gradient(to right, hsl(175, 75%, 50%), hsl(185, 70%, 55%))",
         secondaryTextGradient: "linear-gradient(to right, hsl(165, 65%, 50%), hsl(170, 60%, 55%))",
         foregroundTextGradient: "linear-gradient(to right, hsl(160, 50%, 85%), hsl(170, 45%, 90%))",
+      },
+    },
+  },
+  {
+    name: "أزرق متدرج",
+    id: "gradient-blue",
+    colors: {
+      light: {
+        background: "220 60% 97%",
+        primary: "275 70% 55%",
+        accent: "190 75% 50%",
+        secondary: "220 80% 85%",
+        card: "0 0% 100%",
+        border: "220 40% 88%",
+        muted: "220 40% 93%",
+        sidebarBackground: "220 50% 95%",
+        sidebarForeground: "240 30% 25%",
+        sidebarPrimary: "275 70% 55%",
+        sidebarPrimaryForeground: "0 0% 100%",
+        sidebarAccent: "220 50% 90%",
+        sidebarAccentForeground: "240 30% 20%",
+        sidebarBorder: "220 40% 85%",
+        sidebarRing: "275 70% 60%",
+        appBackgroundGradient: "linear-gradient(135deg, hsl(220, 60%, 97%), hsl(210, 70%, 95%))",
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(220, 50%, 95%), hsl(215, 55%, 93%))",
+        primaryTextGradient: "linear-gradient(to right, hsl(275, 70%, 50%), hsl(190, 75%, 45%))",
+        accentTextGradient: "linear-gradient(to right, hsl(190, 75%, 45%), hsl(210, 80%, 50%))",
+        secondaryTextGradient: "linear-gradient(to right, hsl(220, 70%, 55%), hsl(210, 75%, 60%))",
+        foregroundTextGradient: "linear-gradient(to right, hsl(240, 30%, 30%), hsl(220, 25%, 25%))",
+      },
+      dark: {
+        background: "240 30% 8%",
+        primary: "275 80% 60%",
+        accent: "190 85% 55%",
+        secondary: "240 50% 30%",
+        card: "240 30% 12%",
+        border: "240 25% 20%",
+        muted: "240 25% 25%",
+        sidebarBackground: "240 30% 10%",
+        sidebarForeground: "240 20% 90%",
+        sidebarPrimary: "275 80% 60%",
+        sidebarPrimaryForeground: "0 0% 100%",
+        sidebarAccent: "240 30% 15%",
+        sidebarAccentForeground: "240 20% 95%",
+        sidebarBorder: "240 30% 18%",
+        sidebarRing: "275 80% 65%",
+        appBackgroundGradient: "linear-gradient(135deg, hsl(240, 30%, 8%), hsl(260, 35%, 12%))",
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(240, 30%, 10%), hsl(250, 32%, 14%))",
+        primaryTextGradient: "linear-gradient(to right, hsl(275, 80%, 60%), hsl(190, 85%, 55%))",
+        accentTextGradient: "linear-gradient(to right, hsl(190, 85%, 55%), hsl(210, 90%, 60%))",
+        secondaryTextGradient: "linear-gradient(to right, hsl(240, 50%, 60%), hsl(220, 60%, 65%))",
+        foregroundTextGradient: "linear-gradient(to right, hsl(240, 20%, 85%), hsl(0, 0%, 100%))",
       },
     },
   },
