@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useCustomTheme } from '@/contexts/custom-theme-provider';
 import type { ColorTheme } from '@/lib/color-themes';
 import { cn } from "@/lib/utils";
-import { ThemeColorEditor } from "@/components/theme-editor/theme-color-editor"; // Import the new component
+import { ThemeColorEditor } from "@/components/theme-editor/theme-color-editor";
 
 // Helper function to render a color swatch or gradient info
 const ColorDisplay = ({
@@ -19,7 +19,6 @@ const ColorDisplay = ({
   label,
   value,
   isGradient = false,
-  onEdit,
 }: {
   themeId: string;
   mode: 'light' | 'dark';
@@ -27,11 +26,10 @@ const ColorDisplay = ({
   label: string;
   value?: string;
   isGradient?: boolean;
-  onEdit: () => void;
 }) => {
   if (!value) return null;
 
-  const commonClasses = "text-xs p-1 rounded max-w-[150px] truncate"; // Added max-width and truncate
+  const commonClasses = "text-xs p-1 rounded max-w-[150px] truncate";
   let displayElement;
 
   if (isGradient) {
@@ -57,7 +55,7 @@ const ColorDisplay = ({
             themeId={themeId}
             colorMode={mode}
             colorKey={colorKey}
-            initialValue={value}
+            initialValue={String(value)} // Ensure initialValue is string
         >
             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Edit className="h-3.5 w-3.5" />
@@ -70,7 +68,7 @@ const ColorDisplay = ({
 
 
 export default function SettingsPage() {
-  const { selectedThemeId, selectTheme, themes, getActiveThemeDefinition, updateThemeColorValue } = useCustomTheme();
+  const { selectedThemeId, selectTheme, themes, getActiveThemeDefinition } = useCustomTheme();
   const activeTheme = getActiveThemeDefinition();
 
   const renderThemeColors = (themeDefinition: ColorTheme, mode: 'light' | 'dark', modeName: string) => {
@@ -78,7 +76,6 @@ export default function SettingsPage() {
     if (!modeColors) return <p>لا توجد ألوان معرفة لهذا الوضع.</p>;
     
     const colorEntries = Object.entries(modeColors).filter(([key, value]) => value !== undefined && value !== null) as [keyof typeof modeColors, string][];
-
 
     return (
       <div className="space-y-1">
@@ -91,12 +88,9 @@ export default function SettingsPage() {
                 themeId={themeDefinition.id}
                 mode={mode}
                 colorKey={key}
-                label={key}
+                label={String(key)}
                 value={String(value)}
-                isGradient={key.toLowerCase().includes('gradient')}
-                onEdit={() => {
-                  // Popover logic will be handled by ThemeColorEditor directly via PopoverTrigger
-                }}
+                isGradient={String(key).toLowerCase().includes('gradient')}
               />
             ))}
           </div>
@@ -144,7 +138,7 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-md font-semibold mb-2">اختيار نظام الألوان:</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {themes.map((themeOption) => ( // Use themes from context (which could be customized)
+              {themes.map((themeOption) => (
                 <Button
                   key={themeOption.id}
                   variant={selectedThemeId === themeOption.id ? "default" : "outline"}
@@ -219,4 +213,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
