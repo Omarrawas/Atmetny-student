@@ -5,34 +5,34 @@
 
 @layer base {
   :root {
-    /* Default HSL values, these will be overridden by CustomThemeProvider for most themes */
-    --background: 208 100% 97%; /* Default Light: Very Light Desaturated Blue */
-    --foreground: 208 10% 25%; /* Default Light: Darker blue-gray for text */
+    /* Atmety Tech Light HSL values */
+    --background: 220 100% 97%;
+    --foreground: 0 0% 13%; /* Approx #212121 from Atmety Tech Light userTextPrimary */
 
-    --card: 208 100% 98%;
-    --card-foreground: 208 10% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
 
-    --popover: 208 100% 98%;
-    --popover-foreground: 208 10% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
 
-    --primary: 207 82% 68%; /* Default Light: Soft Blue */
-    --primary-foreground: 210 40% 98%;
+    --primary: 270 85% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 208 60% 93%;
-    --secondary-foreground: 207 82% 40%;
+    --secondary: 220 70% 92%;
+    --secondary-foreground: 270 85% 30%; /* Derived from primary for contrast */
 
-    --muted: 208 60% 93%;
-    --muted-foreground: 208 10% 40%;
+    --muted: 220 60% 93%;
+    --muted-foreground: 0 0% 47%; /* Approx #757575 from Atmety Tech Light userTextSecondary */
 
-    --accent: 45 100% 85%; /* Default Light: Gentle Yellow */
-    --accent-foreground: 45 70% 35%;
+    --accent: 330 90% 65%;
+    --accent-foreground: 0 0% 100%; /* For text on accent background */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 208 40% 85%;
-    --input: 208 40% 90%;
-    --ring: 207 82% 68%;
+    --border: 220 50% 90%;
+    --input: 220 50% 92%; /* Slightly darker than border for input fields */
+    --ring: 270 85% 65%;
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -41,15 +41,15 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Sidebar specific HSL colors for Light Mode */
-    --sidebar-background: 207 80% 55%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 45 100% 85%;
-    --sidebar-primary-foreground: 45 70% 35%;
-    --sidebar-accent: 207 82% 65%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 207 80% 50%;
-    --sidebar-ring: 45 100% 85%;
+    /* Sidebar specific HSL colors for Atmety Tech Light */
+    --sidebar-background: 220 70% 95%;
+    --sidebar-foreground: 270 40% 35%;
+    --sidebar-primary: 270 85% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 90%;
+    --sidebar-accent-foreground: 270 30% 30%;
+    --sidebar-border: 220 50% 88%;
+    --sidebar-ring: 270 85% 65%;
 
     /* Variables for actual backgrounds (can be gradients or solid HSLs) */
     /* These are set by CustomThemeProvider */
@@ -66,17 +66,17 @@
     --foreground-text-gradient-actual: hsl(var(--foreground));
 
     /* Variables from user's "Atmety Tech" theme (defaults set by CustomThemeProvider) */
-    --user-gradient-start: #360033;
-    --user-gradient-end: #0b8793;
-    --user-gradient-accent-start: #fc00ff;
-    --user-gradient-accent-end: #00dbde;
-    --user-gradient-red-start: #FF8008;
-    --user-gradient-red-end: #FFC837;
-    --user-text-primary: #E0E0E0;
-    --user-text-secondary: #BDBDBD;
-    --user-border-color: #4A5568;
-    --user-primary-bg: #1A202C;
-    --user-secondary-bg: #2D3748;
+    --user-gradient-start: #D1C4E9;
+    --user-gradient-end: #B2EBF2;
+    --user-gradient-accent-start: #F48FB1;
+    --user-gradient-accent-end: #80DEEA;
+    --user-gradient-red-start: #FFCC80;
+    --user-gradient-red-end: #FFF59D;
+    --user-text-primary: #212121;
+    --user-text-secondary: #757575;
+    --user-border-color: #BDBDBD;
+    --user-primary-bg: #FFFFFF;
+    --user-secondary-bg: #F5F5F5;
 
     /* Button specific gradients (set by CustomThemeProvider) */
     --button-primary-gradient: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)));
@@ -86,43 +86,44 @@
   }
 
   .dark {
-    /* Default Dark Mode HSL values - These are base fallbacks and will be largely overridden by the "Atmety Tech" theme when active via CustomThemeProvider */
-    --background: 250 10% 10%; 
-    --foreground: 250 15% 95%; 
+    /* Atmety Tech Dark HSL values */
+    --background: 222 47% 11%;
+    --foreground: 0 0% 88%; /* Approx #E0E0E0 from Atmety Tech Dark userTextPrimary */
 
-    --card: 250 10% 15%;      
-    --card-foreground: 250 15% 95%;
+    --card: 222 30% 15%;
+    --card-foreground: 0 0% 88%;
 
-    --popover: 250 10% 12%;
-    --popover-foreground: 250 15% 95%;
+    --popover: 222 30% 12%; /* Darker popover */
+    --popover-foreground: 0 0% 88%;
 
-    --primary: 275 75% 65%;    
-    --primary-foreground: 0 0% 100%; 
+    --primary: 260 80% 60%;
+    --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 250 10% 25%;  
-    --secondary-foreground: 250 15% 75%; 
+    --secondary: 187 89% 31%; /* Keep original secondary, distinct */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
 
-    --muted: 250 10% 20%;
-    --muted-foreground: 250 10% 60%; 
+    --muted: 222 20% 20%;
+    --muted-foreground: 0 0% 74%; /* Approx #BDBDBD from Atmety Tech Dark userTextSecondary */
 
-    --accent: 300 80% 70%;     
-    --accent-foreground: 0 0% 100%; 
+    --accent: 300 100% 60%;
+    --accent-foreground: 0 0% 100%; /* White text on accent */
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 70% 55%; /* Slightly adjusted destructive for dark */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 10% 20%;      
-    --input: 250 10% 12%;
-    --ring: 275 75% 70%;       
+    --border: 215 28% 35%;
+    --input: 222 30% 18%; /* Input slightly lighter than card */
+    --ring: 260 80% 65%; /* Ring color matching primary */
 
-    --sidebar-background: 250 12% 12%; 
-    --sidebar-foreground: 250 15% 95%; 
-    --sidebar-primary: 275 75% 65%;    
-    --sidebar-primary-foreground: 0 0% 100%; 
-    --sidebar-accent: 250 10% 20%;    
-    --sidebar-accent-foreground: 250 15% 95%;
-    --sidebar-border: 250 10% 10%;      
-    --sidebar-ring: 275 75% 70%;
+    /* Sidebar specific HSL colors for Atmety Tech Dark */
+    --sidebar-background: 222 30% 15%;
+    --sidebar-foreground: 0 0% 88%; /* #E0E0E0 */
+    --sidebar-primary: 300 100% 60%; /* Use accent for primary in sidebar as per hex #fc00ff */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 45%; /* #4A5568 as HSL - for hover effects */
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 222 20% 10%;
+    --sidebar-ring: 300 100% 65%; /* Ring for sidebar elements */
 
     /* Ensure these are also defined for dark mode, they will be updated by CustomThemeProvider */
     /* User-specific variables for "Atmety Tech" dark mode are set by CustomThemeProvider */
@@ -198,28 +199,28 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; 
+    color: transparent;
   }
   .text-gradient-accent {
     background-image: var(--accent-text-gradient-actual, linear-gradient(to right, hsl(var(--accent)) 50%, hsl(var(--accent-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; 
+    color: transparent;
   }
   .text-gradient-secondary {
     background-image: var(--secondary-text-gradient-actual, linear-gradient(to right, hsl(var(--secondary)) 50%, hsl(var(--secondary-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; 
+    color: transparent;
   }
   .text-gradient-foreground {
     background-image: var(--foreground-text-gradient-actual, linear-gradient(to right, hsl(var(--foreground)) 50%, hsl(var(--muted-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; 
+    color: transparent;
   }
 
   /* User's shadow classes */
@@ -278,7 +279,7 @@ h1, h2, h3, h4, h5, h6 {
 [data-sidebar="sidebar"] {
   color: var(--sidebar-foreground, #E0E0E0) !important;
 }
-[data-sidebar="sidebar"] p, 
+[data-sidebar="sidebar"] p,
 [data-sidebar="sidebar"] span,
 [data-sidebar="sidebar"] div,
 [data-sidebar="sidebar"] a,
@@ -300,7 +301,4 @@ h1, h2, h3, h4, h5, h6 {
 .gradient-bg-primary-button, .gradient-bg-accent-button {
   color: var(--user-text-primary, #FFFFFF) !important;
 }
-
-
-
     
