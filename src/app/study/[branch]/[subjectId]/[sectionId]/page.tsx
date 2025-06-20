@@ -33,7 +33,6 @@ export default function SectionLessonsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("[SectionLessonsPage] useEffect for auth and profile triggered.");
     setIsLoadingAuthProfile(true);
     const getSessionAndProfile = async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -47,12 +46,10 @@ export default function SectionLessonsPage() {
 
       const user = session?.user ?? null;
       setAuthUser(user);
-      console.log("[SectionLessonsPage] Auth user set:", user ? user.id : 'null');
 
       if (user) {
         try {
           const profile = await getUserProfile(user.id);
-          console.log("[SectionLessonsPage] Fetched user profile:", JSON.stringify(profile, null, 2));
           setUserProfile(profile);
         } catch (profileError: any) {
           console.error("[SectionLessonsPage] Error fetching user profile:", profileError);
@@ -61,23 +58,19 @@ export default function SectionLessonsPage() {
         }
       } else {
         setUserProfile(null);
-        console.log("[SectionLessonsPage] No authenticated user session found.");
       }
       setIsLoadingAuthProfile(false);
-      console.log("[SectionLessonsPage] Finished auth and profile loading. isLoadingAuthProfile:", false);
     };
 
     getSessionAndProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[SectionLessonsPage] Auth state changed. Event: ${event}. Session user: ${session?.user?.id || 'null'}`);
       setIsLoadingAuthProfile(true); 
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user) {
         try {
           const profile = await getUserProfile(user.id);
-          console.log("[SectionLessonsPage] Fetched user profile on auth change:", JSON.stringify(profile, null, 2));
           setUserProfile(profile);
         } catch (profileError: any) {
           console.error("[SectionLessonsPage] Error fetching user profile on auth change:", profileError);
@@ -89,15 +82,12 @@ export default function SectionLessonsPage() {
       setIsLoadingAuthProfile(false);
     });
     return () => {
-        console.log("[SectionLessonsPage] Unsubscribing auth listener.");
         authListener.subscription.unsubscribe();
     };
   }, [toast]);
 
   useEffect(() => {
-    console.log(`[SectionLessonsPage] useEffect for data fetching triggered. isLoadingAuthProfile: ${isLoadingAuthProfile}, authUser: ${authUser?.id || 'null'}`);
     if (isLoadingAuthProfile) {
-      console.log("[SectionLessonsPage] Data fetching waiting for auth profile to load...");
       return; 
     }
 
@@ -107,7 +97,6 @@ export default function SectionLessonsPage() {
     if (subjectId && sectionId) {
       const fetchData = async () => {
         try {
-          console.log(`[SectionLessonsPage] Fetching section with ID: ${sectionId} for subject ID: ${subjectId}`);
           const sectionData = await getSectionById(sectionId); 
 
           if (!sectionData) {
@@ -119,26 +108,20 @@ export default function SectionLessonsPage() {
             return; 
           }
           
-          console.log(`[SectionLessonsPage] Section data found for ID ${sectionId}:`, sectionData);
           setSection(sectionData);
-
-          console.log(`[SectionLessonsPage] Fetching lessons for section ID: ${sectionId}`);
           const lessonsData = await getSectionLessons(sectionId);
-          
-          console.log(`[SectionLessonsPage] Lessons data fetched for section ID ${sectionId}, count: ${lessonsData.length}`);
           setLessons(lessonsData);
 
         } catch (e: any) {
           console.error(`[SectionLessonsPage] Error in fetchData for section ${sectionId}:`, e);
           let errorMessage = `فشل تحميل بيانات دروس القسم. ${e.message || ''}`;
-          if (e instanceof Error && e.message.startsWith("Failed to fetch sections for subject")) { // More specific error from service
+          if (e instanceof Error && e.message.startsWith("Failed to fetch sections for subject")) { 
             errorMessage = e.message;
           }
           setError(errorMessage);
           setLessons([]);
         } finally {
           setIsLoadingData(false);
-          console.log(`[SectionLessonsPage] Finished data fetching. isLoadingData: false`);
         }
       };
       fetchData();
@@ -151,58 +134,21 @@ export default function SectionLessonsPage() {
 
 
   const isSubjectActiveForCurrentUser = useMemo(() => {
-    console.log("[SectionLessonsPage] Evaluating isSubjectActiveForCurrentUser...");
-    console.log("  AuthUser present:", !!authUser);
-    if (!authUser) {
-      console.log("  isSubjectActiveForCurrentUser: false (no authUser).");
-      return false;
-    }
-    console.log("  UserProfile present:", !!userProfile);
-    if (!userProfile) {
-      console.log("  isSubjectActiveForCurrentUser: false (no userProfile).");
-      return false;
-    }
-    console.log("  UserProfile.active_subscription present:", !!userProfile.activeSubscription);
-    if (!userProfile.activeSubscription) {
-      console.log("  isSubjectActiveForCurrentUser: false (no activeSubscription object in profile).");
+    if (!authUser || !userProfile || !userProfile.activeSubscription) {
       return false;
     }
 
     const sub = userProfile.activeSubscription;
-    console.log("  UserProfile.active_subscription (raw):", JSON.stringify(sub, null, 2));
-    console.log("  Current subjectId (page param):", subjectId);
-
-    if (sub.status !== 'active') {
-      console.log(`  isSubjectActiveForCurrentUser: false (subscription status is ${sub.status}).`);
-      return false;
-    }
+    if (sub.status !== 'active') return false;
 
     const now = new Date();
     const endDate = new Date(sub.endDate);
-
-    if (endDate < now) {
-      console.log("  isSubjectActiveForCurrentUser: false (subscription expired).");
-      console.log(`    Current date: ${now.toISOString()}, End date: ${endDate.toISOString()}`);
-      return false;
-    }
-
-    // Start date check removed as per user request
-    // const startDate = new Date(sub.startDate);
-    // if (now < startDate) {
-    //     console.log("  isSubjectActiveForCurrentUser: false (subscription start date is in the future).");
-    //     console.log(`    Current date: ${now.toISOString()}, Start date: ${startDate.toISOString()}`);
-    //     return false;
-    // }
+    if (endDate < now) return false;
 
     const isGeneralSubscription = !sub.subjectId || sub.subjectId.trim() === "";
     const isSpecificSubjectMatch = sub.subjectId === subjectId; 
-
-    console.log(`  isGeneralSubscription: ${isGeneralSubscription} (sub.subjectId: '${sub.subjectId}')`);
-    console.log(`  isSpecificSubjectMatch: ${isSpecificSubjectMatch} (sub.subjectId: '${sub.subjectId}', page subjectId: '${subjectId}')`);
     
-    const result = isGeneralSubscription || isSpecificSubjectMatch;
-    console.log("  isSubjectActiveForCurrentUser result:", result);
-    return result;
+    return isGeneralSubscription || isSpecificSubjectMatch;
   }, [userProfile, subjectId, authUser]);
 
   if (isLoadingData || isLoadingAuthProfile) {
