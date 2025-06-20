@@ -47,44 +47,84 @@ export const predefinedThemes: ColorTheme[] = [
     name: "بنفسجي ليلي",
     id: "night-purple",
     colors: {
-      light: { // Conceptual light version for "Night Purple"
-        background: "250 20% 98%", // Very Light Lavender White
-        primary: "275 70% 55%",    // Vibrant Purple (adjusted for light bg)
-        accent: "300 70% 60%",     // Pinkish-Purple accent
-        secondary: "275 60% 90%",   // Very Light Purple
-        card: "0 0% 100%",          // White
-        border: "250 15% 88%",      // Light Lavender Border
-        muted: "250 15% 94%",       // Light Lavender Grey
-        sidebarBackground: "275 50% 96%", // Very Light Purple/Lavender
-        sidebarForeground: "275 50% 25%", // Dark Purple text
-        sidebarPrimary: "275 70% 55%",    // Primary color for active items
-        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "275 50% 92%",    // Slightly darker light purple for hover
-        sidebarAccentForeground: "275 50% 20%", // Darker purple for text on hover
-        sidebarBorder: "275 40% 90%",      // Light border
-        sidebarRing: "275 70% 60%",       // Ring color
+      light: { 
+        background: "250 20% 98%", 
+        primary: "275 70% 55%",    
+        accent: "300 70% 60%",     
+        secondary: "275 60% 90%",   
+        card: "0 0% 100%",          
+        border: "250 15% 88%",      
+        muted: "250 15% 94%",       
+        sidebarBackground: "275 50% 96%", 
+        sidebarForeground: "275 50% 25%", 
+        sidebarPrimary: "275 70% 55%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "275 50% 92%",    
+        sidebarAccentForeground: "275 50% 20%", 
+        sidebarBorder: "275 40% 90%",      
+        sidebarRing: "275 70% 60%",       
       },
-      dark: { // Colors derived from the provided image
-        background: "250 10% 10%", // Dark Indigo/Deep Purple-Blue
-        primary: "275 75% 65%",    // Vibrant Purple/Magenta
-        accent: "300 80% 70%",     // Bright Pinkish-Purple as an accent
-        secondary: "250 10% 25%",   // Muted Dark Indigo for secondary elements
-        card: "250 10% 15%",       // Slightly Lighter Dark Indigo
-        border: "250 10% 20%",      // Subtle border
-        muted: "250 10% 20%",       // Muted color
-        sidebarBackground: "250 12% 12%", // Distinct dark indigo for sidebar
-        sidebarForeground: "250 15% 95%", // White/Light Lavender text
-        sidebarPrimary: "275 75% 65%",    // Primary color for active items
-        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "250 10% 20%",    // Slightly lighter dark indigo for hover
-        sidebarAccentForeground: "250 15% 95%", // Text on hover
-        sidebarBorder: "250 10% 10%",      // Darker border for sidebar
-        sidebarRing: "275 75% 70%",       // Ring color
+      dark: { 
+        background: "250 10% 10%", 
+        primary: "275 75% 65%",    
+        accent: "300 80% 70%",     
+        secondary: "250 10% 25%",   
+        card: "250 10% 15%",       
+        border: "250 10% 20%",      
+        muted: "250 10% 20%",       
+        sidebarBackground: "250 12% 12%", 
+        sidebarForeground: "250 15% 95%", 
+        sidebarPrimary: "275 75% 65%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "250 10% 20%",    
+        sidebarAccentForeground: "250 15% 95%", 
+        sidebarBorder: "250 10% 10%",      
+        sidebarRing: "275 75% 70%",       
       },
     },
   },
   {
-    name: "أزرق افتراضي (نظام)", // This was the previous default
+    name: "وردي عصري",
+    id: "modern-pink",
+    colors: {
+      light: {
+        background: "345 100% 97%", // Very light pink
+        primary: "335 85% 60%",    // Vibrant magenta/pink
+        accent: "340 90% 68%",     // Slightly brighter pink for accents
+        secondary: "340 70% 92%",   // Soft, light pink for secondary elements or gradient stop
+        card: "0 0% 100%",          // White cards
+        border: "345 50% 90%",      // Soft pinkish border
+        muted: "345 60% 93%",       // Muted light pink
+        sidebarBackground: "330 70% 95%", // Light lavender-pink for sidebar
+        sidebarForeground: "330 30% 25%", // Dark, desaturated pink/purple text
+        sidebarPrimary: "335 85% 60%",    // Same vibrant magenta/pink
+        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
+        sidebarAccent: "330 60% 90%",    // Lighter pink for hover
+        sidebarAccentForeground: "330 30% 20%", // Darker text on hover
+        sidebarBorder: "330 50% 88%",      // Soft sidebar border
+        sidebarRing: "335 85% 65%",       // Primary pink for focus rings
+      },
+      dark: {
+        background: "330 15% 10%", // Very dark desaturated purple/pink
+        primary: "335 80% 65%",    // Vibrant magenta/pink (adjusted for dark)
+        accent: "340 85% 70%",     // Bright pink accent
+        secondary: "330 15% 20%",   // Muted dark purple/pink
+        card: "330 15% 14%",       // Slightly lighter than main dark background
+        border: "330 10% 25%",      // Subtle dark border
+        muted: "330 10% 22%",       // Muted dark color
+        sidebarBackground: "330 12% 12%", // Distinct dark shade for sidebar
+        sidebarForeground: "330 20% 90%", // Light, slightly desaturated pink/lavender text
+        sidebarPrimary: "335 80% 65%",    // Vibrant magenta/pink
+        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
+        sidebarAccent: "330 15% 22%",    // Slightly lighter dark color for hover
+        sidebarAccentForeground: "330 20% 95%", // Text on hover
+        sidebarBorder: "330 10% 10%",      // Darker border for sidebar
+        sidebarRing: "335 80% 70%",       // Ring color
+      },
+    },
+  },
+  {
+    name: "أزرق افتراضي (نظام)",
     id: "default-system-blue",
     colors: {
       light: {
@@ -204,7 +244,7 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
   {
-    name: "بنفسجي ملكي", // This was the ID the user previously had potentially selected from settings
+    name: "بنفسجي ملكي",
     id: "royal-purple",
     colors: {
       light: {
@@ -244,4 +284,3 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
 ];
-
