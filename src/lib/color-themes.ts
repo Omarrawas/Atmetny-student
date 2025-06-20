@@ -128,118 +128,38 @@ export const predefinedThemes: ColorTheme[] = [
     id: "dark-emerald",
     colors: {
       light: {
-        background: "175 50% 97%", // Very light cyan/teal
-        primary: "145 60% 45%",    // Vibrant green (slightly desaturated for light)
-        accent: "205 70% 55%",     // Bright blue (slightly desaturated for light)
-        secondary: "175 40% 90%",   // Soft, light cyan/teal
-        card: "0 0% 100%",          // White cards
-        border: "175 30% 88%",      // Soft cyan/teal border
-        muted: "175 30% 93%",       // Muted light cyan/teal
-        sidebarBackground: "170 40% 94%", // Light slightly desaturated teal/cyan for sidebar
-        sidebarForeground: "170 35% 25%", // Dark, desaturated teal text
-        sidebarPrimary: "145 60% 45%",    // Same vibrant green
-        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "170 35% 90%",    // Lighter cyan/teal for hover
-        sidebarAccentForeground: "170 35% 20%", // Darker text on hover
-        sidebarBorder: "170 30% 85%",      // Soft sidebar border
-        sidebarRing: "145 60% 50%",       // Primary green for focus rings
+        background: "175 50% 97%", 
+        primary: "145 60% 45%",    
+        accent: "205 70% 55%",     
+        secondary: "175 40% 90%",   
+        card: "0 0% 100%",          
+        border: "175 30% 88%",      
+        muted: "175 30% 93%",       
+        sidebarBackground: "170 40% 94%", 
+        sidebarForeground: "170 35% 25%", 
+        sidebarPrimary: "145 60% 45%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "170 35% 90%",    
+        sidebarAccentForeground: "170 35% 20%", 
+        sidebarBorder: "170 30% 85%",      
+        sidebarRing: "145 60% 50%",       
       },
       dark: {
-        background: "190 15% 8%",  // Very dark, slightly desaturated blue-green/teal
-        primary: "140 65% 50%",    // Vibrant, almost neon green
-        accent: "200 75% 55%",     // Bright blue
-        secondary: "190 12% 12%",   // Muted dark teal for secondary elements or gradient stop
-        card: "190 15% 11%",       // Slightly lighter than main dark background, dark teal
-        border: "190 10% 18%",      // Subtle dark teal border
-        muted: "190 10% 22%",       // Muted dark teal color
-        sidebarBackground: "190 14% 10%", // Distinct dark shade for sidebar, similar to cards
-        sidebarForeground: "190 15% 88%", // Light, slightly desaturated cyan/off-white text
-        sidebarPrimary: "140 65% 50%",    // Vibrant green
-        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "190 12% 15%",    // Slightly lighter dark color for hover
-        sidebarAccentForeground: "190 15% 92%", // Text on hover
-        sidebarBorder: "190 10% 7%",      // Darker border for sidebar
-        sidebarRing: "140 65% 55%",       // Ring color (primary green)
-      },
-    },
-  },
-  {
-    name: "أزرق افتراضي (نظام)",
-    id: "default-system-blue",
-    colors: {
-      light: {
-        background: "208 100% 97%",
-        primary: "207 82% 68%",
-        accent: "45 100% 85%",
-        secondary: "208 60% 93%",
-        card: "208 100% 98%",
-        border: "208 40% 85%",
-        muted: "208 60% 93%",
-        sidebarBackground: "207 80% 55%",
-        sidebarForeground: "0 0% 100%",
-        sidebarPrimary: "45 100% 85%",
-        sidebarPrimaryForeground: "45 70% 35%",
-        sidebarAccent: "207 82% 65%",
-        sidebarAccentForeground: "0 0% 100%",
-        sidebarBorder: "207 80% 50%",
-        sidebarRing: "45 100% 85%",
-      },
-      dark: {
-        background: "208 20% 10%", // Default dark mode background
-        primary: "207 82% 68%",    // Default dark mode primary (kept same as light for this specific "default blue")
-        accent: "45 100% 85%",     // Default dark mode accent (kept same)
-        secondary: "208 20% 20%",   // Darker secondary for dark mode
-        card: "208 20% 15%",       // Darker card for dark mode
-        border: "208 20% 25%",      // Darker border
-        muted: "208 20% 20%",       // Darker muted
-        sidebarBackground: "208 20% 8%", // Darker sidebar background
-        sidebarForeground: "208 100% 97%", // Light text for dark sidebar
-        sidebarPrimary: "45 100% 85%",    // Accent as primary in dark sidebar
-        sidebarPrimaryForeground: "45 70% 25%", // Dark text on accent
-        sidebarAccent: "208 20% 18%",    // Darker hover for sidebar
-        sidebarAccentForeground: "208 100% 97%", // Light text on hover
-        sidebarBorder: "208 20% 22%",      // Darker sidebar border
-        sidebarRing: "45 100% 85%",       // Accent for ring
-      },
-    },
-  },
-  {
-    name: "أخضر غابي",
-    id: "forest-green",
-    colors: {
-      light: {
-        background: "120 60% 97%",
-        primary: "120 39% 53%",
-        accent: "90 50% 75%",
-        secondary: "120 50% 90%",
-        card: "120 60% 98%",
-        border: "120 40% 85%",
-        muted: "120 50% 90%",
-        sidebarBackground: "120 39% 43%",
-        sidebarForeground: "120 25% 95%",
-        sidebarPrimary: "90 50% 75%",
-        sidebarPrimaryForeground: "90 50% 25%",
-        sidebarAccent: "120 39% 58%",
-        sidebarAccentForeground: "120 25% 95%",
-        sidebarBorder: "120 39% 38%",
-        sidebarRing: "90 50% 75%",
-      },
-      dark: {
-        background: "120 25% 10%",
-        primary: "120 39% 63%",
-        accent: "90 50% 65%",
-        secondary: "120 20% 18%",
-        card: "120 25% 13%",
-        border: "120 20% 22%",
-        muted: "120 20% 18%",
-        sidebarBackground: "120 25% 8%",
-        sidebarForeground: "120 60% 90%",
-        sidebarPrimary: "90 50% 65%",
-        sidebarPrimaryForeground: "90 50% 20%",
-        sidebarAccent: "120 25% 15%",
-        sidebarAccentForeground: "120 60% 90%",
-        sidebarBorder: "120 25% 18%",
-        sidebarRing: "90 50% 65%",
+        background: "190 15% 8%",  
+        primary: "140 65% 50%",    
+        accent: "200 75% 55%",     
+        secondary: "190 12% 12%",   
+        card: "190 15% 11%",       
+        border: "190 10% 18%",      
+        muted: "190 10% 22%",       
+        sidebarBackground: "190 14% 10%", 
+        sidebarForeground: "190 15% 88%", 
+        sidebarPrimary: "140 65% 50%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "190 12% 15%",    
+        sidebarAccentForeground: "190 15% 92%", 
+        sidebarBorder: "190 10% 7%",      
+        sidebarRing: "140 65% 55%",       
       },
     },
   },
@@ -280,6 +200,86 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarAccentForeground: "30 100% 90%",
         sidebarBorder: "25 40% 18%",
         sidebarRing: "45 100% 60%",
+      },
+    },
+  },
+  {
+    name: "أزرق افتراضي (نظام)",
+    id: "default-system-blue",
+    colors: {
+      light: {
+        background: "208 100% 97%",
+        primary: "207 82% 68%",
+        accent: "45 100% 85%",
+        secondary: "208 60% 93%",
+        card: "208 100% 98%",
+        border: "208 40% 85%",
+        muted: "208 60% 93%",
+        sidebarBackground: "207 80% 55%",
+        sidebarForeground: "0 0% 100%",
+        sidebarPrimary: "45 100% 85%",
+        sidebarPrimaryForeground: "45 70% 35%",
+        sidebarAccent: "207 82% 65%",
+        sidebarAccentForeground: "0 0% 100%",
+        sidebarBorder: "207 80% 50%",
+        sidebarRing: "45 100% 85%",
+      },
+      dark: {
+        background: "208 20% 10%", 
+        primary: "207 82% 68%",    
+        accent: "45 100% 85%",     
+        secondary: "208 20% 20%",   
+        card: "208 20% 15%",       
+        border: "208 20% 25%",      
+        muted: "208 20% 20%",       
+        sidebarBackground: "208 20% 8%", 
+        sidebarForeground: "208 100% 97%", 
+        sidebarPrimary: "45 100% 85%",    
+        sidebarPrimaryForeground: "45 70% 25%", 
+        sidebarAccent: "208 20% 18%",    
+        sidebarAccentForeground: "208 100% 97%", 
+        sidebarBorder: "208 20% 22%",      
+        sidebarRing: "45 100% 85%",       
+      },
+    },
+  },
+  {
+    name: "أخضر غابي",
+    id: "forest-green",
+    colors: {
+      light: {
+        background: "120 60% 97%",
+        primary: "120 39% 53%",
+        accent: "90 50% 75%",
+        secondary: "120 50% 90%",
+        card: "120 60% 98%",
+        border: "120 40% 85%",
+        muted: "120 50% 90%",
+        sidebarBackground: "120 39% 43%",
+        sidebarForeground: "120 25% 95%",
+        sidebarPrimary: "90 50% 75%",
+        sidebarPrimaryForeground: "90 50% 25%",
+        sidebarAccent: "120 39% 58%",
+        sidebarAccentForeground: "120 25% 95%",
+        sidebarBorder: "120 39% 38%",
+        sidebarRing: "90 50% 75%",
+      },
+      dark: {
+        background: "120 25% 10%",
+        primary: "120 39% 63%",
+        accent: "90 50% 65%",
+        secondary: "120 20% 18%",
+        card: "120 25% 13%",
+        border: "120 20% 22%",
+        muted: "120 20% 18%",
+        sidebarBackground: "120 25% 8%",
+        sidebarForeground: "120 60% 90%",
+        sidebarPrimary: "90 50% 65%",
+        sidebarPrimaryForeground: "90 50% 20%",
+        sidebarAccent: "120 25% 15%",
+        sidebarAccentForeground: "120 60% 90%",
+        sidebarBorder: "120 25% 18%",
+        sidebarRing: "90 50% 65%",
       },
     },
   },
