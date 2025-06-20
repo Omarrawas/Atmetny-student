@@ -23,12 +23,26 @@ export interface ColorTheme {
       // Optional gradient properties
       appBackgroundGradient?: string;
       sidebarBackgroundGradient?: string;
+      cardBackgroundGradient?: string;
       primaryGradient?: string; // For general element backgrounds
       // Optional text gradient properties
       primaryTextGradient?: string;
       accentTextGradient?: string;
       secondaryTextGradient?: string;
       foregroundTextGradient?: string;
+      // Specific HEX/gradient stops from user's theme
+      // For Atmety Tech theme (HEX or full gradient strings)
+      userGradientStart?: string;
+      userGradientEnd?: string;
+      userGradientAccentStart?: string;
+      userGradientAccentEnd?: string;
+      userGradientRedStart?: string;
+      userGradientRedEnd?: string;
+      userTextPrimary?: string;
+      userTextSecondary?: string;
+      userBorderColor?: string;
+      userPrimaryBg?: string;
+      userSecondaryBg?: string;
     };
     dark: {
       background: string;
@@ -50,17 +64,107 @@ export interface ColorTheme {
       // Optional gradient properties
       appBackgroundGradient?: string;
       sidebarBackgroundGradient?: string;
+      cardBackgroundGradient?: string;
       primaryGradient?: string; // For general element backgrounds
       // Optional text gradient properties
       primaryTextGradient?: string;
       accentTextGradient?: string;
       secondaryTextGradient?: string;
       foregroundTextGradient?: string;
+      // Specific HEX/gradient stops from user's theme
+      // For Atmety Tech theme (HEX or full gradient strings)
+      userGradientStart?: string;
+      userGradientEnd?: string;
+      userGradientAccentStart?: string;
+      userGradientAccentEnd?: string;
+      userGradientRedStart?: string;
+      userGradientRedEnd?: string;
+      userTextPrimary?: string;
+      userTextSecondary?: string;
+      userBorderColor?: string;
+      userPrimaryBg?: string;
+      userSecondaryBg?: string;
     };
   };
 }
 
 export const predefinedThemes: ColorTheme[] = [
+  {
+    name: "Atmety Tech",
+    id: "atmety-tech",
+    colors: {
+      light: { // Provide a light mode fallback for Atmety Tech
+        background: "220 100% 97%", 
+        primary: "270 85% 60%",    
+        accent: "330 90% 65%",     
+        secondary: "220 70% 92%",   
+        card: "0 0% 100%",          
+        border: "220 50% 90%",      
+        muted: "220 60% 93%",       
+        sidebarBackground: "220 70% 95%", 
+        sidebarForeground: "270 50% 25%", 
+        sidebarPrimary: "270 85% 60%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "220 60% 90%",    
+        sidebarAccentForeground: "270 50% 20%", 
+        sidebarBorder: "220 50% 88%",      
+        sidebarRing: "270 85% 65%",
+        // Gradients (can be simpler for light mode or match dark if desired)
+        appBackgroundGradient: "linear-gradient(to bottom right, #e0f7fa, #e8eaf6)",
+        sidebarBackgroundGradient: "linear-gradient(to bottom, #f1f5f9, #e8eaf6)",
+        cardBackgroundGradient: "linear-gradient(to bottom right, #ffffff, #f9fafb)",
+        primaryTextGradient: "linear-gradient(to right, #6200ea, #3700b3)", 
+        accentTextGradient: "linear-gradient(to right, #03dac6, #018786)",
+        // User specific values (can be different for light or omitted if dark-only)
+        userGradientStart: "#D1C4E9", // Light purple
+        userGradientEnd: "#B2EBF2",   // Light cyan
+        userGradientAccentStart: "#F48FB1", // Light pink
+        userGradientAccentEnd: "#80DEEA",  // Light teal
+        userGradientRedStart: "#FFCC80",   // Light orange
+        userGradientRedEnd: "#FFF59D",    // Light yellow
+        userTextPrimary: "#212121",        // Dark gray for text
+        userTextSecondary: "#757575",      // Medium gray for text
+        userBorderColor: "#BDBDBD",        // Light gray for borders
+        userPrimaryBg: "#FFFFFF",          // White
+        userSecondaryBg: "#F5F5F5",        // Very light gray
+      },
+      dark: { 
+        background: "222 47% 11%", // Fallback HSL for --background if gradient isn't used directly by Tailwind
+        primary: "260 80% 60%",    // Fallback HSL for --primary (e.g. from #fc00ff)
+        accent: "300 100% 60%",     // Fallback HSL for --accent (e.g. from #FF8008)
+        secondary: "187 89% 31%",   // Fallback HSL for --secondary (e.g. from #0b8793)
+        card: "222 30% 15%",       // Fallback HSL for card if gradient isn't used
+        border: "215 28% 35%",      // Fallback HSL for --border (from #4A5568)
+        muted: "222 20% 20%",       // Fallback HSL
+        sidebarBackground: "222 30% 15%", // Fallback HSL for sidebar if gradient isn't used
+        sidebarForeground: "#E0E0E0", // User's text primary
+        sidebarPrimary: "#fc00ff",    // User's gradient accent start
+        sidebarPrimaryForeground: "#FFFFFF", 
+        sidebarAccent: "#4A5568",    
+        sidebarAccentForeground: "#E0E0E0", 
+        sidebarBorder: "222 20% 10%",      
+        sidebarRing: "#fc00ff",
+        // User specific values from their CSS, applied directly
+        userGradientStart: "#360033",
+        userGradientEnd: "#0b8793",
+        userGradientAccentStart: "#fc00ff",
+        userGradientAccentEnd: "#00dbde",
+        userGradientRedStart: "#FF8008",
+        userGradientRedEnd: "#FFC837",
+        userTextPrimary: "#E0E0E0",
+        userTextSecondary: "#BDBDBD",
+        userBorderColor: "#4A5568",
+        userPrimaryBg: "#1A202C",
+        userSecondaryBg: "#2D3748",
+        // Gradient definitions from user's CSS
+        appBackgroundGradient: "linear-gradient(to bottom right, var(--user-gradient-start, #360033), var(--user-gradient-end, #0b8793))",
+        sidebarBackgroundGradient: "linear-gradient(to bottom, var(--user-secondary-bg, #2D3748), var(--user-primary-bg, #1A202C))",
+        cardBackgroundGradient: "linear-gradient(to bottom right, var(--user-secondary-bg, #2D3748), var(--user-primary-bg, #1A202C))",
+        primaryTextGradient: "linear-gradient(to right, var(--user-gradient-accent-start, #fc00ff), var(--user-gradient-accent-end, #00dbde))",
+        accentTextGradient: "linear-gradient(to right, var(--user-gradient-red-start, #FF8008), var(--user-gradient-red-end, #FFC837))",
+      },
+    },
+  },
   {
     name: "بنفسجي ليلي",
     id: "night-purple",
@@ -311,7 +415,7 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarBorder: "20 30% 12%",      
         sidebarRing: "30 90% 70%",       
         appBackgroundGradient: "linear-gradient(135deg, hsl(25, 40%, 10%), hsl(200, 30%, 8%))", 
-        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(25, 30%, 9%), hsl(20, 25%, 7%))",
+        sidebarBackgroundGradient: "linear-gradient(180deg, hsl(20, 35%, 6%), hsl(25, 30%, 9%))", // Reversed order from user HTML
         primaryTextGradient: "linear-gradient(135deg, hsl(30, 90%, 60%), hsl(15, 85%, 55%))",
         accentTextGradient: "linear-gradient(135deg, hsl(45, 100%, 55%), hsl(30, 90%, 65%))",
       },
@@ -502,4 +606,6 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
 ];
+    
+
     

@@ -1,9 +1,11 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Default HSL values, these will be overridden by CustomThemeProvider for most themes */
     --background: 208 100% 97%; /* Default Light: Very Light Desaturated Blue */
     --foreground: 208 10% 25%; /* Default Light: Darker blue-gray for text */
 
@@ -39,7 +41,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Sidebar specific colors for Light Mode */
+    /* Sidebar specific HSL colors for Light Mode */
     --sidebar-background: 207 80% 55%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 45 100% 85%;
@@ -50,123 +52,187 @@
     --sidebar-ring: 45 100% 85%;
 
     /* Variables for actual backgrounds (can be gradients or solid HSLs) */
+    /* These are set by CustomThemeProvider */
     --app-bg-actual: hsl(var(--background));
     --sidebar-bg-actual: hsl(var(--sidebar-background));
-    /* --primary-gradient-actual: hsl(var(--primary)); */ /* Example, if needed */
+    --card-bg-actual: hsl(var(--card)); /* Fallback for card background */
+
 
     /* Text gradient variables - with fallbacks to solid HSL colors */
+    /* These are set by CustomThemeProvider */
     --primary-text-gradient-actual: hsl(var(--primary-foreground));
     --accent-text-gradient-actual: hsl(var(--accent-foreground));
     --secondary-text-gradient-actual: hsl(var(--secondary-foreground));
     --foreground-text-gradient-actual: hsl(var(--foreground));
+
+    /* Variables from user's "Atmety Tech" theme (defaults set by CustomThemeProvider) */
+    --user-gradient-start: #360033;
+    --user-gradient-end: #0b8793;
+    --user-gradient-accent-start: #fc00ff;
+    --user-gradient-accent-end: #00dbde;
+    --user-gradient-red-start: #FF8008;
+    --user-gradient-red-end: #FFC837;
+    --user-text-primary: #E0E0E0;
+    --user-text-secondary: #BDBDBD;
+    --user-border-color: #4A5568;
+    --user-primary-bg: #1A202C;
+    --user-secondary-bg: #2D3748;
+
+    /* Button specific gradients (set by CustomThemeProvider) */
+    --button-primary-gradient: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)));
+    --button-primary-hover-gradient: linear-gradient(to right, hsl(var(--accent)), hsl(var(--primary)));
+    --button-accent-gradient: linear-gradient(to right, hsl(var(--accent)), hsl(var(--destructive)));
+    --button-accent-hover-gradient: linear-gradient(to right, hsl(var(--destructive)), hsl(var(--accent)));
   }
 
   .dark {
-    /* Default Dark Mode - Aligned with "Night Purple" theme from the image */
-    --background: 250 10% 10%; /* Dark Indigo/Deep Purple-Blue */
-    --foreground: 250 15% 95%; /* Very Light Lavender/Off-White */
+    /* Default Dark Mode HSL values - These are base fallbacks and will be largely overridden by the "Atmety Tech" theme when active via CustomThemeProvider */
+    --background: 250 10% 10%; 
+    --foreground: 250 15% 95%; 
 
-    --card: 250 10% 15%;       /* Slightly Lighter Dark Indigo */
+    --card: 250 10% 15%;      
     --card-foreground: 250 15% 95%;
 
     --popover: 250 10% 12%;
     --popover-foreground: 250 15% 95%;
 
-    --primary: 275 75% 65%;    /* Vibrant Purple/Magenta */
-    --primary-foreground: 0 0% 100%; /* White */
+    --primary: 275 75% 65%;    
+    --primary-foreground: 0 0% 100%; 
 
-    --secondary: 250 10% 25%;   /* Muted Dark Indigo */
-    --secondary-foreground: 250 15% 75%; /* Light Lavender */
+    --secondary: 250 10% 25%;  
+    --secondary-foreground: 250 15% 75%; 
 
     --muted: 250 10% 20%;
-    --muted-foreground: 250 10% 60%; /* Medium Lavender Grey */
+    --muted-foreground: 250 10% 60%; 
 
-    --accent: 300 80% 70%;     /* Bright Pinkish-Purple */
-    --accent-foreground: 0 0% 100%; /* White */
+    --accent: 300 80% 70%;     
+    --accent-foreground: 0 0% 100%; 
 
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 10% 20%;      /* Subtle border */
+    --border: 250 10% 20%;      
     --input: 250 10% 12%;
-    --ring: 275 75% 70%;       /* Primary for focus rings */
+    --ring: 275 75% 70%;       
 
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-
-    /* Sidebar specific colors for Dark Mode - "Night Purple" theme */
-    --sidebar-background: 250 12% 12%; /* Distinct dark indigo */
-    --sidebar-foreground: 250 15% 95%; /* White/Light Lavender text */
-    --sidebar-primary: 275 75% 65%;    /* Vibrant purple for active/hover */
-    --sidebar-primary-foreground: 0 0% 100%; /* White text on active/hover */
-    --sidebar-accent: 250 10% 20%;    /* Slightly lighter dark indigo for general hover */
+    --sidebar-background: 250 12% 12%; 
+    --sidebar-foreground: 250 15% 95%; 
+    --sidebar-primary: 275 75% 65%;    
+    --sidebar-primary-foreground: 0 0% 100%; 
+    --sidebar-accent: 250 10% 20%;    
     --sidebar-accent-foreground: 250 15% 95%;
-    --sidebar-border: 250 10% 10%;      /* Darker border */
-    --sidebar-ring: 275 75% 70%;       /* Ring color */
+    --sidebar-border: 250 10% 10%;      
+    --sidebar-ring: 275 75% 70%;
 
-    /* Ensure these are also defined for dark mode, even if they just fall back to solid initially */
-    --app-bg-actual: hsl(var(--background));
-    --sidebar-bg-actual: hsl(var(--sidebar-background));
-    /* --primary-gradient-actual: hsl(var(--primary)); */
-
-    /* Text gradient variables - with fallbacks to solid HSL colors */
-    --primary-text-gradient-actual: hsl(var(--primary-foreground));
-    --accent-text-gradient-actual: hsl(var(--accent-foreground));
-    --secondary-text-gradient-actual: hsl(var(--secondary-foreground));
-    --foreground-text-gradient-actual: hsl(var(--foreground));
+    /* Ensure these are also defined for dark mode, they will be updated by CustomThemeProvider */
+    /* User-specific variables for "Atmety Tech" dark mode are set by CustomThemeProvider */
+    --user-gradient-start: #360033;
+    --user-gradient-end: #0b8793;
+    --user-gradient-accent-start: #fc00ff;
+    --user-gradient-accent-end: #00dbde;
+    --user-gradient-red-start: #FF8008;
+    --user-gradient-red-end: #FFC837;
+    --user-text-primary: #E0E0E0;
+    --user-text-secondary: #BDBDBD;
+    --user-border-color: #4A5568;
+    --user-primary-bg: #1A202C;
+    --user-secondary-bg: #2D3748;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--user-border-color, hsl(var(--border))); /* Use user's border color, fallback to HSL */
   }
   body {
-    /* Use the actual background variable that might be a gradient or solid */
-    background: var(--app-bg-actual);
-    @apply text-foreground;
-    /* The Geist font should handle Arabic characters well.
-       Ensure to use lang="ar" and dir="rtl" in HTML for proper rendering. */
+    background: var(--app-bg-actual); /* This is set by CustomThemeProvider, can be a gradient */
+    color: var(--user-text-primary, hsl(var(--foreground))); /* Use user's text color, fallback to HSL */
   }
 
-  /* Target the actual sidebar element that gets the background color */
-  /* This selector comes from the data-sidebar attribute in src/components/ui/sidebar.tsx */
   [data-sidebar="sidebar"] {
-    background: var(--sidebar-bg-actual);
+    background: var(--sidebar-bg-actual); /* Set by CustomThemeProvider, can be a gradient */
+  }
+
+  /* Styling for cards to use gradient background if available */
+  .bg-card { /* Keep this for Tailwind's Card component if it uses bg-card */
+    background: var(--card-bg-actual); /* This can be a gradient or solid HSL from CustomThemeProvider */
   }
 }
 
 @layer components {
+  .gradient-text { /* User's class for primary text gradient */
+    background-image: var(--primary-text-gradient-actual, linear-gradient(to right, var(--user-gradient-accent-start, hsl(var(--primary))), var(--user-gradient-accent-end, hsl(var(--accent)))));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent; /* For Safari */
+  }
+  .gradient-text-accent { /* User's class for red/orange text gradient */
+    background-image: var(--accent-text-gradient-actual, linear-gradient(to right, var(--user-gradient-red-start, hsl(var(--accent))), var(--user-gradient-red-end, hsl(var(--destructive)))));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent; /* For Safari */
+  }
+
+  /* Button Gradients (replicating user's CSS classes) */
+  .gradient-bg-primary-button { /* Was gradient-bg-accent in user's example */
+    background-image: var(--button-primary-gradient);
+    color: var(--user-text-primary, white) !important; /* Ensure text color is appropriate */
+  }
+  .gradient-bg-primary-button-hover:hover {
+    background-image: var(--button-primary-hover-gradient);
+  }
+
+  .gradient-bg-accent-button { /* Was gradient-bg-red in user's example */
+    background-image: var(--button-accent-gradient);
+    color: var(--user-text-primary, white) !important;
+  }
+  .gradient-bg-accent-button-hover:hover {
+    background-image: var(--button-accent-hover-gradient);
+  }
+
+  /* Fallback text gradients if specific ones are not defined by theme */
   .text-gradient-primary {
     background-image: var(--primary-text-gradient-actual, linear-gradient(to right, hsl(var(--primary)) 50%, hsl(var(--primary-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; /* Fallback for non-supporting browsers */
+    color: transparent; 
   }
   .text-gradient-accent {
     background-image: var(--accent-text-gradient-actual, linear-gradient(to right, hsl(var(--accent)) 50%, hsl(var(--accent-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; /* Fallback for non-supporting browsers */
+    color: transparent; 
   }
   .text-gradient-secondary {
     background-image: var(--secondary-text-gradient-actual, linear-gradient(to right, hsl(var(--secondary)) 50%, hsl(var(--secondary-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; /* Fallback for non-supporting browsers */
+    color: transparent; 
   }
   .text-gradient-foreground {
     background-image: var(--foreground-text-gradient-actual, linear-gradient(to right, hsl(var(--foreground)) 50%, hsl(var(--muted-foreground)) 50%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent; /* Fallback for non-supporting browsers */
+    color: transparent; 
+  }
+
+  /* User's shadow classes */
+  .modern-shadow {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  }
+  .modern-shadow-light {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Ensure card component uses the gradient background when specified by theme */
+  .card-gradient-background { /* New class to target cards for gradient */
+     background: var(--card-bg-actual);
   }
 }
 
@@ -192,3 +258,49 @@ span.katex { /* Targeting specifically inline math spans */
   display: inline-block; /* Helps with alignment and prevents awkward breaks */
 }
 
+/* General text color based on theme */
+body {
+  color: var(--user-text-primary, hsl(var(--foreground)));
+}
+p, span, div, li, a, label, input, textarea, select, button:not(.text-primary-foreground):not(.text-destructive-foreground):not(.text-accent-foreground):not([class*="gradient-bg-"]) {
+  color: var(--user-text-primary, hsl(var(--foreground)));
+}
+h1, h2, h3, h4, h5, h6 {
+   color: var(--user-text-primary, hsl(var(--foreground))); /* Default heading color */
+}
+/* If a heading should be gradient, apply .gradient-text or .gradient-text-accent */
+
+/* Muted text color from theme */
+.text-muted-foreground {
+  color: var(--user-text-secondary, hsl(var(--muted-foreground))) !important;
+}
+/* Sidebar specific text color */
+[data-sidebar="sidebar"] {
+  color: var(--sidebar-foreground, #E0E0E0) !important;
+}
+[data-sidebar="sidebar"] p, 
+[data-sidebar="sidebar"] span,
+[data-sidebar="sidebar"] div,
+[data-sidebar="sidebar"] a,
+[data-sidebar="sidebar"] button:not([class*="-foreground"]) { /* Avoid overriding button text that already has specific contrast color */
+   color: var(--sidebar-foreground, #E0E0E0) !important;
+}
+[data-sidebar="sidebar"] .text-sidebar-foreground\/70 {
+   opacity: 0.7; /* Simulate muted foreground for sidebar */
+}
+
+
+/* Ensure ShadCN button variants respect theme text colors more consistently */
+.dark .text-primary-foreground, .text-primary-foreground { color: var(--user-text-primary, #FFFFFF) !important; }
+.dark .text-secondary-foreground, .text-secondary-foreground { color: var(--user-text-secondary, #BDBDBD) !important; }
+.dark .text-accent-foreground, .text-accent-foreground { color: var(--user-text-primary, #FFFFFF) !important; }
+.dark .text-destructive-foreground, .text-destructive-foreground { color: var(--user-text-primary, #FFFFFF) !important; }
+
+/* For buttons with explicitly defined background gradients via classes, ensure text color is a fallback */
+.gradient-bg-primary-button, .gradient-bg-accent-button {
+  color: var(--user-text-primary, #FFFFFF) !important;
+}
+
+
+
+    
