@@ -121,7 +121,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             console.log(`[AppLayout] Subscribed to notification changes for user ${authUser.id} for count update.`);
           }
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.error(`[AppLayout] Subscription issue for notifications count (user ${authUser.id}): ${status}`, err);
+            console.error(`[AppLayout] Subscription issue for notifications count (user ${authUser.id}): ${status}`, err || 'No error object provided');
           }
         });
     } else {
