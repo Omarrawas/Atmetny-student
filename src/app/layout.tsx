@@ -6,21 +6,21 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ThemeProvider } from '@/components/theme-provider';
-import Head from 'next/head'; // Import Head
+import { CustomThemeProvider } from '@/contexts/custom-theme-provider'; // Import CustomThemeProvider
+import Head from 'next/head';
 import { getAppSettings } from '@/lib/serverExamService';
-import { AppSettingsProvider } from '@/contexts/app-settings-context'; // Import the provider
+import { AppSettingsProvider } from '@/contexts/app-settings-context';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
-  subsets: ['latin', 'arabic'], // Added 'arabic' subset if available, it will fallback.
+  subsets: ['latin', 'arabic'],
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
-  subsets: ['latin', 'arabic'], // Added 'arabic' subset if available.
+  subsets: ['latin', 'arabic'],
 });
 
-// Generate metadata dynamically
 export async function generateMetadata(): Promise<Metadata> {
   const appSettings = await getAppSettings();
   const appNameOrDefault = appSettings?.app_name || 'Atmetny';
@@ -29,7 +29,6 @@ export async function generateMetadata(): Promise<Metadata> {
 منصتك التعليمية الشاملة للدراسة الذكية والاستعداد للاختبارات المؤتمتة في سوريا.
 📚 ابدأ الآن وكن من صُنّاع التفوق.`;
   
-  // Use homepage_description from settings if available and not empty, otherwise use the default.
   const siteDescription = appSettings?.homepage_description && appSettings.homepage_description.trim() !== ''
     ? appSettings.homepage_description
     : defaultSiteDescription;
@@ -37,13 +36,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: {
       default: appNameOrDefault,
-      template: `%s | ${appNameOrDefault}`, // For page-specific titles
+      template: `%s | ${appNameOrDefault}`,
     },
     description: siteDescription,
-    // Add other metadata like icons if app_logo_url is available and suitable for favicon
-    // icons: {
-    //   icon: appSettings?.app_logo_url || '/favicon.ico', // Example
-    // },
   };
 }
 
@@ -71,13 +66,15 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AppSettingsProvider fetchedSettings={appSettings}>
-            <SidebarProvider defaultOpen={true}>
-              <AppLayout>
-                {children}
-              </AppLayout>
-            </SidebarProvider>
-          </AppSettingsProvider>
+          <CustomThemeProvider> {/* CustomThemeProvider wraps AppSettingsProvider */}
+            <AppSettingsProvider fetchedSettings={appSettings}>
+              <SidebarProvider defaultOpen={true}>
+                <AppLayout>
+                  {children}
+                </AppLayout>
+              </SidebarProvider>
+            </AppSettingsProvider>
+          </CustomThemeProvider>
           <Toaster />
         </ThemeProvider>
       </body>
