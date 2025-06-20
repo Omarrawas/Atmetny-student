@@ -27,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   
   const defaultSiteDescription = `استكشف ${appNameOrDefault}، منصتك التعليمية الرائدة لطلاب البكالوريا في سوريا. نقدم اختبارات شاملة، مواد دراسية محدثة، تحليل أداء ذكي، ومجتمعاً تفاعلياً لمساعدتك على تحقيق التفوق.`;
   
+  // Use homepage_description from settings if available and not empty, otherwise use the default.
   const siteDescription = appSettings?.homepage_description && appSettings.homepage_description.trim() !== ''
     ? appSettings.homepage_description
     : defaultSiteDescription;
