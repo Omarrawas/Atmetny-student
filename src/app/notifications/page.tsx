@@ -87,7 +87,7 @@ export default function NotificationsPage() {
   }, [toast]);
 
   useEffect(() => {
-    let notificationsChannel: RealtimeChannel | null = null;
+    // let notificationsChannel: RealtimeChannel | null = null;
 
     const setupAuthAndSubscriptions = async () => {
       setIsLoading(true);
@@ -98,25 +98,25 @@ export default function NotificationsPage() {
       if (user) {
         await fetchNotificationsData(user.id);
 
-        notificationsChannel = supabase
-          .channel(`user-notifications-list-${user.id}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${user.id}` },
-            async (payload) => {
-              console.log('[NotificationsPage] Real-time event:', payload);
-              // Re-fetch for simplicity, can be optimized with granular updates
-              await fetchNotificationsData(user.id);
-            }
-          )
-          .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-              console.log(`[NotificationsPage] Subscribed to notification list changes for user ${user.id}.`);
-            }
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-              console.error(`[NotificationsPage] Subscription issue for notification list (user ${user.id}): ${status}`, err);
-            }
-          });
+        // notificationsChannel = supabase
+        //   .channel(`user-notifications-list-${user.id}`)
+        //   .on(
+        //     'postgres_changes',
+        //     { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${user.id}` },
+        //     async (payload) => {
+        //       console.log('[NotificationsPage] Real-time event:', payload);
+        //       // Re-fetch for simplicity, can be optimized with granular updates
+        //       await fetchNotificationsData(user.id);
+        //     }
+        //   )
+        //   .subscribe((status, err) => {
+        //     if (status === 'SUBSCRIBED') {
+        //       console.log(`[NotificationsPage] Subscribed to notification list changes for user ${user.id}.`);
+        //     }
+        //     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        //       console.error(`[NotificationsPage] Subscription issue for notification list (user ${user.id}): ${status}`, err);
+        //     }
+        //   });
       } else {
         setIsLoading(false);
         setNotifications([]);
@@ -130,23 +130,23 @@ export default function NotificationsPage() {
       const currentUser = session?.user ?? null;
       setAuthUser(currentUser);
 
-      if (notificationsChannel) {
-        await supabase.removeChannel(notificationsChannel);
-        notificationsChannel = null;
-      }
+      // if (notificationsChannel) {
+      //   await supabase.removeChannel(notificationsChannel);
+      //   notificationsChannel = null;
+      // }
 
       if (currentUser) {
         await fetchNotificationsData(currentUser.id); // Fetch on auth change
-        notificationsChannel = supabase // Re-subscribe
-          .channel(`user-notifications-list-${currentUser.id}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${currentUser.id}` },
-            async (payload) => {
-              await fetchNotificationsData(currentUser.id);
-            }
-          )
-          .subscribe();
+        // notificationsChannel = supabase // Re-subscribe
+        //   .channel(`user-notifications-list-${currentUser.id}`)
+        //   .on(
+        //     'postgres_changes',
+        //     { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${currentUser.id}` },
+        //     async (payload) => {
+        //       await fetchNotificationsData(currentUser.id);
+        //     }
+        //   )
+        //   .subscribe();
       } else {
         setNotifications([]);
         setUnreadCount(0);
@@ -156,9 +156,9 @@ export default function NotificationsPage() {
 
     return () => {
       authListener?.subscription.unsubscribe();
-      if (notificationsChannel) {
-        supabase.removeChannel(notificationsChannel).catch(console.error);
-      }
+      // if (notificationsChannel) {
+      //   supabase.removeChannel(notificationsChannel).catch(console.error);
+      // }
     };
   }, [fetchNotificationsData]);
 
@@ -167,11 +167,11 @@ export default function NotificationsPage() {
     if (!authUser || notification.is_read) return;
     try {
       await markUserNotificationAsRead(notification.id);
-      // Real-time update should handle re-fetch or local state update via subscription.
-      // For immediate feedback, can update locally too, but might conflict with RT.
-      // setNotifications(prev => prev.map(n => (n.id === notification.id ? { ...n, is_read: true } : n)));
-      // const newCount = await getUnreadUserNotificationsCount(authUser.id);
-      // setUnreadCount(newCount);
+      // For immediate feedback without relying on (now disabled) real-time:
+      setNotifications(prev => prev.map(n => (n.id === notification.id ? { ...n, is_read: true } : n)));
+      const newCount = await getUnreadUserNotificationsCount(authUser.id);
+      setUnreadCount(newCount);
+
 
       if (notification.link_path) {
         router.push(notification.link_path);
@@ -187,7 +187,9 @@ export default function NotificationsPage() {
     if (!authUser || notifications.every(n => n.is_read)) return;
     try {
       await markAllUserNotificationsAsRead(authUser.id);
-      // Real-time update should handle re-fetch.
+       // For immediate feedback without relying on (now disabled) real-time:
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
       toast({ title: 'تم بنجاح', description: 'تم تحديد جميع الإشعارات كمقروءة.' });
     } catch (e) {
       console.error('Failed to mark all notifications as read:', e);

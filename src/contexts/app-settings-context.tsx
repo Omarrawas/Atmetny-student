@@ -71,56 +71,56 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ childr
     // Set initial settings from fetchedSettings prop
     setCurrentSettings(fetchedSettings !== null ? fetchedSettings : defaultSettings);
 
-    // Subscribe to real-time updates for the specific app_settings row
-    const channel = supabase
-      .channel('app-settings-changes')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: `id=eq.${settingsRowId}` },
-        (payload) => {
-          console.log('[AppSettingsProvider] Real-time app_settings update received:', payload);
-          if (payload.new && (payload.new as AppSettings).id === settingsRowId) {
-            const updatedAppSettings = payload.new as AppSettings;
+    // // Subscribe to real-time updates for the specific app_settings row
+    // const channel = supabase
+    //   .channel('app-settings-changes')
+    //   .on(
+    //     'postgres_changes',
+    //     { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: `id=eq.${settingsRowId}` },
+    //     (payload) => {
+    //       console.log('[AppSettingsProvider] Real-time app_settings update received:', payload);
+    //       if (payload.new && (payload.new as AppSettings).id === settingsRowId) {
+    //         const updatedAppSettings = payload.new as AppSettings;
             
-            // Ensure social_media_links is parsed if it's a string or properly typed if already an array
-            let socialMediaLinks: SocialMediaLink[] | null = [];
-            if (Array.isArray(updatedAppSettings.social_media_links)) {
-                socialMediaLinks = updatedAppSettings.social_media_links;
-            } else if (typeof updatedAppSettings.social_media_links === 'string') {
-                try {
-                    socialMediaLinks = JSON.parse(updatedAppSettings.social_media_links);
-                } catch (e) {
-                    console.error("Failed to parse social_media_links from string:", e);
-                    socialMediaLinks = null; // or keep as [] or handle error appropriately
-                }
-            } else {
-                socialMediaLinks = updatedAppSettings.social_media_links || null;
-            }
+    //         // Ensure social_media_links is parsed if it's a string or properly typed if already an array
+    //         let socialMediaLinks: SocialMediaLink[] | null = [];
+    //         if (Array.isArray(updatedAppSettings.social_media_links)) {
+    //             socialMediaLinks = updatedAppSettings.social_media_links;
+    //         } else if (typeof updatedAppSettings.social_media_links === 'string') {
+    //             try {
+    //                 socialMediaLinks = JSON.parse(updatedAppSettings.social_media_links);
+    //             } catch (e) {
+    //                 console.error("Failed to parse social_media_links from string:", e);
+    //                 socialMediaLinks = null; // or keep as [] or handle error appropriately
+    //             }
+    //         } else {
+    //             socialMediaLinks = updatedAppSettings.social_media_links || null;
+    //         }
 
-            setCurrentSettings({
-                ...updatedAppSettings,
-                social_media_links: socialMediaLinks
-            });
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[AppSettingsProvider] Subscription to app_settings is: ${status}.`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`[AppSettingsProvider] Subscription to app_settings encountered CHANNEL_ERROR. Status: ${status}. Error:`, err || 'No specific error object provided.');
-        } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn(`[AppSettingsProvider] Subscription to app_settings changed status: ${status}. Details:`, err || 'No additional error details provided.');
-        }
-      });
+    //         setCurrentSettings({
+    //             ...updatedAppSettings,
+    //             social_media_links: socialMediaLinks
+    //         });
+    //       }
+    //     }
+    //   )
+    //   .subscribe((status, err) => {
+    //     if (status === 'SUBSCRIBED') {
+    //       console.log(`[AppSettingsProvider] Subscription to app_settings is: ${status}.`);
+    //     } else if (status === 'CHANNEL_ERROR') {
+    //       console.error(`[AppSettingsProvider] Subscription to app_settings encountered CHANNEL_ERROR. Status: ${status}. Error:`, err || 'No specific error object provided.');
+    //     } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
+    //       console.warn(`[AppSettingsProvider] Subscription to app_settings changed status: ${status}. Details:`, err || 'No additional error details provided.');
+    //     }
+    //   });
 
-    return () => {
-      supabase.removeChannel(channel).then((status) => {
-        console.log(`[AppSettingsProvider] Unsubscribed from app_settings changes. Status: ${status}`);
-      }).catch(error => {
-        console.error(`[AppSettingsProvider] Error unsubscribing from app_settings:`, error);
-      });
-    };
+    // return () => {
+    //   supabase.removeChannel(channel).then((status) => {
+    //     console.log(`[AppSettingsProvider] Unsubscribed from app_settings changes. Status: ${status}`);
+    //   }).catch(error => {
+    //     console.error(`[AppSettingsProvider] Error unsubscribing from app_settings:`, error);
+    //   });
+    // };
   }, [fetchedSettings]); // Re-run effect if fetchedSettings (initial prop) changes
 
   const getIconComponent = (iconName?: LucideIconName | string): React.ElementType => {

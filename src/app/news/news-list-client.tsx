@@ -40,50 +40,50 @@ export default function NewsListClient({ initialNews, initialError }: NewsListCl
   }, [initialNews, initialError]);
 
   useEffect(() => {
-    const newsChannel: RealtimeChannel = supabase
-      .channel('public-news-articles')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'news_articles' },
-        (payload) => {
-          console.log('[NewsListClient] Real-time news event:', payload);
-          setNewsItems(currentNews => {
-            let newNewsList = [...currentNews];
-            if (payload.eventType === 'INSERT') {
-              const newItem = payload.new as NewsItem;
-              if (!newNewsList.find(item => item.id === newItem.id)) {
-                newNewsList = [newItem, ...newNewsList];
-              }
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedItem = payload.new as NewsItem;
-              const index = newNewsList.findIndex(item => item.id === updatedItem.id);
-              if (index > -1) {
-                newNewsList[index] = updatedItem;
-              } else {
-                 newNewsList.unshift(updatedItem); // Add if not present (e.g., visibility change)
-              }
-            } else if (payload.eventType === 'DELETE') {
-              const deletedItem = payload.old as { id: string };
-              newNewsList = newNewsList.filter(item => item.id !== deletedItem.id);
-            }
-            // Sort by creation date descending and limit to ensure UI doesn't grow indefinitely
-            return newNewsList.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()).slice(0, 50); 
-          });
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[NewsListClient] Subscribed to news_articles changes.');
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.error(`[NewsListClient] Subscription issue for news_articles: ${status}`, err);
-        }
-      });
+    // const newsChannel: RealtimeChannel = supabase
+    //   .channel('public-news-articles')
+    //   .on(
+    //     'postgres_changes',
+    //     { event: '*', schema: 'public', table: 'news_articles' },
+    //     (payload) => {
+    //       console.log('[NewsListClient] Real-time news event:', payload);
+    //       setNewsItems(currentNews => {
+    //         let newNewsList = [...currentNews];
+    //         if (payload.eventType === 'INSERT') {
+    //           const newItem = payload.new as NewsItem;
+    //           if (!newNewsList.find(item => item.id === newItem.id)) {
+    //             newNewsList = [newItem, ...newNewsList];
+    //           }
+    //         } else if (payload.eventType === 'UPDATE') {
+    //           const updatedItem = payload.new as NewsItem;
+    //           const index = newNewsList.findIndex(item => item.id === updatedItem.id);
+    //           if (index > -1) {
+    //             newNewsList[index] = updatedItem;
+    //           } else {
+    //              newNewsList.unshift(updatedItem); // Add if not present (e.g., visibility change)
+    //           }
+    //         } else if (payload.eventType === 'DELETE') {
+    //           const deletedItem = payload.old as { id: string };
+    //           newNewsList = newNewsList.filter(item => item.id !== deletedItem.id);
+    //         }
+    //         // Sort by creation date descending and limit to ensure UI doesn't grow indefinitely
+    //         return newNewsList.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()).slice(0, 50); 
+    //       });
+    //     }
+    //   )
+    //   .subscribe((status, err) => {
+    //     if (status === 'SUBSCRIBED') {
+    //       console.log('[NewsListClient] Subscribed to news_articles changes.');
+    //     }
+    //     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+    //         console.error(`[NewsListClient] Subscription issue for news_articles: ${status}`, err);
+    //     }
+    //   });
 
-    return () => {
-      supabase.removeChannel(newsChannel).catch(console.error);
-      console.log('[NewsListClient] Unsubscribed from news_articles changes.');
-    };
+    // return () => {
+    //   supabase.removeChannel(newsChannel).catch(console.error);
+    //   console.log('[NewsListClient] Unsubscribed from news_articles changes.');
+    // };
   }, []);
 
   return (
@@ -165,3 +165,4 @@ export default function NewsListClient({ initialNews, initialError }: NewsListCl
     </div>
   );
 }
+

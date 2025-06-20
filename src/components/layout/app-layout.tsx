@@ -88,7 +88,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [currentAppLogoUrl]);
 
   useEffect(() => {
-    let notificationsChannel: RealtimeChannel | null = null;
+    // let notificationsChannel: RealtimeChannel | null = null;
 
     const fetchCount = async (userId: string) => {
       setIsLoadingNotificationCount(true);
@@ -106,38 +106,38 @@ export function AppLayout({ children }: { children: ReactNode }) {
     if (authUser && authUser.id) {
       fetchCount(authUser.id);
 
-      notificationsChannel = supabase
-        .channel(`user-notifications-count-${authUser.id}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${authUser.id}` },
-          (payload) => {
-            console.log('[AppLayout] Real-time user_notifications change received for count update:', payload);
-            fetchCount(authUser.id); // Re-fetch count on any relevant change
-          }
-        )
-        .subscribe((status, err) => {
-          if (status === 'SUBSCRIBED') {
-            console.log(`[AppLayout] Notification count subscription for user ${authUser.id} is: ${status}.`);
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error(`[AppLayout] Notification count subscription for user ${authUser.id} encountered CHANNEL_ERROR. Status: ${status}. Error:`, err || 'No specific error object provided.');
-          } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.warn(`[AppLayout] Notification count subscription for user ${authUser.id} changed status: ${status}. Details:`, err || 'No additional error details provided.');
-          }
-        });
+      // notificationsChannel = supabase
+      //   .channel(`user-notifications-count-${authUser.id}`)
+      //   .on(
+      //     'postgres_changes',
+      //     { event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${authUser.id}` },
+      //     (payload) => {
+      //       console.log('[AppLayout] Real-time user_notifications change received for count update:', payload);
+      //       fetchCount(authUser.id); // Re-fetch count on any relevant change
+      //     }
+      //   )
+      //   .subscribe((status, err) => {
+      //     if (status === 'SUBSCRIBED') {
+      //       console.log(`[AppLayout] Notification count subscription for user ${authUser.id} is: ${status}.`);
+      //     } else if (status === 'CHANNEL_ERROR') {
+      //       console.error(`[AppLayout] Notification count subscription for user ${authUser.id} encountered CHANNEL_ERROR. Status: ${status}. Error:`, err || 'No specific error object provided.');
+      //     } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
+      //       console.warn(`[AppLayout] Notification count subscription for user ${authUser.id} changed status: ${status}. Details:`, err || 'No additional error details provided.');
+      //     }
+      //   });
     } else {
       setUnreadCount(0); // Reset count if no user
     }
 
-    return () => {
-      if (notificationsChannel) {
-        supabase.removeChannel(notificationsChannel).then(status => {
-           console.log(`[AppLayout] Unsubscribed from notification count changes (user ${authUser?.id}). Status: ${status}`);
-        }).catch(error => {
-           console.error(`[AppLayout] Error unsubscribing from notification count changes:`, error);
-        });
-      }
-    };
+    // return () => {
+    //   if (notificationsChannel) {
+    //     supabase.removeChannel(notificationsChannel).then(status => {
+    //        console.log(`[AppLayout] Unsubscribed from notification count changes (user ${authUser?.id}). Status: ${status}`);
+    //     }).catch(error => {
+    //        console.error(`[AppLayout] Error unsubscribing from notification count changes:`, error);
+    //     });
+    //   }
+    // };
   }, [authUser]);
 
   const handleLinkClick = () => {

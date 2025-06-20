@@ -58,58 +58,58 @@ export default function AnnouncementsListClient({ initialAnnouncements, initialE
   }, [initialAnnouncements, initialError]);
 
   useEffect(() => {
-    const announcementsChannel: RealtimeChannel = supabase
-      .channel('public-announcements')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'announcements' },
-        (payload) => {
-          console.log('[AnnouncementsListClient] Real-time announcement event:', payload);
-          setAnnouncements(currentAnnouncements => {
-            let newAnnouncementsList = [...currentAnnouncements];
-            const changedItem = (payload.new || payload.old) as Announcement;
+    // const announcementsChannel: RealtimeChannel = supabase
+    //   .channel('public-announcements')
+    //   .on(
+    //     'postgres_changes',
+    //     { event: '*', schema: 'public', table: 'announcements' },
+    //     (payload) => {
+    //       console.log('[AnnouncementsListClient] Real-time announcement event:', payload);
+    //       setAnnouncements(currentAnnouncements => {
+    //         let newAnnouncementsList = [...currentAnnouncements];
+    //         const changedItem = (payload.new || payload.old) as Announcement;
 
-            if (payload.eventType === 'INSERT') {
-              const newItem = payload.new as Announcement;
-              if (newItem.is_active && !newAnnouncementsList.find(item => item.id === newItem.id)) {
-                newAnnouncementsList = [newItem, ...newAnnouncementsList];
-              }
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedItem = payload.new as Announcement;
-              const index = newAnnouncementsList.findIndex(item => item.id === updatedItem.id);
-              if (updatedItem.is_active) {
-                if (index > -1) {
-                  newAnnouncementsList[index] = updatedItem; // Update existing
-                } else {
-                  newAnnouncementsList.push(updatedItem); // Add if it became active and wasn't there
-                }
-              } else { // Item became inactive
-                if (index > -1) {
-                  newAnnouncementsList.splice(index, 1); // Remove if became inactive
-                }
-              }
-            } else if (payload.eventType === 'DELETE') {
-              const deletedItemId = (payload.old as { id: string }).id;
-              newAnnouncementsList = newAnnouncementsList.filter(item => item.id !== deletedItemId);
-            }
-            // Sort by creation date descending and limit
-            return newAnnouncementsList.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()).slice(0, 20);
-          });
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[AnnouncementsListClient] Subscribed to announcements changes.');
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            console.error(`[AnnouncementsListClient] Subscription issue for announcements: ${status}`, err);
-        }
-      });
+    //         if (payload.eventType === 'INSERT') {
+    //           const newItem = payload.new as Announcement;
+    //           if (newItem.is_active && !newAnnouncementsList.find(item => item.id === newItem.id)) {
+    //             newAnnouncementsList = [newItem, ...newAnnouncementsList];
+    //           }
+    //         } else if (payload.eventType === 'UPDATE') {
+    //           const updatedItem = payload.new as Announcement;
+    //           const index = newAnnouncementsList.findIndex(item => item.id === updatedItem.id);
+    //           if (updatedItem.is_active) {
+    //             if (index > -1) {
+    //               newAnnouncementsList[index] = updatedItem; // Update existing
+    //             } else {
+    //               newAnnouncementsList.push(updatedItem); // Add if it became active and wasn't there
+    //             }
+    //           } else { // Item became inactive
+    //             if (index > -1) {
+    //               newAnnouncementsList.splice(index, 1); // Remove if became inactive
+    //             }
+    //           }
+    //         } else if (payload.eventType === 'DELETE') {
+    //           const deletedItemId = (payload.old as { id: string }).id;
+    //           newAnnouncementsList = newAnnouncementsList.filter(item => item.id !== deletedItemId);
+    //         }
+    //         // Sort by creation date descending and limit
+    //         return newAnnouncementsList.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()).slice(0, 20);
+    //       });
+    //     }
+    //   )
+    //   .subscribe((status, err) => {
+    //     if (status === 'SUBSCRIBED') {
+    //       console.log('[AnnouncementsListClient] Subscribed to announcements changes.');
+    //     }
+    //     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+    //         console.error(`[AnnouncementsListClient] Subscription issue for announcements: ${status}`, err);
+    //     }
+    //   });
 
-    return () => {
-      supabase.removeChannel(announcementsChannel).catch(console.error);
-      console.log('[AnnouncementsListClient] Unsubscribed from announcements changes.');
-    };
+    // return () => {
+    //   supabase.removeChannel(announcementsChannel).catch(console.error);
+    //   console.log('[AnnouncementsListClient] Unsubscribed from announcements changes.');
+    // };
   }, []);
 
   return (
@@ -172,3 +172,4 @@ export default function AnnouncementsListClient({ initialAnnouncements, initialE
     </div>
   );
 }
+
