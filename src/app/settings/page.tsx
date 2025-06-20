@@ -9,9 +9,11 @@ import Link from "next/link";
 import { useCustomTheme } from '@/contexts/custom-theme-provider';
 import type { ColorTheme } from '@/lib/color-themes';
 import { cn } from "@/lib/utils";
-import { ThemeColorEditor } from "@/components/theme-editor/theme-color-editor";
+// ThemeColorEditor is no longer needed here
+// import { ThemeColorEditor } from "@/components/theme-editor/theme-color-editor";
 
-// Helper function to render a color swatch or gradient info
+// Helper function to render a color swatch or gradient info (No longer used directly in this simplified page)
+/*
 const ColorDisplay = ({
   themeId,
   mode,
@@ -27,80 +29,20 @@ const ColorDisplay = ({
   value?: string;
   isGradient?: boolean;
 }) => {
-  if (!value) return null;
-
-  const commonClasses = "text-xs p-1 rounded max-w-[150px] truncate";
-  let displayElement;
-
-  if (isGradient) {
-    displayElement = <span className={`${commonClasses} bg-muted text-muted-foreground`} title={value}>{value}</span>;
-  } else if (value.startsWith("hsl(") || value.startsWith("#") || value.match(/^\d{1,3}\s\d{1,3}%\s\d{1,3}%$/)) {
-    const bgColorStyle = value.startsWith("hsl(") || value.startsWith("#") ? value : `hsl(${value})`;
-    displayElement = (
-      <div className="flex items-center gap-2">
-        <div style={{ backgroundColor: bgColorStyle }} className="h-4 w-4 rounded border shrink-0"></div>
-        <span className={`${commonClasses} bg-muted text-muted-foreground`} title={value}>{value}</span>
-      </div>
-    );
-  } else {
-    displayElement = <span className={`${commonClasses} bg-muted text-muted-foreground`} title={value}>{value}</span>;
-  }
-
-  return (
-    <div className="flex justify-between items-center text-sm py-1 group">
-      <span className="text-muted-foreground">{label}:</span>
-      <div className="flex items-center gap-2">
-        {displayElement}
-        <ThemeColorEditor
-            themeId={themeId}
-            colorMode={mode}
-            colorKey={colorKey}
-            initialValue={String(value)} // Ensure initialValue is string
-        >
-            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Edit className="h-3.5 w-3.5" />
-            </Button>
-        </ThemeColorEditor>
-      </div>
-    </div>
-  );
+  // ... (implementation removed for brevity as it's no longer used)
 };
-
+*/
 
 export default function SettingsPage() {
   const { selectedThemeId, selectTheme, themes, getActiveThemeDefinition } = useCustomTheme();
-  const activeTheme = getActiveThemeDefinition();
+  // const activeTheme = getActiveThemeDefinition(); // No longer needed for detailed display
 
+  // renderThemeColors is no longer needed
+  /*
   const renderThemeColors = (themeDefinition: ColorTheme, mode: 'light' | 'dark', modeName: string) => {
-    const modeColors = themeDefinition.colors[mode];
-    if (!modeColors) return <p>لا توجد ألوان معرفة لهذا الوضع.</p>;
-    
-    const colorEntries = Object.entries(modeColors).filter(([key, value]) => value !== undefined && value !== null) as [keyof typeof modeColors, string][];
-
-    return (
-      <div className="space-y-1">
-        <h4 className="text-md font-semibold text-primary mt-3 mb-1">{modeName}</h4>
-        {colorEntries.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0">
-            {colorEntries.map(([key, value]) => (
-              <ColorDisplay
-                key={`${themeDefinition.id}-${mode}-${key}`}
-                themeId={themeDefinition.id}
-                mode={mode}
-                colorKey={key}
-                label={String(key)}
-                value={String(value)}
-                isGradient={String(key).toLowerCase().includes('gradient')}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">لم يتم تحديد ألوان لهذا الوضع.</p>
-        )}
-      </div>
-    );
+    // ... (implementation removed for brevity as it's no longer used)
   };
-
+  */
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -131,7 +73,7 @@ export default function SettingsPage() {
           <Palette className="h-8 w-8 text-primary mb-2" />
           <CardTitle className="text-xl">إعدادات المظهر والألوان</CardTitle>
           <CardDescription>
-            خصص ألوان التطبيق واختر الوضع الليلي/النهاري.
+            اختر نظام الألوان المفضل لديك وقم بتبديل الوضع الليلي/النهاري.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -164,22 +106,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {activeTheme && (
-        <Card className="shadow-md">
-          <CardHeader>
-            <Eye className="h-8 w-8 text-primary mb-2" />
-            <CardTitle className="text-xl">معاينة وتحرير قيم النظام اللوني النشط: "{activeTheme.name}"</CardTitle>
-            <CardDescription>
-              هذه هي قيم الألوان والتدرجات المستخدمة حاليًا. يمكنك الضغط على زر التعديل بجانب كل قيمة لتغييرها (التغييرات تحفظ مؤقتًا في المتصفح).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>{renderThemeColors(activeTheme, "light", "الوضع الفاتح")}</div>
-            <Separator />
-            <div>{renderThemeColors(activeTheme, "dark", "الوضع الداكن")}</div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Removed the detailed theme editor card that displayed individual color values */}
       
       <Card className="shadow-md">
         <CardHeader>
