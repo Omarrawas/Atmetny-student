@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, FileText, Gift, Sparkles, Star, Users, LogIn, Zap, BookMarked, Medal } from "lucide-react";
+import { Award, BookMarked, LogIn, Medal, FileText, CheckCircle, Flame } from "lucide-react"; // Updated icons
 import Image from "next/image";
 import Link from "next/link";
 import { useAppSettings } from "@/contexts/app-settings-context";
@@ -73,10 +73,10 @@ export default function HomePage() {
   const displayPoints = userProfile?.points ?? 0;
   const latestBadgeName = userProfile?.badges && userProfile.badges.length > 0
     ? userProfile.badges[0].name
-    : "لا شارات بعد";
-  const latestRewardName = userProfile?.rewards && userProfile.rewards.length > 0
-    ? userProfile.rewards[0].name
-    : "لا مكافآت بعد";
+    : "مبتدئ"; // Default placeholder for latest badge
+  // Placeholder for medals, as it's not directly in UserProfile yet
+  const latestMedalName = "لا ميداليات بعد";
+  const currentStreak = "٠ أيام"; // Placeholder for streak
 
   const defaultHomepageDescription = `✨ اجعل النجاح عادة!
 منصتك التعليمية الشاملة للدراسة الذكية والاستعداد للاختبارات المؤتمتة في سوريا.
@@ -146,8 +146,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Section with Community, AI Analysis, and Training Exams cards has been removed */}
-
       <section className="mt-12">
         <h2 className={cn("text-3xl font-bold mb-8 text-center", isAtmetyTechTheme ? "gradient-text" : "text-foreground")}>إنجازاتك وجوائزك</h2>
         {isLoadingProfile ? (
@@ -165,13 +163,23 @@ export default function HomePage() {
         ) : authUser && userProfile ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Card 1: سلسلة الأيام (Streak) - Right-most in RTL */}
               <Card className={cn("text-center hover:shadow-xl transition-shadow duration-300 transform hover:scale-105", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
-                  <Star className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
+                  <Flame className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-end)]" : "text-accent-foreground")} />
+                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>سلسلة الأيام</h4>
+                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{currentStreak}</p>
+                </CardContent>
+              </Card>
+              {/* Card 2: نقاطك الحالية (Current Points) */}
+              <Card className={cn("text-center hover:shadow-xl transition-shadow duration-300 transform hover:scale-105", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
+                <CardContent className="pt-5 flex flex-col items-center">
+                  <CheckCircle className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>نقاطك الحالية</h4>
                   <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{displayPoints.toLocaleString('ar-SA')} نقطة</p>
                 </CardContent>
               </Card>
+              {/* Card 3: أحدث شارة (Latest Badge) */}
               <Card className={cn("text-center hover:shadow-xl transition-shadow duration-300 transform hover:scale-105", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
                   <Award className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-end)]" : "text-accent-foreground")} />
@@ -179,18 +187,12 @@ export default function HomePage() {
                   <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{latestBadgeName}</p>
                 </CardContent>
               </Card>
-              <Card className={cn("text-center hover:shadow-xl transition-shadow duration-300 transform hover:scale-105", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
-                <CardContent className="pt-5 flex flex-col items-center">
-                  <Gift className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
-                  <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>المكافآت</h4>
-                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{latestRewardName}</p>
-                </CardContent>
-              </Card>
+              {/* Card 4: الميداليات (Medals) - Left-most in RTL */}
                <Card className={cn("text-center hover:shadow-xl transition-shadow duration-300 transform hover:scale-105", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
-                  <Zap className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-end)]" : "text-accent-foreground")} />
-                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>سلسلة الأيام</h4>
-                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>0 أيام</p>
+                  <Medal className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
+                  <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>الميداليات</h4>
+                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{latestMedalName}</p>
                 </CardContent>
               </Card>
             </div>
@@ -203,13 +205,23 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Card 1: سلسلة الأيام (Streak) - Right-most in RTL */}
              <Card className={cn("text-center", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
-                  <Star className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
-                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>نقاطك الحالية</h4>
-                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>0 نقطة</p>
+                  <Flame className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-end)]" : "text-accent-foreground")} />
+                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>سلسلة الأيام</h4>
+                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{currentStreak}</p>
                 </CardContent>
               </Card>
+              {/* Card 2: نقاطك الحالية (Current Points) */}
+              <Card className={cn("text-center", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
+                <CardContent className="pt-5 flex flex-col items-center">
+                  <CheckCircle className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
+                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>نقاطك الحالية</h4>
+                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>٠ نقطة</p>
+                </CardContent>
+              </Card>
+              {/* Card 3: أحدث شارة (Latest Badge) */}
               <Card className={cn("text-center", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
                   <Award className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-end)]" : "text-accent-foreground")} />
@@ -217,18 +229,12 @@ export default function HomePage() {
                   <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>ابدأ التعلم!</p>
                 </CardContent>
               </Card>
+              {/* Card 4: الميداليات (Medals) - Left-most in RTL */}
               <Card className={cn("text-center", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
                 <CardContent className="pt-5 flex flex-col items-center">
-                  <Gift className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
-                  <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>المكافآت</h4>
-                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>لا مكافآت بعد</p>
-                </CardContent>
-              </Card>
-              <Card className={cn("text-center", isAtmetyTechTheme && "card-gradient-background modern-shadow-light")}>
-                <CardContent className="pt-5 flex flex-col items-center">
-                  <Zap className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-red-end)]" : "text-accent-foreground")} />
-                   <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>سلسلة الأيام</h4>
-                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>0 أيام</p>
+                  <Medal className={cn("h-8 w-8 mb-2", isAtmetyTechTheme ? "text-[var(--user-gradient-accent-start)]" : "text-accent-foreground")} />
+                  <h4 className={cn("font-semibold", isAtmetyTechTheme && "text-[var(--user-gradient-red-start)]")}>الميداليات</h4>
+                  <p className={cn("text-sm", isAtmetyTechTheme ? "text-[var(--user-text-secondary)]" : "text-muted-foreground")}>{latestMedalName}</p>
                 </CardContent>
               </Card>
             </div>
