@@ -88,38 +88,78 @@ export const predefinedThemes: ColorTheme[] = [
     id: "modern-pink",
     colors: {
       light: {
-        background: "345 100% 97%", // Very light pink
-        primary: "335 85% 60%",    // Vibrant magenta/pink
-        accent: "340 90% 68%",     // Slightly brighter pink for accents
-        secondary: "340 70% 92%",   // Soft, light pink for secondary elements or gradient stop
-        card: "0 0% 100%",          // White cards
-        border: "345 50% 90%",      // Soft pinkish border
-        muted: "345 60% 93%",       // Muted light pink
-        sidebarBackground: "330 70% 95%", // Light lavender-pink for sidebar
-        sidebarForeground: "330 30% 25%", // Dark, desaturated pink/purple text
-        sidebarPrimary: "335 85% 60%",    // Same vibrant magenta/pink
-        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "330 60% 90%",    // Lighter pink for hover
-        sidebarAccentForeground: "330 30% 20%", // Darker text on hover
-        sidebarBorder: "330 50% 88%",      // Soft sidebar border
-        sidebarRing: "335 85% 65%",       // Primary pink for focus rings
+        background: "345 100% 97%", 
+        primary: "335 85% 60%",    
+        accent: "340 90% 68%",     
+        secondary: "340 70% 92%",   
+        card: "0 0% 100%",          
+        border: "345 50% 90%",      
+        muted: "345 60% 93%",       
+        sidebarBackground: "330 70% 95%", 
+        sidebarForeground: "330 30% 25%", 
+        sidebarPrimary: "335 85% 60%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "330 60% 90%",    
+        sidebarAccentForeground: "330 30% 20%", 
+        sidebarBorder: "330 50% 88%",      
+        sidebarRing: "335 85% 65%",       
       },
       dark: {
-        background: "330 15% 10%", // Very dark desaturated purple/pink
-        primary: "335 80% 65%",    // Vibrant magenta/pink (adjusted for dark)
-        accent: "340 85% 70%",     // Bright pink accent
-        secondary: "330 15% 20%",   // Muted dark purple/pink
-        card: "330 15% 14%",       // Slightly lighter than main dark background
-        border: "330 10% 25%",      // Subtle dark border
-        muted: "330 10% 22%",       // Muted dark color
-        sidebarBackground: "330 12% 12%", // Distinct dark shade for sidebar
-        sidebarForeground: "330 20% 90%", // Light, slightly desaturated pink/lavender text
-        sidebarPrimary: "335 80% 65%",    // Vibrant magenta/pink
+        background: "330 15% 10%", 
+        primary: "335 80% 65%",    
+        accent: "340 85% 70%",     
+        secondary: "330 15% 20%",   
+        card: "330 15% 14%",       
+        border: "330 10% 25%",      
+        muted: "330 10% 22%",       
+        sidebarBackground: "330 12% 12%", 
+        sidebarForeground: "330 20% 90%", 
+        sidebarPrimary: "335 80% 65%",    
+        sidebarPrimaryForeground: "0 0% 100%", 
+        sidebarAccent: "330 15% 22%",    
+        sidebarAccentForeground: "330 20% 95%", 
+        sidebarBorder: "330 10% 10%",      
+        sidebarRing: "335 80% 70%",       
+      },
+    },
+  },
+  {
+    name: "زمردي داكن",
+    id: "dark-emerald",
+    colors: {
+      light: {
+        background: "175 50% 97%", // Very light cyan/teal
+        primary: "145 60% 45%",    // Vibrant green (slightly desaturated for light)
+        accent: "205 70% 55%",     // Bright blue (slightly desaturated for light)
+        secondary: "175 40% 90%",   // Soft, light cyan/teal
+        card: "0 0% 100%",          // White cards
+        border: "175 30% 88%",      // Soft cyan/teal border
+        muted: "175 30% 93%",       // Muted light cyan/teal
+        sidebarBackground: "170 40% 94%", // Light slightly desaturated teal/cyan for sidebar
+        sidebarForeground: "170 35% 25%", // Dark, desaturated teal text
+        sidebarPrimary: "145 60% 45%",    // Same vibrant green
         sidebarPrimaryForeground: "0 0% 100%", // White text on primary
-        sidebarAccent: "330 15% 22%",    // Slightly lighter dark color for hover
-        sidebarAccentForeground: "330 20% 95%", // Text on hover
-        sidebarBorder: "330 10% 10%",      // Darker border for sidebar
-        sidebarRing: "335 80% 70%",       // Ring color
+        sidebarAccent: "170 35% 90%",    // Lighter cyan/teal for hover
+        sidebarAccentForeground: "170 35% 20%", // Darker text on hover
+        sidebarBorder: "170 30% 85%",      // Soft sidebar border
+        sidebarRing: "145 60% 50%",       // Primary green for focus rings
+      },
+      dark: {
+        background: "190 15% 8%",  // Very dark, slightly desaturated blue-green/teal
+        primary: "140 65% 50%",    // Vibrant, almost neon green
+        accent: "200 75% 55%",     // Bright blue
+        secondary: "190 12% 12%",   // Muted dark teal for secondary elements or gradient stop
+        card: "190 15% 11%",       // Slightly lighter than main dark background, dark teal
+        border: "190 10% 18%",      // Subtle dark teal border
+        muted: "190 10% 22%",       // Muted dark teal color
+        sidebarBackground: "190 14% 10%", // Distinct dark shade for sidebar, similar to cards
+        sidebarForeground: "190 15% 88%", // Light, slightly desaturated cyan/off-white text
+        sidebarPrimary: "140 65% 50%",    // Vibrant green
+        sidebarPrimaryForeground: "0 0% 100%", // White text on primary
+        sidebarAccent: "190 12% 15%",    // Slightly lighter dark color for hover
+        sidebarAccentForeground: "190 15% 92%", // Text on hover
+        sidebarBorder: "190 10% 7%",      // Darker border for sidebar
+        sidebarRing: "140 65% 55%",       // Ring color (primary green)
       },
     },
   },
@@ -145,21 +185,21 @@ export const predefinedThemes: ColorTheme[] = [
         sidebarRing: "45 100% 85%",
       },
       dark: {
-        background: "208 20% 10%",
-        primary: "207 82% 68%",
-        accent: "45 100% 85%",
-        secondary: "208 20% 20%",
-        card: "208 20% 15%",
-        border: "208 20% 25%",
-        muted: "208 20% 20%",
-        sidebarBackground: "208 20% 8%",
-        sidebarForeground: "208 100% 97%",
-        sidebarPrimary: "45 100% 85%",
-        sidebarPrimaryForeground: "45 70% 25%",
-        sidebarAccent: "208 20% 18%",
-        sidebarAccentForeground: "208 100% 97%",
-        sidebarBorder: "208 20% 22%",
-        sidebarRing: "45 100% 85%",
+        background: "208 20% 10%", // Default dark mode background
+        primary: "207 82% 68%",    // Default dark mode primary (kept same as light for this specific "default blue")
+        accent: "45 100% 85%",     // Default dark mode accent (kept same)
+        secondary: "208 20% 20%",   // Darker secondary for dark mode
+        card: "208 20% 15%",       // Darker card for dark mode
+        border: "208 20% 25%",      // Darker border
+        muted: "208 20% 20%",       // Darker muted
+        sidebarBackground: "208 20% 8%", // Darker sidebar background
+        sidebarForeground: "208 100% 97%", // Light text for dark sidebar
+        sidebarPrimary: "45 100% 85%",    // Accent as primary in dark sidebar
+        sidebarPrimaryForeground: "45 70% 25%", // Dark text on accent
+        sidebarAccent: "208 20% 18%",    // Darker hover for sidebar
+        sidebarAccentForeground: "208 100% 97%", // Light text on hover
+        sidebarBorder: "208 20% 22%",      // Darker sidebar border
+        sidebarRing: "45 100% 85%",       // Accent for ring
       },
     },
   },
@@ -284,3 +324,6 @@ export const predefinedThemes: ColorTheme[] = [
     },
   },
 ];
+
+
+    
