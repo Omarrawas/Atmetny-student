@@ -109,7 +109,7 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({ childr
           console.log('[AppSettingsProvider] Subscribed to app_settings changes.');
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.error(`[AppSettingsProvider] Subscription issue for app_settings: ${status}`, err);
+          console.error(`[AppSettingsProvider] Subscription issue for app_settings: ${status}`, err || 'No error object provided');
         }
       });
 
