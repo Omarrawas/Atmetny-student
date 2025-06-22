@@ -16,6 +16,8 @@ import type { AuthError, User as SupabaseAuthUser, Session as SupabaseSession } 
 import { Loader2, Mail, Lock, UserPlus, LogInIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { saveUserProfile } from '@/lib/userProfileService'; // Supabase version
+import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "الرجاء إدخال بريد إلكتروني صالح." }),
@@ -154,13 +156,10 @@ export function AuthForm() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+          redirectTo: `${window.location.origin}/`
         }
       });
       if (error) throw error;
-      // Supabase handles redirection. onAuthStateChange in AppLayout should pick up the session.
-      // The user will be redirected to Google and then back to your app's callback URL.
-      // If successful, onAuthStateChange will trigger handleAuthSuccess.
       toast({ title: "جاري توجيهك إلى جوجل...", variant: "default" });
     } catch (error) {
       handleAuthError(error as AuthError, "فشل تسجيل الدخول باستخدام جوجل.");
@@ -218,7 +217,23 @@ export function AuthForm() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={isLoading} className="w-full">
+                  
+                  <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                          <Checkbox id="remember-me" />
+                          <label
+                              htmlFor="remember-me"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                              تذكرني
+                          </label>
+                      </div>
+                      <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
+                          نسيت كلمة المرور؟
+                      </Link>
+                  </div>
+
+                  <Button type="submit" disabled={isLoading} className="w-full !mt-6">
                     {isLoading ? <Loader2 className="ms-2 h-4 w-4 animate-spin" /> : <LogInIcon className="ms-2 h-4 w-4" />}
                     تسجيل الدخول
                   </Button>
