@@ -14,12 +14,12 @@ import { AuthAndProfileProvider } from '@/contexts/auth-profile-context'; // Imp
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
-  subsets: ['latin', 'arabic'],
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
-  subsets: ['latin', 'arabic'],
+  subsets: ['latin'],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
