@@ -71,7 +71,7 @@ export function AuthForm() {
             // Initialize other fields as per your UserProfileWriteData defaults in saveUserProfile
             points: 0,
             level: 1,
-            progressToNextLevel: 0,
+            progress_to_next_level: 0,
             badges: [],
             rewards: [],
           });
@@ -154,7 +154,7 @@ export function AuthForm() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined // Ensure callback URL is configured in Supabase
+          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
         }
       });
       if (error) throw error;
